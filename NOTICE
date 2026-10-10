@@ -8,4 +8,9 @@ license requires.
 
 NOT AN OFFICIAL DISCORD PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH DISCORD.
 
+docs/frontend/design.html and docs/frontend/design.css are the Terranova
+design guide, under the MIT License, Copyright (c) 2026 server-terranova
+contributors, see docs/frontend/LICENSE. The tokens and rules in
+web/site.css are copied from it.
+
 Publisher and responsible: VonNekyia. Contact: contact@mcterranova.com

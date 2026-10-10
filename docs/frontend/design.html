@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Terranova Design Guide</title>
+    <link rel="stylesheet" href="design.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero-inner">
+        <p class="eyebrow">Terranova · Design guide</p>
+        <h1>Built like the world it <em>belongs to.</em></h1>
+        <p class="hero-copy">The look of Terranova: warm parchment and deep forest, gold for what matters, serif for the story
+          and a quiet sans for the work. This page is made from the design it describes; every colour, size and
+          element below is shown as it really looks.</p>
+      </div>
+      <nav class="chapters" aria-label="Chapters">
+        <a href="#character"><span>01</span><strong>Character</strong></a>
+        <a href="#colour"><span>02</span><strong>Colour</strong></a>
+        <a href="#type"><span>03</span><strong>Type</strong></a>
+        <a href="#space"><span>04</span><strong>Space &amp; shape</strong></a>
+        <a href="#elements"><span>05</span><strong>Elements</strong></a>
+        <a href="#imagery"><span>06</span><strong>Imagery &amp; motion</strong></a>
+        <a href="#voice"><span>07</span><strong>Voice &amp; practice</strong></a>
+      </nav>
+    </header>
+
+    <main>
+      <!-- 01 Character -->
+      <section id="character" class="section">
+        <div class="section-heading">
+          <p class="eyebrow eyebrow-dark">01 · Character</p>
+          <h2>Warm, calm, <em>crafted.</em></h2>
+          <p class="lead">A medieval world built block by block. The design should feel like that world at its best: pictures
+            carry the mood, the interface stays out of their way.</p>
+        </div>
+        <ol class="grid grid-5">
+          <li class="principle"><span>01</span><h4>Warm, not loud</h4><p>Cream and paper grounds, ink-green darks, gold accents. No pure black, no saturated interface colours.</p></li>
+          <li class="principle"><span>02</span><h4>Serif tells, sans works</h4><p>Large serif headlines carry the voice; body text, labels and controls use a clean sans.</p></li>
+          <li class="principle"><span>03</span><h4>Pictures first</h4><p>Renders and screenshots get room and as little veil as legibility allows.</p></li>
+          <li class="principle"><span>04</span><h4>Faithful to the game</h4><p>Pixel art stays on its grid; figures wear real skins; textures are the game's own.</p></li>
+          <li class="principle"><span>05</span><h4>The same for everyone</h4><p>Every language gets the same page; everything works without scripts and without third parties.</p></li>
+        </ol>
+      </section>
+
+      <!-- 02 Colour -->
+      <section id="colour" class="section ground-cream">
+        <div class="section-heading">
+          <p class="eyebrow eyebrow-dark">02 · Colour</p>
+          <h2>Parchment, forest <em>and gold.</em></h2>
+          <p class="lead">Fourteen named colours, each with one job. Use the name, never the raw value; a new colour needs a
+            name before its third use.</p>
+        </div>
+
+        <h3>Grounds</h3>
+        <ul class="grid grid-3">
+          <li class="swatch"><div class="swatch-chip sw-paper">paper</div><div class="swatch-body"><b>#fbf9f3</b><span>Page ground. The default light surface.</span></div></li>
+          <li class="swatch"><div class="swatch-chip sw-cream">cream</div><div class="swatch-body"><b>#f4f0e6</b><span>Alternate section ground, so sections separate without borders.</span></div></li>
+          <li class="swatch"><div class="swatch-chip sw-card">card</div><div class="swatch-body"><b>#ece8dc</b><span>Flat cards and labels on paper or cream.</span></div></li>
+        </ul>
+
+        <h3>Darks</h3>
+        <ul class="grid grid-5">
+          <li class="swatch"><div class="swatch-chip sw-ink">ink</div><div class="swatch-body"><b>#101813</b><span>Text on light, dark bars, solid header.</span></div></li>
+          <li class="swatch"><div class="swatch-chip sw-ink-soft">ink-soft</div><div class="swatch-body"><b>#25352b</b><span>Secondary dark, quiet borders on dark.</span></div></li>
+          <li class="swatch"><div class="swatch-chip sw-forest">forest</div><div class="swatch-body"><b>#17291f</b><span>Dark sections and floating panels.</span></div></li>
+          <li class="swatch"><div class="swatch-chip sw-forest-light">forest-light</div><div class="swatch-body"><b>#264534</b><span>Highlighted cards on dark, "ours" cards.</span></div></li>
+          <li class="swatch"><div class="swatch-chip sw-night">night</div><div class="swatch-body"><b>#0d1711</b><span>Ground behind full-bleed pictures and the footer.</span></div></li>
+        </ul>
+
+        <h3>Accents and text</h3>
+        <ul class="grid grid-3">
+          <li class="swatch"><div class="swatch-chip sw-gold">gold</div><div class="swatch-body"><b>#ddb15c</b><span>Rules, focus rings, underlines, bullets. Never for text on light.</span></div></li>
+          <li class="swatch"><div class="swatch-chip sw-gold-light">gold-light</div><div class="swatch-body"><b>#f1d58d</b><span>The one primary action, selected states, emphasis on dark.</span></div></li>
+          <li class="swatch"><div class="swatch-chip sw-umber">umber</div><div class="swatch-body"><b>#8a652b</b><span>Gold that reads on light: numbers, kickers, eyebrows on paper.</span></div></li>
+          <li class="swatch"><div class="swatch-chip sw-sage">sage</div><div class="swatch-body"><b>#9cbb91</b><span>Nature and "next" status on dark.</span></div></li>
+          <li class="swatch"><div class="swatch-chip sw-sage-light">sage-light</div><div class="swatch-body"><b>#cfe0c4</b><span>Builder tags, success grounds, "do" examples.</span></div></li>
+          <li class="swatch"><div class="swatch-chip sw-muted">muted</div><div class="swatch-body"><b>#536158</b><span>Secondary text on paper, cream and card.</span></div></li>
+        </ul>
+
+        <h3>Pairings</h3>
+        <p class="note">Every text colour has grounds it may stand on. Ratios are measured (WCAG 2): 4.5 is the floor for body
+          text, 3 for large headlines.</p>
+        <ul class="grid grid-4">
+          <li class="pair pair-ink-paper"><p>Ink on paper</p><small>17.2 : 1 <span class="badge">AAA</span></small></li>
+          <li class="pair pair-muted-card"><p>Muted on card</p><small>5.3 : 1 <span class="badge">AA</span></small></li>
+          <li class="pair pair-umber-paper"><p>Umber on paper</p><small>5.0 : 1 <span class="badge">AA</span></small></li>
+          <li class="pair pair-white-forest"><p>White on forest</p><small>15.3 : 1 <span class="badge">AAA</span></small></li>
+          <li class="pair pair-soft-forest"><p>White 65 % on forest</p><small>7.3 : 1 <span class="badge">AAA</span></small></li>
+          <li class="pair pair-gold-ink"><p>Gold-light on ink</p><small>12.6 : 1 <span class="badge">AAA</span></small></li>
+          <li class="pair pair-ink-gold"><p>Ink on gold-light</p><small>12.6 : 1 <span class="badge">AAA</span></small></li>
+          <li class="pair pair-bad"><p>Gold on paper</p><small>1.9 : 1 <span class="badge badge-no">never</span></small></li>
+        </ul>
+
+        <h3>Lines, shadows, veils</h3>
+        <ul class="spec">
+          <li><strong>Lines</strong> ink at 15 % on light, white at 18 % on dark. One pixel, never darker.</li>
+          <li><strong>Shadow</strong> one soft, deep shadow for floating panels (0 24 70, ink at 16 %); small objects get a two-step
+            shadow instead.</li>
+          <li><strong>Veils</strong> over pictures are the ink colour (8, 15, 10) at varying strength, never black: they read as dusk,
+            not dirt. See Imagery.</li>
+        </ul>
+      </section>
+
+      <!-- 03 Type -->
+      <section id="type" class="section">
+        <div class="section-heading">
+          <p class="eyebrow eyebrow-dark">03 · Type</p>
+          <h2>Serif for the story, <em>sans for the work.</em></h2>
+          <p class="lead">Two families, both already on every device: Georgia for voice, the system sans for everything
+            practical. No web fonts, no downloads.</p>
+        </div>
+        <ul class="specimen">
+          <li><div class="specimen-label"><b>Display</b>Serif 500 · clamp(3.25–7.6 rem) · −0.045 em · line 0.98</div><div class="specimen-sample t-display">Dein Start auf <em>Terranova.</em></div></li>
+          <li><div class="specimen-label"><b>Headline</b>Serif 500 · clamp(2.5–5 rem) · −0.04 em · balanced, ends with a full stop</div><div class="specimen-sample t-h2">Zwölf Wege, eine Stadt.</div></li>
+          <li><div class="specimen-label"><b>Title</b>Serif 500 · 1.3–1.7 rem · cards, panels, list items</div><div class="specimen-sample t-h3">Unter einem Banner</div></li>
+          <li><div class="specimen-label"><b>Lead</b>Sans · 1.06–1.28 rem · muted · max 70 characters</div><div class="specimen-sample t-lead">Alles für deine ersten Tage, von der Ausrüstung bis zu deiner ersten Stadt.</div></li>
+          <li><div class="specimen-label"><b>Body</b>Sans · 16 px · line 1.65</div><div class="specimen-sample t-body">Städte haben einen Bürgermeister, einen Rat und eine Kasse. Wer sich einbringt, kommt voran – und was du baust, bleibt Teil der Geschichte.</div></li>
+          <li><div class="specimen-label"><b>Eyebrow</b>Sans 850 · 0.75 rem · uppercase · 0.18 em · 44 px rule</div><div class="specimen-sample"><p class="eyebrow eyebrow-dark">Kapitel 02 · Berufe</p></div></li>
+          <li><div class="specimen-label"><b>Label</b>Sans 800–850 · 0.62–0.74 rem · uppercase · 0.08–0.14 em</div><div class="specimen-sample t-label">Spielversion · Mod-Loader · Ziel</div></li>
+          <li><div class="specimen-label"><b>Number</b>Serif · old-style figures · umber</div><div class="specimen-sample t-number">01 · 02 · 03</div></li>
+          <li><div class="specimen-label"><b>Code &amp; keys</b>System mono · 0.86 em</div><div class="specimen-sample"><code>/command arg</code> &nbsp; <kbd>Esc</kbd> <kbd>.</kbd></div></li>
+        </ul>
+        <p class="note">Emphasis in a headline is serif italic in gold-light on dark and umber on light. Android draws the serif
+          slightly wider: leave room. Headlines never break in the middle of a word; long compound words get a soft hyphen.</p>
+      </section>
+
+      <!-- 04 Space & shape -->
+      <section id="space" class="section ground-cream">
+        <div class="section-heading">
+          <p class="eyebrow eyebrow-dark">04 · Space &amp; shape</p>
+          <h2>Room to <em>breathe.</em></h2>
+          <p class="lead">A content column of 1180 px, generous section padding, a short spacing scale and soft, consistent
+            corners.</p>
+        </div>
+        <div class="grid grid-2">
+          <div>
+            <h4>Spacing scale</h4>
+            <ul class="scale">
+              <li>4<i class="s-4"></i></li>
+              <li>8<i class="s-8"></i></li>
+              <li>12<i class="s-12"></i></li>
+              <li>18<i class="s-18"></i></li>
+              <li>24<i class="s-24"></i></li>
+              <li>30<i class="s-30"></i></li>
+              <li>44<i class="s-44"></i></li>
+              <li>64<i class="s-64"></i></li>
+              <li>90<i class="s-90"></i></li>
+              <li>150<i class="s-150"></i></li>
+            </ul>
+          </div>
+          <div>
+            <h4>Layout</h4>
+            <ul class="spec">
+              <li><strong>Column</strong> 1180 px; side gutters at least 24 px, 20 px on phones.</li>
+              <li><strong>Sections</strong> 90–150 px top and bottom, grounds alternate paper, cream and a dark.</li>
+              <li><strong>Gaps</strong> 18 px between cards, 8–14 px inside a group, 30 px between header items.</li>
+              <li><strong>Grids</strong> 4–6 columns on wide screens, 2 on tablets, 1 on phones; an odd last item takes the row.</li>
+              <li><strong>Breakpoints</strong> 460 (small phones), 760 (phones), 960 (tablets), 1100 (laptops), 1200 and 1600 (wide).</li>
+              <li><strong>Text</strong> never runs wider than about 70 characters.</li>
+            </ul>
+          </div>
+        </div>
+
+        <h3>Corners</h3>
+        <div class="grid grid-5">
+          <div class="shape r-8"><b>8</b>buttons, inputs</div>
+          <div class="shape r-14"><b>14</b>boxes, menus</div>
+          <div class="shape r-18"><b>18</b>cards</div>
+          <div class="shape r-28"><b>28</b>big panels</div>
+          <div class="shape r-pill"><b>pill</b>tags, choices</div>
+        </div>
+
+        <h3>Depth</h3>
+        <div class="grid grid-4">
+          <div class="depth d-flat"><b>Flat</b>card on paper; most surfaces</div>
+          <div class="depth d-line"><b>Line</b>white card with a hairline</div>
+          <div class="depth d-small"><b>Small</b>tags and chips</div>
+          <div class="depth d-float"><b>Float</b>panels, hover, menus</div>
+        </div>
+      </section>
+
+      <!-- 05 Elements -->
+      <section id="elements" class="section">
+        <div class="section-heading">
+          <p class="eyebrow eyebrow-dark">05 · Elements</p>
+          <h2>Every piece, <em>in place.</em></h2>
+          <p class="lead">The complete set: what is in use today, and what fits the system when it is needed. Elements marked
+            <span class="tag tag-sage">ready</span> exist only here so far; build them like this when a page needs them.</p>
+        </div>
+
+        <!-- Navigation -->
+        <div class="catalogue-group">
+          <h3>Navigation</h3>
+
+          <div class="element element-wide">
+            <div class="element-text">
+              <h4>Header bar</h4>
+              <ul>
+                <li>One row: wordmark, menu, icon links, language switch. Transparent over a hero, solid ink once scrolled.</li>
+                <li>Menu items uppercase, current page underlined in gold; items that are not ready yet are dimmed and marked "bald".</li>
+                <li>Labels never wrap; below about 1100 px the menu folds behind a round button.</li>
+              </ul>
+            </div>
+            <div class="stage stage-dark">
+              <div class="demo-header">
+                <a class="wordmark" href="#elements"><i></i><span><strong>Terranova</strong><small>Anno 1412</small></span></a>
+                <nav class="menu" aria-label="Example menu"><a href="#elements" aria-current="page">Startseite</a><a href="#elements">Guide</a><span class="is-soon">Shop<small>bald</small></span><a href="#elements">Karte</a></nav>
+                <a class="icon-button" href="#elements" aria-label="Community" title="Community"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z" /></svg></a>
+                <nav class="lang" aria-label="Example language switch"><a href="#elements" aria-current="page">DE</a><a href="#elements">EN</a></nav>
+              </div>
+            </div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Dropdown and folded menu</h4>
+              <ul>
+                <li>Sub-entries open below their parent on hover or keyboard focus; a chevron says there is more.</li>
+                <li>Dark menu, 14 px corners, float shadow; hovered entry in gold-light.</li>
+                <li>Folded (phones): the round menu button opens the same list full width, sub-entries indented.</li>
+              </ul>
+            </div>
+            <div class="stage stage-dark">
+              <span class="menu-button" aria-hidden="true"><i></i></span>
+              <nav class="dropdown" aria-label="Example dropdown"><a href="#elements">Team</a><a class="is-hover" href="#elements">Roadmap</a><a href="#elements">Kontakt</a></nav>
+            </div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Chapter bar</h4>
+              <ul>
+                <li>Numbered chapters of a long page, equal parts across the whole width, under one hairline (see the top of this page).</li>
+                <li>Number in serif gold-light, label in uppercase sans.</li>
+                <li>Two columns on phones; an odd last chapter takes the row.</li>
+              </ul>
+            </div>
+            <div class="stage stage-dark"><p class="note">The bar under this page's title is the live example.</p></div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Breadcrumbs <span class="tag tag-sage">ready</span></h4>
+              <ul><li>For pages deeper than one level. Slashes in a line colour, current page in ink and bold.</li></ul>
+            </div>
+            <div class="stage"><ol class="breadcrumbs"><li><a href="#elements">Start</a></li><li><a href="#elements">Guide</a></li><li aria-current="page">Berufe</li></ol></div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Pagination <span class="tag tag-sage">ready</span></h4>
+              <ul><li>For long lists. Serif numbers in 40 px boxes; current page in gold-light.</li></ul>
+            </div>
+            <div class="stage"><nav class="pagination" aria-label="Example pages"><a href="#elements">‹</a><a href="#elements">1</a><a href="#elements" aria-current="page">2</a><a href="#elements">3</a><a href="#elements">›</a></nav></div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Tabs <span class="tag tag-sage">ready</span></h4>
+              <ul><li>Switch between parallel views of one thing. Uppercase labels, gold underline on the active tab; work without scripts.</li></ul>
+            </div>
+            <div class="stage">
+              <div class="tabs">
+                <input type="radio" name="tabs" id="tab-1" checked /><input type="radio" name="tabs" id="tab-2" /><input type="radio" name="tabs" id="tab-3" />
+                <div class="tab-list"><label for="tab-1">Sammeln</label><label for="tab-2">Verarbeiten</label><label for="tab-3">Kampf</label></div>
+                <p class="tab-panel tab-p1">Forstwirtschaft, Bergbau, Fischerei und Landwirtschaft.</p>
+                <p class="tab-panel tab-p2">Kochen und Schmiedekunst.</p>
+                <p class="tab-panel tab-p3">Monsterjagd und Glaube.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="catalogue-group">
+          <h3>Actions</h3>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Primary button</h4>
+              <ul>
+                <li>Gold-light, 8 px corners, 58 px high; lifts 2 px on hover. One per view.</li>
+                <li>May pair a small uppercase verb with a bold object, split by a hairline.</li>
+                <li>Confirmed state turns sage-light; disabled is pale and does not lift.</li>
+              </ul>
+            </div>
+            <div class="stage stage-dark">
+              <a class="button" href="#elements"><span>Kopieren</span><strong>Server-Adresse</strong></a>
+              <span class="button is-done"><span>Kopiert</span><strong>✓</strong></span>
+              <span class="button" aria-disabled="true">Bald verfügbar</span>
+            </div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Quiet and small buttons</h4>
+              <ul>
+                <li>Secondary actions on dark: outline in white 35 %, gold on hover.</li>
+                <li>Small (42 px) for pairs inside cards, e.g. download and source.</li>
+              </ul>
+            </div>
+            <div class="stage stage-dark">
+              <a class="button button-small" href="#elements">Neueste Version <small>1.0</small></a>
+              <a class="button button-small button-quiet" href="#elements">Quelltext</a>
+            </div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Icon buttons</h4>
+              <ul><li>36 px circles with a white hairline, gold on hover. Icon only, so always labelled and titled.</li></ul>
+            </div>
+            <div class="stage stage-dark">
+              <a class="icon-button" href="#elements" aria-label="Karte" title="Karte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z" /><path d="M9 4v14M15 6v14" /></svg></a>
+              <a class="icon-button" href="#elements" aria-label="Kopieren" title="Kopieren"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2" /><path d="M16 8V5a1 1 0 00-1-1H5a1 1 0 00-1 1v10a1 1 0 001 1h3" /></svg></a>
+              <a class="icon-button" href="#elements" aria-label="Pause" title="Pause"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg></a>
+            </div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Links</h4>
+              <ul>
+                <li>In text: underlined in umber at 45 %, offset 4 px; bold in lists of names.</li>
+                <li>On dark, a call to go somewhere: gold-light with an arrow.</li>
+              </ul>
+            </div>
+            <div class="stage">
+              <p>Mehr im <a href="#elements">Einsteiger-Guide</a> und bei <a class="text-link" href="#elements">Unsere Mods</a>.</p>
+            </div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Focus</h4>
+              <ul><li>Every interactive element shows a 2 px gold ring, 3 px away, when reached by keyboard. Never removed.</li></ul>
+            </div>
+            <div class="stage stage-dark"><span class="button is-focus">Fokus sichtbar</span><a class="arrow-link" href="#elements">Community öffnen →</a></div>
+          </div>
+        </div>
+
+        <!-- Inputs -->
+        <div class="catalogue-group">
+          <h3>Inputs</h3>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Text fields and text area</h4>
+              <ul>
+                <li>48 px high, 8 px corners, uppercase label above, help text below.</li>
+                <li>Focus: umber border and gold ring. Errors: red-brown border and a short message saying what to do.</li>
+                <li>On dark: translucent white field, white hairline.</li>
+              </ul>
+            </div>
+            <div class="stage">
+              <form class="form" action="#elements">
+                <div class="field"><label for="f-mail">Deine E-Mail</label><input id="f-mail" type="email" placeholder="name@beispiel.de" /><span class="help">Nur für die Antwort.</span></div>
+                <div class="field field-error"><label for="f-name">Spielername</label><input id="f-name" type="text" value="x" /><span class="error">Bitte mindestens 3 Zeichen.</span></div>
+                <div class="field"><label for="f-msg">Nachricht</label><textarea id="f-msg"></textarea></div>
+              </form>
+            </div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Choice pills</h4>
+              <ul><li>For a handful of options: always readable, one tap on phones, no dropdown. Selected is gold-light on ink.</li></ul>
+            </div>
+            <div class="stage stage-dark"><div class="pills"><span class="pill pill-on">Entbannung</span><span class="pill">Presse</span><span class="pill">Gameplay</span><span class="pill">Allgemein</span></div></div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Select <span class="tag tag-sage">ready</span></h4>
+              <ul><li>Only when there are too many options for pills. Same field style; the browser's own list keeps it accessible.</li></ul>
+            </div>
+            <div class="stage"><form class="form" action="#elements"><div class="field"><label for="f-sel">Nation</label><select id="f-sel"><option>Bitte wählen</option><option>Nordmark</option><option>Westmark</option></select></div></form></div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Checkbox, radio and switch <span class="tag tag-sage">ready</span></h4>
+              <ul>
+                <li>Checkboxes and radios in umber; the label is the click target.</li>
+                <li>A switch for settings that apply at once; on is umber.</li>
+              </ul>
+            </div>
+            <div class="stage">
+              <label class="choice"><input type="checkbox" checked /> Neuigkeiten per E-Mail</label>
+              <label class="choice"><input type="radio" name="r" checked /> Deutsch</label>
+              <label class="choice"><input type="radio" name="r" /> English</label>
+              <label class="switch"><input type="checkbox" checked /><i></i> Koordinaten zeigen</label>
+            </div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Search <span class="tag tag-sage">ready</span></h4>
+              <ul><li>A pill with a magnifier; results appear below, never in a popup that hides the page.</li></ul>
+            </div>
+            <div class="stage"><label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></svg><input type="search" placeholder="Stadt oder Spieler suchen" aria-label="Suchen" /></label></div>
+          </div>
+        </div>
+
+        <!-- Content -->
+        <div class="catalogue-group">
+          <h3>Content</h3>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Eyebrow</h4>
+              <ul><li>Above every section headline: a 44 px rule and a short uppercase label. Gold on dark, umber on light.</li></ul>
+            </div>
+            <div class="stage stage-dark"><p class="eyebrow">Neu auf Terranova?</p></div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Cards</h4>
+              <ul>
+                <li>White with a hairline and 18 px corners; lift 4 px with the float shadow on hover when they link somewhere.</li>
+                <li>Kicker in umber, serif title, muted text, optional 56 px icon.</li>
+                <li>"Ours" variant on forest-light with gold kicker; flat variant on card colour for values and steps.</li>
+              </ul>
+            </div>
+            <div class="stage">
+              <div class="grid grid-2">
+                <article class="card"><p class="kicker">Leistung</p><h4>Flüssig spielen</h4><p>Mehr Bilder pro Sekunde, auch in großen Städten.</p></article>
+                <article class="card card-dark"><p class="kicker">Von uns</p><h4>Eigene Karte</h4><p>Minimap und Vollbildkarte, direkt vom Server.</p></article>
+              </div>
+            </div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Panel</h4>
+              <ul><li>A floating dark block for the most important offer of a section: forest with a gold sheen, float shadow, button at the side.</li></ul>
+            </div>
+            <div class="stage">
+              <div class="panel"><div><p class="kicker">Alles in einem Paket</p><h4>Das Modpack.</h4><p>Ein Klick, alles drin.</p></div><a class="button" href="#elements"><span>Laden</span><strong>Modpack</strong></a></div>
+            </div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Facts row</h4>
+              <ul><li>Three to four key facts between two hairlines: uppercase umber label, serif value.</li></ul>
+            </div>
+            <div class="stage"><dl class="facts"><div><dt>Version</dt><dd>26.3</dd></div><div><dt>Loader</dt><dd>Fabric</dd></div><div><dt>Paket</dt><dd>Pflicht</dd></div></dl></div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Numbered steps</h4>
+              <ul><li>Flat cards with a serif number for a short how-to; three or four in a row.</li></ul>
+            </div>
+            <div class="stage"><ol class="steps"><li><span>01</span><h4>Laden</h4><p>Den Launcher installieren.</p></li><li><span>02</span><h4>Importieren</h4><p>Die Datei hineinziehen.</p></li><li><span>03</span><h4>Spielen</h4><p>Starten und verbinden.</p></li></ol></div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Timeline with status</h4>
+              <ul>
+                <li>For plans and history on a dark ground: serif number, status pill, title and points.</li>
+                <li>Status pills: now (gold-light filled), next (sage outline), later (dashed outline).</li>
+              </ul>
+            </div>
+            <div class="stage stage-dark">
+              <ol class="timeline">
+                <li><b>01</b><span class="status status-now">Jetzt</span><div><strong>Nächstes Update</strong>Neue Website und viele Fehlerbehebungen.</div></li>
+                <li><b>02</b><span class="status status-next">Als Nächstes</span><div><strong>Berufe</strong>Zehn Berufe in vier Bereichen.</div></li>
+                <li><b>03</b><span class="status status-later">Später</span><div><strong>Kriege</strong>Belagerungen um Ländereien.</div></li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Tags</h4>
+              <ul><li>Small uppercase pills for roles and kinds: gold for rank, sage for builders, outline on dark, dashed for the unknown.</li></ul>
+            </div>
+            <div class="stage"><span class="tag">Admin</span><span class="tag tag-sage">Dev</span><span class="tag tag-sage">Content</span><span class="soon">bald</span></div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Person label with leader line</h4>
+              <ul>
+                <li>Name, tags and role centred above a picture; a thin ink line runs from the label to the person.</li>
+                <li>On tablets and phones the line goes and the labels become flat cards.</li>
+              </ul>
+            </div>
+            <div class="stage">
+              <div class="person"><i></i><strong>Spielername</strong><span class="tags"><span class="tag tag-sage">Dev</span></span><span>Baut Inhalte für die Welt.</span></div>
+              <div class="leader"><b>Name</b></div>
+            </div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Lists, quotes, dividers</h4>
+              <ul>
+                <li>Bullets are 8 px gold dots. Numbered lists use serif numbers.</li>
+                <li>Quote <span class="tag tag-sage">ready</span>: serif italic with a gold rule at the left.</li>
+                <li>Dividers are hairlines; an ornament divider <span class="tag tag-sage">ready</span> may mark a pause in long text.</li>
+              </ul>
+            </div>
+            <div class="stage">
+              <ul class="dots-list"><li>Ländereien statt Claims</li><li>Ein Levelsystem</li></ul>
+              <blockquote class="quote"><p>„Was du baust, bleibt.“</p><footer>Ein Bürgermeister</footer></blockquote>
+              <div class="divider-ornament">✦</div>
+            </div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Table, keys and code</h4>
+              <ul>
+                <li>Tables on white with hairline rows; umber uppercase headers; first column bold. Scroll inside their box on phones.</li>
+                <li>Keys as raised caps; commands inline in mono; longer code on ink <span class="tag tag-sage">ready</span>.</li>
+              </ul>
+            </div>
+            <div class="stage">
+              <div class="table-wrap"><table><thead><tr><th>Eingabe</th><th>Was passiert</th></tr></thead><tbody><tr><td><kbd>.</kbd></td><td>Öffnet die Karte.</td></tr><tr><td><code>/menu</code></td><td>Öffnet das Menü.</td></tr></tbody></table></div>
+              <pre class="codeblock"><span class="c"># Beispiel</span>
+<span class="k">karte</span> öffnen  .
+<span class="k">menü</span>  öffnen  /menu</pre>
+            </div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Accordion <span class="tag tag-sage">ready</span></h4>
+              <ul><li>For questions and answers: serif question, plus and minus in umber, works without scripts.</li></ul>
+            </div>
+            <div class="stage">
+              <div class="accordion">
+                <details open><summary>Brauche ich Mods?</summary><p>Nein. Der normale Client reicht, Mods sind freiwillig.</p></details>
+                <details><summary>Kostet der Server etwas?</summary><p>Nein, spielen ist kostenlos.</p></details>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Feedback -->
+        <div class="catalogue-group">
+          <h3>Feedback</h3>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Messages</h4>
+              <ul>
+                <li>After an action, right under it: success on sage, warning on parchment with an umber line, error on deep red-brown, info on forest.</li>
+                <li>A bold first sentence says what happened, the second what to do.</li>
+              </ul>
+            </div>
+            <div class="stage">
+              <div class="message message-ok"><div><strong>Gesendet.</strong>Das Team meldet sich per E-Mail.</div></div>
+              <div class="message message-warn"><div><strong>Zu viele Anfragen.</strong>Versuch es in ein paar Minuten noch einmal.</div></div>
+              <div class="message message-error"><div><strong>Das hat nicht geklappt.</strong>Schreib uns direkt per E-Mail.</div></div>
+              <div class="message message-info"><div><strong>Hinweis.</strong>Termine stehen in der Community.</div></div>
+            </div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Toast <span class="tag tag-sage">ready</span></h4>
+              <ul><li>A short confirmation that needs no answer, bottom of the screen, gone after a few seconds; never the only place for an error.</li></ul>
+            </div>
+            <div class="stage"><div class="toast"><b>✓</b> Adresse kopiert</div></div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Progress <span class="tag tag-sage">ready</span></h4>
+              <ul><li>A 10 px track with an umber-to-gold bar and the numbers below; for downloads and goals.</li></ul>
+            </div>
+            <div class="stage"><div class="progress"><div class="progress-bar"><i></i></div><p><span>Stufe 2 von 4</span><span>62 %</span></p></div></div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Loading and empty states <span class="tag tag-sage">ready</span></h4>
+              <ul>
+                <li>Loading: a skeleton of the card that is coming, with a slow shimmer (none with reduced motion).</li>
+                <li>Empty: a dashed umber outline, one sentence why, one way forward.</li>
+              </ul>
+            </div>
+            <div class="stage">
+              <div class="skeleton" aria-hidden="true"><i></i><i></i><i></i></div>
+              <div class="empty"><h4>Noch keine Einträge</h4><p>Sobald es etwas gibt, steht es hier.</p></div>
+            </div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Tooltip <span class="tag tag-sage">ready</span></h4>
+              <ul><li>A short ink note on hover and keyboard focus; never holds anything that is needed to act.</li></ul>
+            </div>
+            <div class="stage"><p>Der Server läuft auf <span class="tip is-open" data-tip="Die Spielversion des Servers" tabindex="0">26.3</span>.</p></div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Dialog <span class="tag tag-sage">ready</span></h4>
+              <ul><li>Only to confirm something that cannot be undone. Forest card on an ink veil, the safe choice is the quiet button.</li></ul>
+            </div>
+            <div class="stage">
+              <div class="backdrop"><div class="dialog"><h5>Karte löschen?</h5><p>Sie kommt nur mit einem neuen Download zurück.</p><div class="dialog-actions"><span class="button button-small">Löschen</span><span class="button button-small button-quiet">Abbrechen</span></div></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Media -->
+        <div class="catalogue-group">
+          <h3>Media</h3>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Picture with caption</h4>
+              <ul><li>Pictures fill their card edge to edge; a short muted caption below says what is shown.</li></ul>
+            </div>
+            <div class="stage"><figure class="figure-card"><div class="picture"></div><figcaption>Eine Stadt am Abend.</figcaption></figure></div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Slideshow with names on the picture</h4>
+              <ul>
+                <li>Dots and a pause icon stand in a slim column at the right edge.</li>
+                <li>Place names sit on the picture like on an old map: spaced serif italic in parchment with a soft dark halo, following a coast, and link to the map.</li>
+              </ul>
+            </div>
+            <div class="stage"><div class="slider-demo picture"><span class="map-name">Hafenstadt</span><div class="controls"><i class="on"></i><i></i><i></i><b>II</b></div></div></div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Video <span class="tag tag-sage">ready</span></h4>
+              <ul><li>16 : 9 on night with a gold-light play button; loads only after a click and only from our own server.</li></ul>
+            </div>
+            <div class="stage"><div class="video"><span>▶</span></div></div>
+          </div>
+
+          <div class="element">
+            <div class="element-text">
+              <h4>Icons</h4>
+              <ul><li>Drawn simply in a 24 px box with a 2 px stroke and round joins; brand marks only for the brands themselves.</li></ul>
+            </div>
+            <div class="stage">
+              <div class="icon-row" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z" /><path d="M9 4v14M15 6v14" /></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" /></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10" /></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 06 Imagery & motion -->
+      <section id="imagery" class="section ground-cream">
+        <div class="section-heading">
+          <p class="eyebrow eyebrow-dark">06 · Imagery &amp; motion</p>
+          <h2>Let the pictures <em>speak.</em></h2>
+          <p class="lead">Renders that look crafted, pixel art on its grid, veils only where text needs them, and motion that
+            never gets in the way.</p>
+        </div>
+
+        <h3>Veils</h3>
+        <div class="grid grid-3">
+          <figure class="figure-card"><div class="picture veil-side"><b>Text beside</b></div><figcaption>Wide screens: dark only where the text sits, clear by 60 %.</figcaption></figure>
+          <figure class="figure-card"><div class="picture veil-even"><b>Text across</b></div><figcaption>Tablets: one even veil, a little darker at the bottom.</figcaption></figure>
+          <figure class="figure-card"><div class="picture veil-black"><b>Black</b></div><figcaption>Never: a black veil turns the picture into dirt.</figcaption></figure>
+        </div>
+
+        <h3>Pixel art</h3>
+        <div class="pixel-row">
+          <figure><svg viewBox="0 0 9 9" width="18" height="18" aria-hidden="true"><path fill="#1d0706" d="M1 0h2v1H1zM6 0h2v1H6zM0 1h1v4H0zM3 1h1v1H3zM5 1h1v1H5zM8 1h1v4H8zM4 2h1v1H4zM1 5h1v1H1zM7 5h1v1H7zM2 6h1v1H2zM6 6h1v1H6zM3 7h1v1H3zM5 7h1v1H5zM4 8h1v1H4z" /><path fill="#e8382e" d="M1 1h2v1H1zM6 1h2v1H6zM1 2h1v1H1zM3 2h1v1H3zM5 2h3v1H5zM1 3h7v1H1zM1 4h6v1H1zM2 5h4v1H2zM3 6h2v1H3z" /><path fill="#b3221b" d="M7 4h1v1H7zM6 5h1v1H6zM5 6h1v1H5zM4 7h1v1H4z" /><path fill="#ffd9d3" d="M2 2h1v1H2z" /></svg><figcaption>18 px · 2×</figcaption></figure>
+          <figure><svg viewBox="0 0 9 9" width="27" height="27" aria-hidden="true"><path fill="#1d0706" d="M1 0h2v1H1zM6 0h2v1H6zM0 1h1v4H0zM3 1h1v1H3zM5 1h1v1H5zM8 1h1v4H8zM4 2h1v1H4zM1 5h1v1H1zM7 5h1v1H7zM2 6h1v1H2zM6 6h1v1H6zM3 7h1v1H3zM5 7h1v1H5zM4 8h1v1H4z" /><path fill="#f08a24" d="M1 1h2v1H1zM6 1h2v1H6zM1 2h1v1H1zM3 2h1v1H3zM5 2h3v1H5zM1 3h7v1H1zM1 4h6v1H1zM2 5h4v1H2zM3 6h2v1H3z" /><path fill="#b85f10" d="M7 4h1v1H7zM6 5h1v1H6zM5 6h1v1H5zM4 7h1v1H4z" /><path fill="#ffe2c2" d="M2 2h1v1H2z" /></svg><figcaption>27 px · 3×</figcaption></figure>
+          <figure><svg viewBox="0 0 9 9" width="45" height="45" aria-hidden="true"><path fill="#1d0706" d="M1 0h2v1H1zM6 0h2v1H6zM0 1h1v4H0zM3 1h1v1H3zM5 1h1v1H5zM8 1h1v4H8zM4 2h1v1H4zM1 5h1v1H1zM7 5h1v1H7zM2 6h1v1H2zM6 6h1v1H6zM3 7h1v1H3zM5 7h1v1H5zM4 8h1v1H4z" /><path fill="#4cb848" d="M1 1h2v1H1zM6 1h2v1H6zM1 2h1v1H1zM3 2h1v1H3zM5 2h3v1H5zM1 3h7v1H1zM1 4h6v1H1zM2 5h4v1H2zM3 6h2v1H3z" /><path fill="#2e7d2c" d="M7 4h1v1H7zM6 5h1v1H6zM5 6h1v1H5zM4 7h1v1H4z" /><path fill="#d8f5d3" d="M2 2h1v1H2z" /></svg><figcaption>45 px · 5×</figcaption></figure>
+          <figure><svg viewBox="0 0 9 9" width="72" height="72" aria-hidden="true"><path fill="#1d0706" d="M1 0h2v1H1zM6 0h2v1H6zM0 1h1v4H0zM3 1h1v1H3zM5 1h1v1H5zM8 1h1v4H8zM4 2h1v1H4zM1 5h1v1H1zM7 5h1v1H7zM2 6h1v1H2zM6 6h1v1H6zM3 7h1v1H3zM5 7h1v1H5zM4 8h1v1H4z" /><path fill="#3a8ee8" d="M1 1h2v1H1zM6 1h2v1H6zM1 2h1v1H1zM3 2h1v1H3zM5 2h3v1H5zM1 3h7v1H1zM1 4h6v1H1zM2 5h4v1H2zM3 6h2v1H3z" /><path fill="#2160a8" d="M7 4h1v1H7zM6 5h1v1H6zM5 6h1v1H5zM4 7h1v1H4z" /><path fill="#d6e9ff" d="M2 2h1v1H2z" /></svg><figcaption>72 px · 8×</figcaption></figure>
+          <figure class="pixel-wrong"><svg viewBox="0 0 9 9" width="50" height="50" aria-hidden="true"><path fill="#1d0706" d="M1 0h2v1H1zM6 0h2v1H6zM0 1h1v4H0zM3 1h1v1H3zM5 1h1v1H5zM8 1h1v4H8zM4 2h1v1H4zM1 5h1v1H1zM7 5h1v1H7zM2 6h1v1H2zM6 6h1v1H6zM3 7h1v1H3zM5 7h1v1H5zM4 8h1v1H4z" /><path fill="#9b4ee0" d="M1 1h2v1H1zM6 1h2v1H6zM1 2h1v1H1zM3 2h1v1H3zM5 2h3v1H5zM1 3h7v1H1zM1 4h6v1H1zM2 5h4v1H2zM3 6h2v1H3z" /></svg><figcaption>never: rotated, odd size</figcaption></figure>
+        </div>
+        <ul class="spec">
+          <li>Pixel art is drawn on its own grid and shown only at whole multiples of it, never rotated or blurred.</li>
+          <li>Renders: warm key light, cool fill, soft bloom; real skins; the game's textures; transparent figures fade their
+            shadow out instead of ending in a line.</li>
+          <li>Screenshots are cropped to the scene, without interface; the brightest part sits away from text.</li>
+          <li>Every picture has its width and height, a modern format and loads late below the fold; large ones come in
+            several sizes so each screen gets what it needs.</li>
+        </ul>
+
+        <h3>Motion</h3>
+        <div class="grid grid-3">
+          <div class="lift">Hover: lift 4 px · 180 ms</div>
+          <div class="lift">Reveal: fade in once · 650 ms</div>
+          <div class="lift">Crossfade: pictures · 1200 ms</div>
+        </div>
+        <p class="note">Motion explains, it never decorates for its own sake. Anything that moves by itself can be paused, and the
+          system setting for reduced motion turns it all off.</p>
+      </section>
+
+      <!-- 07 Voice & practice -->
+      <section id="voice" class="section ground-forest">
+        <div class="section-heading">
+          <p class="eyebrow">07 · Voice &amp; practice</p>
+          <h2>Speak plainly, <em>build honestly.</em></h2>
+          <p class="lead">German first and addressed with du, English mirrors it with you. Short sentences, plain words, and
+            a page that respects whoever opens it.</p>
+        </div>
+        <div class="grid grid-2">
+          <div class="say say-do"><span class="tag tag-sage">Do</span><p>Hier ist jeder willkommen. Wir sind freundlich zueinander.</p></div>
+          <div class="say say-dont"><span class="tag">Don't</span><p>Diskriminierung wird nicht toleriert und streng sanktioniert.</p></div>
+          <div class="say say-do"><span class="tag tag-sage">Do</span><p>Updates kommen, wenn sie fertig sind.</p></div>
+          <div class="say say-dont"><span class="tag">Don't</span><p>Das ultimative Next-Level-Erlebnis wartet auf dich!!!</p></div>
+        </div>
+        <ul class="checks">
+          <li><b>Say who is welcome,</b> not who is not; values so a child understands them.</li>
+          <li><b>Headlines end with a full stop;</b> labels are nouns.</li>
+          <li><b>Every language gets the same page,</b> written, not machine-translated.</li>
+          <li><b>Contrast</b> at least 4.5 : 1 for text; gold never as text on light.</li>
+          <li><b>Focus always visible;</b> icon-only controls carry a label.</li>
+          <li><b>Works without scripts;</b> scripts only add comfort.</li>
+          <li><b>Nothing from third parties:</b> no web fonts, no trackers, no embedded players.</li>
+          <li><b>Privacy by construction:</b> a visitor's data goes to us only, and only when they send it.</li>
+          <li><b>Every size from 320 px up,</b> without sideways scrolling.</li>
+          <li><b>Not obvious? Write it down,</b> with the reason, where the next person will look.</li>
+        </ul>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <strong>Terranova</strong> · Design guide. Colours, type, space, elements, imagery, motion and voice.
+    </footer>
+  </body>
+</html>
