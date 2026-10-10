@@ -27,7 +27,8 @@ Schnellstart, Stand. Ausführlich steht alles in `docs/`.
 Aufträge gehen vom Orchestrator an die Developer, Fragen und fertige PRs
 zurück an ihn. Developer geben sich keine Aufträge gegenseitig.
 
-Das Design kommt aus dem Design-Guide der Website. Der Frontend-Developer
+Das Design kommt aus dem Design-Guide der Website, siehe
+[Design der Oberfläche](docs/frontend/design.md). Der Frontend-Developer
 baut jedes Element so, wie der Guide es zeigt, mit den Tokens des Guides.
 Fehlt ein Element im Guide, fragt er den Orchestrator, statt eins zu
 erfinden.
@@ -44,6 +45,7 @@ anderen Seite ab.
 | [`entscheidung-festhalten`](skills/entscheidung-festhalten/SKILL.md) | eine Richtung wird festgelegt, eine Alternative verworfen oder eine Entscheidung abgelöst |
 | [`pr-reviewen`](skills/pr-reviewen/SKILL.md) | Orchestrator: einen Auftrag verteilen, eine PR prüfen und mergen |
 | [`befehl-hinzufuegen`](skills/befehl-hinzufuegen/SKILL.md) | Backend: ein Slash-Befehl, seine Optionen, Rechte oder Intents kommen dazu oder ändern sich |
+| [`design-umsetzen`](skills/design-umsetzen/SKILL.md) | Frontend: etwas Sichtbares in `web/` kommt dazu oder ändert sich; Review einer solchen PR |
 
 Vor dem Arbeitsschritt die `SKILL.md` ganz lesen und ihr folgen.
 
@@ -174,5 +176,6 @@ Vor dem Arbeitsschritt die `SKILL.md` ganz lesen und ihr folgen.
 | `docs/index.md` | Wegweiser: jede Seite mit einer Zeile |
 | `docs/benutzung/` | Einrichtung, Secrets, Betrieb, Befehle |
 | `docs/bot/` | wie der Bot mit Discord umgeht: Intents, Rate-Limits, Wiederanlauf, Datenschutz |
+| `docs/frontend/` | Design der Oberfläche, der Design-Guide (`design.html`, `design.css`, MIT), Auslieferung und Header |
 | `docs/entwicklung/` | CI, Ablauf einer PR, Tests |
 | `docs/entscheidungen/` | `NNNN-titel.md`, eine Datei je Entscheidung |

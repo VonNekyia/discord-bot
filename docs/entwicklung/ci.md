@@ -7,6 +7,8 @@ code:
   - .github/pruefe-doku.sh
   - .github/workflows/backend.yml
   - .github/pruefe-lizenzen.mjs
+  - .github/workflows/frontend.yml
+  - web/lighthouserc.cjs
 ---
 
 # CI und Ablauf einer PR
@@ -24,7 +26,7 @@ Stand 2026-10-10, Ruleset 24844508:
 | Regel | Wirkung |
 |---|---|
 | Pull Request | kein direkter Push auf `main`; 0 Freigaben, weil alle Rollen über ein Konto arbeiten |
-| Status-Checks, strict | „Basis aktuell“ muss grün sein, und die PR muss den neuesten Stand von `main` enthalten |
+| Status-Checks, strict | „Basis aktuell“, „Doku“, „Backend“ und „Frontend“ müssen grün sein, und die PR muss den neuesten Stand von `main` enthalten |
 | kein Löschen, kein Force-Push | `main` bleibt, wie es ist |
 | Ausnahmen | keine, auch nicht für Admins |
 
@@ -79,6 +81,37 @@ sie Überschriften findet, und bricht sonst mit einer Meldung ab.
 | Build und Tests | `npm test` | `tsc` einen Fehler findet oder ein Test fällt, siehe [Tests](tests.md) |
 | Sicherheitslücken | `npm audit --omit=dev --audit-level=high` | eine Laufzeit-Abhängigkeit eine Lücke ab „high“ hat |
 | Lizenzen | `node ../.github/pruefe-lizenzen.mjs package-lock.json` | siehe unten |
+
+## Frontend
+
+`.github/workflows/frontend.yml`, Job „Frontend“, in `web/` mit Node 24.
+Die Schwellen sind die der Website.
+
+| Schritt | Befehl | rot, wenn |
+|---|---|---|
+| Build | `npm run build` | `tsc` einen Fehler findet |
+| Sicherheitslücken | `npm audit --omit=dev --audit-level=high` | eine Laufzeit-Abhängigkeit eine Lücke ab „high“ hat |
+| Lizenzen | wie beim Backend | siehe unten |
+| Header | `curl -I` auf `/` | ein Header aus [Auslieferung](../frontend/auslieferung.md), „Header“, fehlt oder die CSP `unsafe-inline` erlaubt |
+| Lighthouse | `npm run lighthouse` | eine Schwelle unten verfehlt ist |
+
+Lighthouse läuft dreimal gegen `web/serve.mjs` und nimmt den Median
+(`web/lighthouserc.cjs`):
+
+| Prüfung | Schwelle | bei Verfehlen |
+|---|---|---|
+| Accessibility | ab 0,85 | rot |
+| Best Practices | ab 0,8 | rot |
+| SEO | ab 0,9 | rot |
+| Cumulative Layout Shift | bis 0,25 | rot |
+| Total Blocking Time | bis 1200 ms | rot |
+| `document-title`, `meta-description`, `http-status-code` | bestanden | rot |
+| Performance | ab 0,5 | Warnung |
+| Largest Contentful Paint | bis 4000 ms | Warnung |
+
+Die Berichte liegen als Artefakt `lighthouse` 14 Tage am Lauf. Stand
+2026-10-10 misst die Startseite lokal 1,0 in allen vier Kategorien,
+CLS 0, TBT 0 ms, LCP rund 900 ms.
 
 ## Lizenzen
 
