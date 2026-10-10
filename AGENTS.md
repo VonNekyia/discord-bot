@@ -43,6 +43,7 @@ anderen Seite ab.
 | [`doku-pflegen`](skills/doku-pflegen/SKILL.md) | jede Änderung an Verhalten, Befehlen, Rechten, Intents, gespeicherten Daten, Oberfläche oder CI; jedes Review |
 | [`entscheidung-festhalten`](skills/entscheidung-festhalten/SKILL.md) | eine Richtung wird festgelegt, eine Alternative verworfen oder eine Entscheidung abgelöst |
 | [`pr-reviewen`](skills/pr-reviewen/SKILL.md) | Orchestrator: einen Auftrag verteilen, eine PR prüfen und mergen |
+| [`befehl-hinzufuegen`](skills/befehl-hinzufuegen/SKILL.md) | Backend: ein Slash-Befehl, seine Optionen, Rechte oder Intents kommen dazu oder ändern sich |
 
 Vor dem Arbeitsschritt die `SKILL.md` ganz lesen und ihr folgen.
 
@@ -171,5 +172,7 @@ Vor dem Arbeitsschritt die `SKILL.md` ganz lesen und ihr folgen.
 | Pfad | Inhalt |
 |---|---|
 | `docs/index.md` | Wegweiser: jede Seite mit einer Zeile |
-| `docs/entwicklung/` | CI, Ablauf einer PR |
+| `docs/benutzung/` | Einrichtung, Secrets, Betrieb, Befehle |
+| `docs/bot/` | wie der Bot mit Discord umgeht: Intents, Rate-Limits, Wiederanlauf, Datenschutz |
+| `docs/entwicklung/` | CI, Ablauf einer PR, Tests |
 | `docs/entscheidungen/` | `NNNN-titel.md`, eine Datei je Entscheidung |
