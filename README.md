@@ -8,13 +8,13 @@
   <img alt="Oberfläche in TypeScript" src="https://img.shields.io/badge/Oberfl%C3%A4che-TypeScript-3178c6">
 </p>
 
-Der Discord-Bot von Terranova: ein Bot in TypeScript mit discord.js und
-eine Weboberfläche in TypeScript im Design der Website.
+**kitty** ist ein Discord-Bot: ein Bot in TypeScript mit discord.js und
+eine Weboberfläche in TypeScript im Design der Website von Terranova.
 
 ## Stand
 
 Grundgerüst. Der Bot meldet sich an und kennt `/ping`. Die Oberfläche
-ist eine Startseite im Design von Terranova; was sie einmal mehr kann,
+ist eine Startseite im Design der Website; was sie einmal mehr kann,
 ist offen.
 
 ## Schnellstart

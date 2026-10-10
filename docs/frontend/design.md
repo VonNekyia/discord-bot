@@ -36,8 +36,9 @@ ist.
 8. **Deutsch, mit du.** Überschriften enden mit Punkt, Labels sind
    Substantive.
 9. **Bilder:** WebP oder PNG mit `width` und `height`, Pixel-Art nur in
-   ganzen Vielfachen. Vom Logo liegen `web/favicon.ico` und
-   `web/logo192.png` im Repo, beide in der neuen Fassung.
+   ganzen Vielfachen. Das Logo von kitty ist das Nekyia-Logo, eine
+   Katze im Profil: `web/favicon.ico` (16, 32 und 48 px) und
+   `web/logo192.png`, beide aus derselben Vorlage in 1024 px.
 
 ## Tokens
 
