@@ -13,7 +13,7 @@ eine Weboberfläche in TypeScript im Design der Website von Terranova.
 
 ## Stand
 
-Grundgerüst. Der Bot meldet sich an und kennt `/ping`. Die Oberfläche
+Grundgerüst. Der Bot meldet sich an, nutzt eine MariaDB und kennt `/ping`. Die Oberfläche
 ist eine Startseite im Design der Website; was sie einmal mehr kann,
 ist offen.
 
@@ -22,12 +22,13 @@ ist offen.
 ```bash
 cd bot
 cp .env.example .env
+docker compose up -d
 npm ci
 npm test
 npm start
 ```
 
-`DISCORD_BOT_TOKEN` in `bot/.env` eintragen, siehe
+`DISCORD_BOT_TOKEN` und `DB_PASSWORD` in `bot/.env` eintragen, siehe
 [Einrichtung und Betrieb](docs/benutzung/einrichtung.md).
 
 Die Oberfläche:

@@ -1,0 +1,25 @@
+# Die Dev-Datenbank, nur von diesem Rechner aus erreichbar. Liest bot/.env.
+#
+#   docker compose up -d
+#
+# Siehe docs/bot/datenbank.md, „Dev-Datenbank“.
+services:
+  mariadb:
+    image: mariadb:11.4
+    environment:
+      MARIADB_DATABASE: ${DB_NAME:?DB_NAME fehlt in bot/.env}
+      MARIADB_USER: ${DB_USER:?DB_USER fehlt in bot/.env}
+      MARIADB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD fehlt in bot/.env}
+      MARIADB_RANDOM_ROOT_PASSWORD: "1"
+    ports:
+      - "127.0.0.1:${DB_PORT:-3306}:3306"
+    volumes:
+      - daten:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  daten:

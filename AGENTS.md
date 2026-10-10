@@ -175,7 +175,7 @@ Vor dem Arbeitsschritt die `SKILL.md` ganz lesen und ihr folgen.
 |---|---|
 | `docs/index.md` | Wegweiser: jede Seite mit einer Zeile |
 | `docs/benutzung/` | Einrichtung, Secrets, Betrieb, Befehle |
-| `docs/bot/` | wie der Bot mit Discord umgeht: Intents, Rate-Limits, Wiederanlauf, Datenschutz |
+| `docs/bot/` | wie der Bot arbeitet: Intents, Rate-Limits, Wiederanlauf, Datenschutz, Datenbank, Cache |
 | `docs/frontend/` | Design der Oberfläche, der Design-Guide (`design.html`, `design.css`, MIT), Auslieferung und Header |
 | `docs/entwicklung/` | CI, Ablauf einer PR, Tests |
 | `docs/entscheidungen/` | `NNNN-titel.md`, eine Datei je Entscheidung |

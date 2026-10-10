@@ -3,7 +3,7 @@ import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { test, type TestContext } from 'node:test';
 import { REST, type ChatInputCommandInteraction } from 'discord.js';
-import { beantworte, registriere } from './befehle.js';
+import { beantworte, registriere, type Kontext } from './befehle.js';
 
 // Gemockte Discord-API: antwortet der Reihe nach mit den Statuscodes in
 // `antworten`, danach mit 200. Siehe docs/entwicklung/tests.md.
@@ -31,6 +31,16 @@ async function mockApi(t: TestContext, antworten: number[]) {
   const { port } = server.address() as AddressInfo;
   const rest = new REST({ api: `http://127.0.0.1:${port}/api`, retries: 1 }).setToken('test');
   return { rest, anfragen };
+}
+
+// Eine Datenbank, die nur `query` kann: antwortet sofort oder wirft.
+function datenbank(fehler?: Error): Kontext {
+  return { db: { query: async () => { if (fehler) throw fehler; return [[], []]; } } as unknown as Kontext['db'] };
+}
+
+// Eine Datenbank, deren Anfragen nie zurückkommen.
+function haengt(): Kontext {
+  return { db: { query: () => new Promise(() => {}) } as unknown as Kontext['db'] };
 }
 
 // Eine Interaktion, die nur hat, was beantworte braucht.
@@ -68,16 +78,41 @@ test('registriere gibt nach 5xx und einem Versuch auf', async (t) => {
   assert.equal(anfragen.length, 2);
 });
 
-test('/ping antwortet nur dem Nutzer', async () => {
+test('/ping antwortet nur dem Nutzer, mit der Zeit der Datenbank', async () => {
   const { interaction, antworten } = interaktion('ping');
-  await beantworte(interaction);
-  assert.deepEqual(antworten, [{ content: 'Pong.', flags: 64 }]);
+  await beantworte(interaction, datenbank());
+  assert.equal(antworten.length, 1);
+  assert.match(antworten[0]?.content ?? '', /^Pong\. Datenbank: \d+ ms\.$/);
+  assert.equal(antworten[0]?.flags, 64);
+});
+
+test('/ping antwortet auch, wenn die Datenbank fehlt', async (t) => {
+  const log = t.mock.method(console, 'error', () => {});
+  const { interaction, antworten } = interaktion('ping');
+  await beantworte(interaction, datenbank(new Error('connect ECONNREFUSED')));
+  assert.deepEqual(antworten, [{ content: 'Pong. Datenbank: nicht erreichbar.', flags: 64 }]);
+  assert.deepEqual(log.mock.calls.map((c) => String(c.arguments[0])), ['/ping: Datenbank: connect ECONNREFUSED']);
+});
+
+// Ohne Frist in misse wartete /ping hier ewig; timeout lässt den Test dann fallen.
+test('/ping antwortet nach 2 s, wenn die Datenbank hängt', { timeout: 5_000 }, async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const log = t.mock.method(console, 'error', () => {});
+  const { interaction, antworten } = interaktion('ping');
+  const fertig = beantworte(interaction, haengt());
+  t.mock.timers.tick(1_999);
+  await new Promise(setImmediate);
+  assert.deepEqual(antworten, []);
+  t.mock.timers.tick(1);
+  await fertig;
+  assert.deepEqual(antworten, [{ content: 'Pong. Datenbank: nicht erreichbar.', flags: 64 }]);
+  assert.deepEqual(log.mock.calls.map((c) => String(c.arguments[0])), ['/ping: Datenbank: keine Antwort nach 2000 ms']);
 });
 
 test('ein unbekannter Befehl bekommt eine Meldung, das Log keine Nutzerdaten', async (t) => {
   const log = t.mock.method(console, 'error', () => {});
   const { interaction, antworten } = interaktion('gibt-es-nicht');
-  await beantworte(interaction);
+  await beantworte(interaction, datenbank());
   assert.deepEqual(antworten, [{ content: 'Das hat nicht geklappt.', flags: 64 }]);
   const zeilen = log.mock.calls.map((c) => String(c.arguments[0]));
   assert.deepEqual(zeilen, ['/gibt-es-nicht: unbekannter Befehl']);
