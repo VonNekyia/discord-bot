@@ -18,6 +18,26 @@ jobs:
     name: Backend
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    # Eine Wegwerf-MariaDB nur für diesen Lauf; das Passwort ist kein Secret.
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_DATABASE: kitty
+          MARIADB_USER: kitty
+          MARIADB_PASSWORD: ci
+          MARIADB_RANDOM_ROOT_PASSWORD: "1"
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_NAME: kitty
+      DB_USER: kitty
+      DB_PASSWORD: ci
     steps:
       - uses: actions/checkout@v4
 

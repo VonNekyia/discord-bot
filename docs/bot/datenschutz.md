@@ -4,6 +4,7 @@ description: Welche Daten von Discord der Bot speichert, wie lange, und was ins 
 code:
   - bot/src/befehle.ts
   - bot/src/index.ts
+  - bot/src/cache.ts
 ---
 
 # Datenschutz
@@ -19,7 +20,11 @@ gelöscht wird.
 |---|---|---|
 | keine | – | – |
 
-Der Cache von discord.js liegt nur im Speicher und endet mit dem Prozess.
+Die Datenbank hält heute nur die Tabelle `migrationen` mit den Namen der
+angewendeten Dateien. Der Cache von discord.js und der eigene Cache
+(`bot/src/cache.ts`) liegen nur im Speicher und enden mit dem Prozess.
+Kommen Daten über Nutzer in einen Cache, steht hier auch seine
+Ablaufzeit.
 
 ## Was ins Log geht
 

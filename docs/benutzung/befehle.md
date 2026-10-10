@@ -13,7 +13,7 @@ Alle Befehle sind globale Slash-Befehle und stehen in `befehle` in
 
 | Befehl | Antwort | Sichtbar für | Rechte des Bots | Intents |
 |---|---|---|---|---|
-| `/ping` | `Pong.` | nur den Nutzer (ephemeral) | keine | `Guilds` |
+| `/ping` | `Pong. Datenbank: <n> ms.`, oder `nicht erreichbar` | nur den Nutzer (ephemeral) | keine | `Guilds` |
 
 ## Fehler
 
