@@ -38,6 +38,11 @@ function datenbank(fehler?: Error): Kontext {
   return { db: { query: async () => { if (fehler) throw fehler; return [[], []]; } } as unknown as Kontext['db'] };
 }
 
+// Eine Datenbank, deren Anfragen nie zurückkommen.
+function haengt(): Kontext {
+  return { db: { query: () => new Promise(() => {}) } as unknown as Kontext['db'] };
+}
+
 // Eine Interaktion, die nur hat, was beantworte braucht.
 function interaktion(commandName: string) {
   const antworten: { content?: string; flags?: unknown }[] = [];
@@ -87,6 +92,21 @@ test('/ping antwortet auch, wenn die Datenbank fehlt', async (t) => {
   await beantworte(interaction, datenbank(new Error('connect ECONNREFUSED')));
   assert.deepEqual(antworten, [{ content: 'Pong. Datenbank: nicht erreichbar.', flags: 64 }]);
   assert.deepEqual(log.mock.calls.map((c) => String(c.arguments[0])), ['/ping: Datenbank: connect ECONNREFUSED']);
+});
+
+// Ohne Frist in misse wartete /ping hier ewig; timeout lässt den Test dann fallen.
+test('/ping antwortet nach 2 s, wenn die Datenbank hängt', { timeout: 5_000 }, async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const log = t.mock.method(console, 'error', () => {});
+  const { interaction, antworten } = interaktion('ping');
+  const fertig = beantworte(interaction, haengt());
+  t.mock.timers.tick(1_999);
+  await new Promise(setImmediate);
+  assert.deepEqual(antworten, []);
+  t.mock.timers.tick(1);
+  await fertig;
+  assert.deepEqual(antworten, [{ content: 'Pong. Datenbank: nicht erreichbar.', flags: 64 }]);
+  assert.deepEqual(log.mock.calls.map((c) => String(c.arguments[0])), ['/ping: Datenbank: keine Antwort nach 2000 ms']);
 });
 
 test('ein unbekannter Befehl bekommt eine Meldung, das Log keine Nutzerdaten', async (t) => {

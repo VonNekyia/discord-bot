@@ -43,6 +43,7 @@ Interaktionen ersetzt `interaktion` durch ein Objekt mit nur dem, was
 | registriere gibt nach 5xx auf | der Fehler kommt beim Aufrufer an |
 | /ping antwortet nur dem Nutzer, mit der Zeit der Datenbank | Text mit ms und Flag `Ephemeral` (64) |
 | /ping antwortet auch, wenn die Datenbank fehlt | „nicht erreichbar“, eine Logzeile nur mit dem Fehlertext |
+| /ping antwortet nach 2 s, wenn die Datenbank hängt | eine `query`, die nie zurückkommt; mit falschen Uhren: bei 1999 ms noch keine Antwort, bei 2000 ms „nicht erreichbar“ |
 | gleichzeitige Anfragen laden einen Schlüssel nur einmal | `ladeCache` |
 | nach delete und nach Ablauf wird neu geladen | `ladeCache` mit `ttl` 30 ms |
 | mehr als max Schlüssel verdrängen den ältesten | `ladeCache` mit `max` 2 |

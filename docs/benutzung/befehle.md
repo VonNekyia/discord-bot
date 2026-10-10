@@ -3,6 +3,7 @@ title: Befehle
 description: Jeder Slash-Befehl mit Antwort, Sichtbarkeit und den Rechten, die er braucht.
 code:
   - bot/src/befehle.ts
+  - bot/src/datenbank.ts
 ---
 
 # Befehle
@@ -14,6 +15,15 @@ Alle Befehle sind globale Slash-Befehle und stehen in `befehle` in
 | Befehl | Antwort | Sichtbar für | Rechte des Bots | Intents |
 |---|---|---|---|---|
 | `/ping` | `Pong. Datenbank: <n> ms.`, oder `nicht erreichbar` | nur den Nutzer (ephemeral) | keine | `Guilds` |
+
+## Antwortzeit
+
+Discord erwartet die erste Antwort auf eine Interaktion innerhalb von 3 s,
+sonst sieht der Nutzer „Die Anwendung reagiert nicht“, siehe die
+[Doku von Discord](https://discord.com/developers/docs/interactions/receiving-and-responding#responding-to-an-interaction).
+`/ping` wartet darum höchstens 2 s auf die Datenbank (`misse` in
+`bot/src/datenbank.ts`, `frist`) und antwortet dann „nicht erreichbar“. Ein
+Befehl, der länger braucht, ruft zuerst `deferReply` auf.
 
 ## Fehler
 

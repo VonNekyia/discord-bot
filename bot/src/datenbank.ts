@@ -57,9 +57,18 @@ export async function migriere(ziel: ConnectionOptions, ordner: string): Promise
   }
 }
 
-// Wie lange eine Anfrage an die Datenbank hin und zurück braucht, in ms.
-export async function misse(db: Pick<Pool, 'query'>): Promise<number> {
+// Wie lange eine Anfrage an die Datenbank hin und zurück braucht, in ms;
+// wirft nach `frist` ms. Siehe docs/benutzung/befehle.md, „Antwortzeit“.
+export async function misse(db: Pick<Pool, 'query'>, frist = 2_000): Promise<number> {
   const start = performance.now();
-  await db.query('SELECT 1');
+  let uhr: NodeJS.Timeout | undefined;
+  const abgelaufen = new Promise<never>((_, nein) => {
+    uhr = setTimeout(() => nein(new Error(`keine Antwort nach ${frist} ms`)), frist);
+  });
+  try {
+    await Promise.race([db.query('SELECT 1'), abgelaufen]);
+  } finally {
+    clearTimeout(uhr);
+  }
   return Math.round(performance.now() - start);
 }
