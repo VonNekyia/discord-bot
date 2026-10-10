@@ -160,7 +160,8 @@ Vor dem Arbeitsschritt die `SKILL.md` ganz lesen und ihr folgen.
 29. Eine PR enthält den neuesten Stand von `main`, bevor sie gemergt wird:
     `git fetch origin && git rebase origin/main`, dann
     `git push --force-with-lease`. Der Check „Basis aktuell“ wird sonst
-    rot. Eine PR, die auf einer anderen aufbaut, bleibt Entwurf, bis ihr
+    rot, siehe [CI und Ablauf einer PR](docs/entwicklung/ci.md), „Basis aktuell“.
+    Eine PR, die auf einer anderen aufbaut, bleibt Entwurf, bis ihr
     Vorgänger gemergt ist.
 30. Branches heissen nach dem Inhalt, nie `claude/…`. PR-Beschreibungen
     tragen keine Zeile „Generated with Claude Code“.

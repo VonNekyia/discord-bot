@@ -59,8 +59,11 @@ Oder auf GitHub „Update branch“ mit „Update with rebase“.
   `code:`, jeder Pfad unter `code:` existiert;
 - jede Seite in `docs/` steht in `docs/index.md`.
 
-Danach verbiegt die Probe je einen Fall und verlangt genau fünf
+Danach verbiegt die Probe je einen Fall und verlangt genau sechs
 Meldungen. So fällt auf, wenn die Prüfung nichts mehr findet.
 
-Unter Git Bash keine Zeichenklasse mit „ oder “ in einem Regex: Die
-Zeichen sind mehrere Bytes lang.
+Unter Git Bash (MSYS) findet Bash eine Zeichenklasse mit „“ wie `[^“]`
+unter `LC_ALL=C.UTF-8` nicht. Die Überschrift hinter einem Link bliebe so
+lokal leer und ungeprüft. Die Prüfung nimmt darum `(.*)` und kürzt am
+ersten `“`. Beim Start prüft sie an zwei Links auf einer Zeile selbst, dass
+sie Überschriften findet, und bricht sonst mit einer Meldung ab.
