@@ -13,7 +13,7 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 
 ## Benutzung
 
-- [Einrichtung und Betrieb](benutzung/einrichtung.md): Bot im Developer Portal, `DISCORD_TOKEN` lokal und als GitHub-Secret, bauen, starten, einladen, Dienst.
+- [Einrichtung und Betrieb](benutzung/einrichtung.md): Bot im Developer Portal, `DISCORD_BOT_TOKEN` lokal und als GitHub-Secret, bauen, starten, einladen, Dienst.
 - [Befehle](benutzung/befehle.md): jeder Slash-Befehl mit Antwort, Sichtbarkeit, Rechten und Intents.
 
 ## Bot

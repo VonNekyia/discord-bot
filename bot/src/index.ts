@@ -1,8 +1,9 @@
 import { Client, Events, GatewayIntentBits } from 'discord.js';
 import { beantworte, registriere, text } from './befehle.js';
 
-if (!process.env.DISCORD_TOKEN) {
-  console.error('DISCORD_TOKEN fehlt. Siehe bot/.env.example.');
+const token = process.env.DISCORD_BOT_TOKEN;
+if (!token) {
+  console.error('DISCORD_BOT_TOKEN fehlt. Siehe bot/.env.example.');
   process.exit(1);
 }
 
@@ -30,4 +31,4 @@ client.on(Events.ShardDisconnect, (ereignis, shard) => {
 });
 client.on(Events.Error, (e) => console.error(`Fehler: ${text(e)}`));
 
-await client.login();
+await client.login(token);

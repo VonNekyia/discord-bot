@@ -10,7 +10,7 @@ code:
 # Einrichtung und Betrieb
 
 Der Bot läuft unter Node 24 aus `bot/`. Er braucht ein Secret,
-`DISCORD_TOKEN`, und meldet sich damit beim Gateway an. Entwickelt wird
+`DISCORD_BOT_TOKEN`, und meldet sich damit beim Gateway an. Entwickelt wird
 mit einem eigenen Test-Bot auf einem Test-Server; den Bot der Produktion
 fasst kein Agent an.
 
@@ -18,15 +18,33 @@ fasst kein Agent an.
 
 1. Im [Developer Portal](https://discord.com/developers/applications)
    eine Application anlegen.
-2. Unter „Bot“ den Token erzeugen. Er wird nur einmal gezeigt.
+2. Unter „Bot“ den Token erzeugen. Er wird nur einmal gezeigt. Wer ihn
+   zurücksetzt, macht das Secret in GitHub ungültig.
 3. Keinen privilegierten Intent einschalten, siehe
    [Intents](../bot/intents.md).
+
+## Einstellungen im Developer Portal
+
+Stand 2026-10-10, Anwendung „Petrichor“:
+
+| Seite | Einstellung | Wert |
+|---|---|---|
+| Bot | Öffentlicher Bot | aus: Nur das Team kann den Bot auf einen Server holen |
+| Bot | OAuth2-Code-Erlaubnis benötigt | aus |
+| Bot | Presence, Server Members, Message Content | aus |
+| Installation | Installationskontexte | nur Gildeninstallation |
+| Installation | Installations-Link | „Keine“ |
+
+Discord lässt einen privaten Bot nur ohne Installations-Link speichern.
+Soll der Bot öffentlich werden, kommen „Öffentlicher Bot“ an und als Link
+„Von Discord bereitgestellter Link“ mit den Scopes `bot` und
+`applications.commands`, ohne Rechte.
 
 ## Secrets
 
 | Name | Wofür | Wo |
 |---|---|---|
-| `DISCORD_TOKEN` | Anmeldung am Gateway und an der REST-API | lokal `bot/.env`, in GitHub Secret des Repositorys |
+| `DISCORD_BOT_TOKEN` | Anmeldung am Gateway und an der REST-API | lokal `bot/.env`, in GitHub Secret des Repositorys |
 
 Lokal:
 
@@ -38,7 +56,7 @@ Dann den Wert in `bot/.env` eintragen. In GitHub setzt der Maintainer das
 Secret; der Wert geht nie durch einen Chat oder ein Log:
 
 ```bash
-gh secret set DISCORD_TOKEN -R VonNekyia/discord-bot
+gh secret set DISCORD_BOT_TOKEN -R VonNekyia/discord-bot
 ```
 
 Die CI braucht das Secret nicht: Die Tests laufen gegen eine gemockte API,
@@ -53,15 +71,17 @@ npm run build
 npm start
 ```
 
-`npm start` liest `bot/.env` mit `node --env-file`. Ohne `DISCORD_TOKEN`
+`npm start` liest `bot/.env` mit `node --env-file`. Ohne `DISCORD_BOT_TOKEN`
 endet der Bot sofort mit Exit 1. Beim Start registriert er seine Befehle,
 siehe [Rate-Limits](../bot/rate-limits.md), „Befehle registrieren“.
 
 ## Einladen
 
-Einladungslink aus dem Developer Portal, „OAuth2“, mit den Scopes `bot`
-und `applications.commands`. Rechte auf dem Server braucht der Bot für die
-heutigen Befehle keine, siehe [Befehle](befehle.md).
+Einladungslink aus dem Developer Portal, „OAuth2“, „URL-Generator“, mit
+den Scopes `bot` und `applications.commands`, ohne Rechte. Rechte auf dem
+Server braucht der Bot für die heutigen Befehle keine, siehe
+[Befehle](befehle.md). Solange der Bot privat ist, geht der Link nur für
+das Team.
 
 ## Betrieb
 

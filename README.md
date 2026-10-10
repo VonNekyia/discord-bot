@@ -27,7 +27,7 @@ npm test
 npm start
 ```
 
-`DISCORD_TOKEN` in `bot/.env` eintragen, siehe
+`DISCORD_BOT_TOKEN` in `bot/.env` eintragen, siehe
 [Einrichtung und Betrieb](docs/benutzung/einrichtung.md).
 
 Die Oberfläche:
