@@ -25,10 +25,13 @@ fasst kein Agent an.
 
 ## Einstellungen im Developer Portal
 
-Stand 2026-10-10, Anwendung „Petrichor“:
+Stand 2026-10-10, Anwendung „kitty“:
 
 | Seite | Einstellung | Wert |
 |---|---|---|
+| Allgemeine Informationen | Name | `kitty` |
+| Allgemeine Informationen, Bot | App-Icon, Icon | das Nekyia-Logo, eine Katze im Profil |
+| Bot | Benutzername | `kitty` |
 | Bot | Öffentlicher Bot | aus: Nur das Team kann den Bot auf einen Server holen |
 | Bot | OAuth2-Code-Erlaubnis benötigt | aus |
 | Bot | Presence, Server Members, Message Content | aus |
