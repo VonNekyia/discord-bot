@@ -5,6 +5,8 @@ code:
   - .github/workflows/basis.yml
   - .github/workflows/doku.yml
   - .github/pruefe-doku.sh
+  - .github/workflows/backend.yml
+  - .github/pruefe-lizenzen.mjs
 ---
 
 # CI und Ablauf einer PR
@@ -67,3 +69,26 @@ unter `LC_ALL=C.UTF-8` nicht. Die Überschrift hinter einem Link bliebe so
 lokal leer und ungeprüft. Die Prüfung nimmt darum `(.*)` und kürzt am
 ersten `“`. Beim Start prüft sie an zwei Links auf einer Zeile selbst, dass
 sie Überschriften findet, und bricht sonst mit einer Meldung ab.
+
+## Backend
+
+`.github/workflows/backend.yml`, Job „Backend“, in `bot/` mit Node 24:
+
+| Schritt | Befehl | rot, wenn |
+|---|---|---|
+| Build und Tests | `npm test` | `tsc` einen Fehler findet oder ein Test fällt, siehe [Tests](tests.md) |
+| Sicherheitslücken | `npm audit --omit=dev --audit-level=high` | eine Laufzeit-Abhängigkeit eine Lücke ab „high“ hat |
+| Lizenzen | `node ../.github/pruefe-lizenzen.mjs package-lock.json` | siehe unten |
+
+## Lizenzen
+
+`.github/pruefe-lizenzen.mjs` liest ein `package-lock.json` und prüft
+jedes Paket ohne `"dev": true`, also alles, was mit ausgeht. Erlaubt sind
+`0BSD`, `Apache-2.0`, `BlueOak-1.0.0`, `BSD-2-Clause`, `BSD-3-Clause`,
+`CC0-1.0`, `ISC`, `MIT`, `MIT-0` und `Unlicense`. Bei `OR` reicht eine
+erlaubte Wahl, bei `AND` müssen alle erlaubt sein. Fehlt die Lizenz, ist
+das ein Fehler. Eine neue Lizenz kommt nur mit Frage an den User dazu
+(`AGENTS.md`, Regel 27).
+
+Danach prüft eine Probe, dass ein Paket unter `GPL-3.0` gemeldet wird und
+eins unter `(MIT OR GPL-3.0)` nicht.

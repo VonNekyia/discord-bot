@@ -1,0 +1,55 @@
+name: Backend
+
+# Siehe docs/entwicklung/ci.md, „Backend“.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: bot
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: bot/package-lock.json
+
+      - run: npm ci
+
+      # tsc ist Build und Lint zugleich: strict und ohne Unbenutztes.
+      - name: Build und Tests
+        timeout-minutes: 10
+        run: npm test
+
+      - name: Sicherheitslücken
+        timeout-minutes: 5
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Lizenzen
+        timeout-minutes: 2
+        run: node ../.github/pruefe-lizenzen.mjs package-lock.json
+
+      # Ein Paket unter GPL muss die Prüfung anschlagen lassen.
+      - name: Probe, dass die Lizenzprüfung anschlägt
+        timeout-minutes: 2
+        run: |
+          echo '{"packages":{"":{},"node_modules/x":{"license":"GPL-3.0"},"node_modules/y":{"license":"(MIT OR GPL-3.0)"}}}' > probe.json
+          if node ../.github/pruefe-lizenzen.mjs probe.json > probe.txt; then
+            echo "Die Prüfung hat nichts gemeldet."
+            exit 1
+          fi
+          sed 's/^::error /Probe: /' probe.txt
+          test "$(grep -c '^::error ' probe.txt)" -eq 1
