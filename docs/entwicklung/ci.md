@@ -26,7 +26,7 @@ Stand 2026-10-10, Ruleset 24844508:
 | Regel | Wirkung |
 |---|---|
 | Pull Request | kein direkter Push auf `main`; 0 Freigaben, weil alle Rollen über ein Konto arbeiten |
-| Status-Checks, strict | „Basis aktuell“ muss grün sein, und die PR muss den neuesten Stand von `main` enthalten |
+| Status-Checks, strict | „Basis aktuell“, „Doku“, „Backend“ und „Frontend“ müssen grün sein, und die PR muss den neuesten Stand von `main` enthalten |
 | kein Löschen, kein Force-Push | `main` bleibt, wie es ist |
 | Ausnahmen | keine, auch nicht für Admins |
 
