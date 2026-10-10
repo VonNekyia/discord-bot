@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.env
+# Berichte von Lighthouse
+.lighthouseci/
+lighthouse/
