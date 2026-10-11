@@ -68,6 +68,12 @@ export async function raumVon(db: Pick<Pool, 'query'>, server: string, besitzer:
   return rows[0]?.kanal;
 }
 
+// Die Kanäle aller Räume eines Servers.
+export async function raeumeVon(db: Pick<Pool, 'query'>, server: string): Promise<Set<string>> {
+  const { rows } = await db.query<{ kanal: string }>('SELECT kanal FROM raeume WHERE server = $1', [server]);
+  return new Set(rows.map((z) => z.kanal));
+}
+
 export async function istRaum(db: Pick<Pool, 'query'>, kanal: string): Promise<boolean> {
   return ((await db.query('SELECT 1 FROM raeume WHERE kanal = $1', [kanal])).rowCount ?? 0) > 0;
 }
@@ -79,7 +85,9 @@ export async function vergissRaum(db: Pick<Pool, 'query'>, kanal: string): Promi
 // Räume auf Zeit: anlegen, verschieben, leere löschen.
 // Siehe docs/benutzung/sprachraeume.md und docs/bot/sprachraeume-bau.md.
 export class Raeume {
-  private readonly letzteAnlage = new Map<string, number>();
+  // Je `<Server>/<Mitglied>` die Zeit des letzten neuen Raums; ein Timer
+  // vergisst sie nach `abstand`. Siehe docs/bot/datenschutz.md, „Was der Bot speichert“.
+  private readonly letzteAnlage = new Map<string, { zeit: number; uhr: ReturnType<typeof setTimeout> }>();
   private readonly ketten = new Map<string, Promise<void>>();
   // Je Raum der Timer bis zum Löschen und wer darauf wartet.
   private readonly loeschUhren = new Map<string, { uhr: ReturnType<typeof setTimeout>; fertig: () => void }>();
@@ -91,6 +99,18 @@ export class Raeume {
     this.uhr = k.uhr ?? (() => Date.now());
     this.warten = k.warten ?? 2_000;
     this.abstand = k.abstand ?? 30_000;
+  }
+
+  // Wie viele Mitglieder die Grenze von 30 s gerade kennt; für Tests.
+  get gemerkt(): number {
+    return this.letzteAnlage.size;
+  }
+
+  private merke(schluessel: string): void {
+    clearTimeout(this.letzteAnlage.get(schluessel)?.uhr);
+    const uhr = setTimeout(() => this.letzteAnlage.delete(schluessel), this.abstand);
+    uhr.unref?.();
+    this.letzteAnlage.set(schluessel, { zeit: this.uhr(), uhr });
   }
 
   // Aus `voiceStateUpdate`: `vorher` und `nachher` sind Kanal-IDs oder null.
@@ -130,7 +150,7 @@ export class Raeume {
 
     // Höchstens ein neuer Raum je 30 s und Mitglied; sonst bleibt es im Erzeuger.
     const schluessel = `${guild.id}/${nutzer}`;
-    const zuletzt = this.letzteAnlage.get(schluessel);
+    const zuletzt = this.letzteAnlage.get(schluessel)?.zeit;
     if (zuletzt !== undefined && this.uhr() - zuletzt < this.abstand) return;
 
     const ich = guild.members.me;
@@ -154,7 +174,7 @@ export class Raeume {
       console.error(`Sprachraum: nicht angelegt: ${fehlertext(fehler)}`);
       return;
     }
-    this.letzteAnlage.set(schluessel, this.uhr());
+    this.merke(schluessel);
     try {
       await this.k.db.query('INSERT INTO raeume (kanal, server, besitzer) VALUES ($1, $2, $3)', [raum.id, guild.id, nutzer]);
       await guild.members.edit(nutzer, { channel: raum.id, reason: grund.angelegt });

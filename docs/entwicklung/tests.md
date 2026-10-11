@@ -150,6 +150,8 @@ zurückrollt, weil die Dateien gleichzeitig laufen. Alle IDs sind erfunden
 | geht das Mitglied, bevor das Verschieben klappt (40032) … | der neue Raum geht wieder, keine Zeile, kein Log |
 | fehlt dem Bot ein Recht (50013) … | nichts angelegt, nicht verschoben, eine Logzeile ohne ID |
 | ist die Art aus oder der Kanal kein Erzeuger … | nichts angelegt |
+| die Grenze von 30 s vergisst ein Mitglied nach ihrer Zeit | mit `abstand` 50 ms: nach dem Anlegen ein Eintrag, danach keiner |
+| Räume stehen nicht in sprachkanaele … | ein Raum fehlt in der Liste, als Erzeuger `erzeuger_unbekannt` |
 | der Abgleich beim Start … | Zeile ohne Kanal weg, leerer Raum gelöscht, belegter bleibt |
 | channelDelete vergisst den Raum … | `geloescht`, `vergiss` und `behalteNur` für Sprachräume und Räume |
 | sprachkanaele liefert Sprachkanäle und Kategorien mit bereit … | Sortierung, ohne Text und Bühne; ohne „Mitglieder verschieben“ nicht bereit; eine Kategorie, die „Streamen“ verbietet, das der Bot nicht hat, nicht bereit |

@@ -27,18 +27,19 @@ export function ohneEinstellung(): Sprachraeume {
 // Siehe docs/benutzung/sprachraeume.md, „Rechte und Intent“.
 export const noetig = [R.ManageChannels, R.ManageRoles, R.MoveMembers, R.ViewChannel, R.Connect, R.SendMessages, R.ReadMessageHistory];
 
-// Sprachkanäle und Kategorien mit `bereit`. Eine Kategorie ist bereit, wenn
+// Sprachkanäle und Kategorien mit `bereit`, ohne Bühnen und ohne die Räume
+// selbst (`raeume`). Eine Kategorie ist bereit, wenn
 // der Bot auf dem Server alles hat, sie ihm nichts davon nimmt und er jedes
 // Recht ihrer Einträge selbst hat; er kopiert sie in jeden Raum.
 // Siehe docs/schnittstelle/sprachraeume.md, „Typen“.
-export function liste(guild: Guild): Liste {
+export function liste(guild: Guild, raeume: ReadonlySet<string> = new Set()): Liste {
   const ich = guild.members.me;
   const server = ich?.permissions;
   const ohneKategorie = server?.has(noetig) ?? false;
   const kategorien: Kategorie[] = [];
   const sprachkanaele: VoiceChannel[] = [];
   for (const kanal of guild.channels.cache.values()) {
-    if (kanal.type === ChannelType.GuildVoice) sprachkanaele.push(kanal);
+    if (kanal.type === ChannelType.GuildVoice && !raeume.has(kanal.id)) sprachkanaele.push(kanal);
   }
   const alleKategorien = [...guild.channels.cache.values()].filter((k): k is CategoryChannel => k.type === ChannelType.GuildCategory);
   for (const kategorie of alleKategorien.sort(vergleiche)) {

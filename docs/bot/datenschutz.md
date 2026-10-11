@@ -35,6 +35,12 @@ Session im Speicher. Verlässt es den Sprachkanal, bliebe der Eintrag bis
 zum Ende des Prozesses. Darum entfernt ein Sweeper alle 10 Minuten jeden
 Voice State ohne Kanal (`sweepers` in `erstelleClient`, `bot/src/client.ts`).
 
+Für die Grenze von 30 s je neuem Raum merkt sich der Bot je Server und
+Mitglied die Zeit des letzten neuen Raums im Speicher, mit der Discord-ID.
+Ein Timer vergisst den Eintrag nach 30 s (`Raeume`, `bot/src/raeume.ts`),
+siehe [Sprachräume](../benutzung/sprachraeume.md), „Grenzen“. Der Test „die
+Grenze von 30 s vergisst ein Mitglied nach ihrer Zeit“ prüft das.
+
 „Der Bot verlässt den Server“ heisst auch: Er wurde entfernt, während er
 aus war. Beim Start gleicht er ab und löscht dann, siehe
 [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md),

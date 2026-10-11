@@ -319,6 +319,15 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
     }
   });
 
+  test('die Grenze von 30 s vergisst ein Mitglied nach ihrer Zeit', async () => {
+    await speichereSprachraeume(db, SERVER, standard);
+    const r = new Raeume({ db, einstellungen: ladeCache((s: string) => liesSprachraeume(db, s)), abstand: 50, warten: 30 });
+    await betritt(r, BESITZER, K.erzeuger);
+    assert.equal(r.gemerkt, 1);
+    await new Promise((weiter) => setTimeout(weiter, 100));
+    assert.equal(r.gemerkt, 0);
+  });
+
   describe('API', () => {
     let api: Server;
     let basis: string;
@@ -387,6 +396,23 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
       assert.deepEqual(geleert, [SERVER]);
       const gelesen = await frage(basis, `/api/server/${SERVER}/sprachraeume`, { sitzung: kennung });
       assert.deepEqual(await gelesen.json(), gut);
+    });
+
+    test('Räume stehen nicht in sprachkanaele und lassen sich nicht als Erzeuger speichern', async () => {
+      const raum = '880000000000000011';
+      (client.channels as unknown as { _add(d: unknown, g: Guild): unknown })._add(
+        { id: raum, type: ChannelType.GuildVoice, name: 'Mias Raum', position: 5, parent_id: null, permission_overwrites: [] },
+        guild,
+      );
+      await db.query('INSERT INTO raeume (kanal, server, besitzer) VALUES ($1, $2, $3)', [raum, SERVER, BESITZER]);
+      const kennung = await sitzung();
+      const liste = (await (await frage(basis, `/api/server/${SERVER}/sprachkanaele`, { sitzung: kennung })).json()) as {
+        sprachkanaele: { id: string }[];
+      };
+      assert.ok(liste.sprachkanaele.length > 0);
+      assert.ok(!liste.sprachkanaele.some((k) => k.id === raum));
+      const antwort = await put(kennung, { an: true, erzeuger: [{ kanal: raum, kategorie: null, name: 'Raum', limit: 0 }] });
+      assert.deepEqual(await antwort.json(), { code: 'erzeuger_unbekannt', feld: 'erzeuger.0.kanal' });
     });
 
     test('jede Prüfregel meldet ihren Code und den Pfad des Felds', async () => {

@@ -50,7 +50,7 @@ Voice States ohne Kanal räumt ein Sweeper alle 10 Minuten weg
    dorthin. Gibt es den Kanal nicht mehr, vergisst er die Zeile und legt neu
    an.
 3. Höchstens ein neuer Raum je 30 s und Mitglied; die Zeit merkt sich
-   `Raeume` im Speicher.
+   `Raeume` im Speicher, und ein Timer vergisst sie nach 30 s.
 4. `guild.channels.create` mit Name, Kategorie, Limit und den Einträgen aus
    `eintraege`, in einem Aufruf: die der Kategorie, dazu der Besitzer mit
    „Kanal ansehen“, „Verbinden“ und „Nachrichtenverlauf anzeigen“ und der

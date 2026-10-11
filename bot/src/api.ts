@@ -32,6 +32,7 @@ import { BildFehler, bereiteVor } from './banner.js';
 import { text } from './befehle.js';
 import { lese, loescheBild, pruefe, speichere, speichereBild, type Art } from './begruessung.js';
 import { wieDiscord } from './ordnung.js';
+import { raeumeVon } from './raeume.js';
 import { banner, sendeTest } from './senden.js';
 import { liesSprachraeume, liste as sprachkanaele, pruefe as pruefeSprachraeume, speichereSprachraeume } from './sprachraeume.js';
 
@@ -440,7 +441,7 @@ export function erstelleApi(o: ApiOptionen): Server {
       server: true,
       // Siehe docs/schnittstelle/sprachraeume.md, „Typen“.
       async tue(a) {
-        json(a, 200, sprachkanaele(a.server!));
+        json(a, 200, sprachkanaele(a.server!, await raeumeVon(o.db, a.server!.id)));
       },
     },
     {
@@ -462,7 +463,7 @@ export function erstelleApi(o: ApiOptionen): Server {
       // Siehe docs/schnittstelle/sprachraeume.md, „Sprachräume einstellen“.
       async tue(a) {
         const eingabe = await liesJson(a.req);
-        const ergebnis = pruefeSprachraeume(eingabe, sprachkanaele(a.server!));
+        const ergebnis = pruefeSprachraeume(eingabe, sprachkanaele(a.server!, await raeumeVon(o.db, a.server!.id)));
         if ('code' in ergebnis) throw new ApiFehler(400, ergebnis.code, ergebnis.feld);
         await speichereSprachraeume(o.db, a.server!.id, ergebnis.sprachraeume);
         o.sprachraeume?.delete(a.server!.id);
