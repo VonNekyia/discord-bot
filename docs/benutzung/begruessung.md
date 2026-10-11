@@ -16,15 +16,19 @@ privilegierten Intent `GuildMembers`. Eingestellt wird über die
 
 ## Platzhalter
 
-| Platzhalter | wird zu | längster Wert |
-|---|---|---|
-| `{nutzer}` | Erwähnung des Mitglieds | 23 Zeichen |
-| `{name}` | Anzeigename auf dem Server, Markdown maskiert | 64 Zeichen |
-| `{server}` | Name des Servers, Markdown maskiert | 200 Zeichen |
-| `{anzahl}` | Mitglieder nach dem Beitritt oder Abschied | 7 Zeichen |
+| Platzhalter | wird zu | längster Wert im Text | längster Wert im Banner |
+|---|---|---|---|
+| `{nutzer}` | Erwähnung des Mitglieds; im Banner `@` und Anzeigename | 23 Zeichen | 33 Zeichen |
+| `{name}` | Anzeigename auf dem Server; im Text Markdown maskiert | 64 Zeichen | 32 Zeichen |
+| `{server}` | Name des Servers; im Text Markdown maskiert | 200 Zeichen | 100 Zeichen |
+| `{anzahl}` | Mitglieder nach dem Beitritt oder Abschied, als Ziffern | 10 Zeichen | 10 Zeichen |
 
+- Zeichen zählen wie in [API des Dashboards](../schnittstelle/api.md),
+  „Einstellung speichern“.
 - Anzeigename und Servername sind höchstens 32 und 100 Zeichen lang; das
-  Maskieren setzt vor ein Zeichen höchstens einen `\`, darum das Doppelte.
+  Maskieren im Text setzt vor ein Zeichen höchstens einen `\`, darum dort
+  das Doppelte. Belege: [Users](https://docs.discord.com/developers/resources/user),
+  [Guild](https://docs.discord.com/developers/resources/guild).
 - Andere Wörter in geschweiften Klammern bleiben, wie sie sind. Gross- und
   Kleinschreibung zählt.
 - Beim Beitritt pingt nur die Erwähnung des neuen Mitglieds. Die Nachricht
@@ -32,8 +36,6 @@ privilegierten Intent `GuildMembers`. Eingestellt wird über die
   `@everyone`, `@here` und Rollen pingen nie, auch wenn sie im Text stehen.
   Beim Abschied pingt nichts. Beleg:
   [Allowed Mentions](https://docs.discord.com/developers/resources/message#allowed-mentions-object).
-- Im Banner wird nichts maskiert, und `{nutzer}` wird dort zu `@` und dem
-  Anzeigenamen.
 
 ## Banner
 

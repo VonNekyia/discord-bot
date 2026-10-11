@@ -80,29 +80,38 @@ type Einstellung = {
 - Ohne gespeicherte Zeile liefert `GET …/begruessung` die Standardwerte,
   siehe [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md),
   „Standardwerte“.
+- `kanal` ist die gespeicherte ID, so wie sie ist, auch wenn es den Kanal
+  nicht mehr gibt oder der Bot dort nicht mehr schreiben darf. Steht sie
+  nicht in `GET …/kanaele`, zeigt die Oberfläche am Feld, dass ein neuer
+  Kanal gewählt werden muss; Speichern mit ihr gibt `kanal_unbekannt`.
 
 ## Einstellung speichern
 
-`PUT /api/server/{id}/begruessung/{art}` nimmt eine `Einstellung`; `bild`
-wird ignoriert. Das Backend prüft in dieser Reihenfolge und antwortet beim
-ersten Fehler mit `400`, dem Code und dem Feld:
+`PUT /api/server/{id}/begruessung/{art}` nimmt eine `Einstellung`. `bild`
+darf fehlen und wird ignoriert; alle anderen Felder müssen da sein. Das
+Backend prüft in dieser Reihenfolge und antwortet beim ersten Fehler mit
+`400`, dem Code und dem Feld:
 
 | Feld | Regel | Code |
 |---|---|---|
-| alle | jedes Feld da, mit dem richtigen Typ | `ungueltig` |
+| alle | jedes Feld ausser `bild` da, mit dem richtigen Typ | `ungueltig` |
 | `kanal` | `null` oder ein Kanal aus `GET …/kanaele` | `kanal_unbekannt` |
-| `text` | höchstens 2000 Zeichen, wenn jeder Platzhalter seinen längsten Wert hat | `text_zu_lang` |
-| `bannerText` | höchstens 100 Zeichen, ebenso gerechnet | `bannertext_zu_lang` |
+| `text` | höchstens 2000 Zeichen, wenn jeder Platzhalter seinen längsten Wert im Text hat | `text_zu_lang` |
+| `bannerText` | höchstens 100 Zeichen, wenn jeder Platzhalter seinen längsten Wert im Banner hat | `bannertext_zu_lang` |
 | `banner` | `true` nur mit hochgeladenem Bild | `banner_ohne_bild` |
 | `banner` | `true` nur mit einem Kanal mit `banner: true` | `banner_ohne_recht` |
 | `an` | `true` nur mit `kanal` | `an_ohne_kanal` |
 | `an` | `true` nur mit nicht leerem `text` oder `banner: true` | `an_ohne_inhalt` |
 
-Die längsten Werte der Platzhalter stehen in
-[Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md),
-„Platzhalter“. Mit ihnen kann die Oberfläche dieselbe Rechnung vor dem
-Senden machen. 2000 Zeichen ist die Grenze von Discord für den Text einer
-Nachricht ([Create Message](https://docs.discord.com/developers/resources/message#create-message)).
+- Ein Zeichen ist eine UTF-16-Einheit, also `String.length` in
+  JavaScript. Ein Emoji zählt so oft zwei. Das ist nie weniger, als Discord
+  zählt; ein Text, der hier passt, passt auch bei Discord.
+- Die längsten Werte der Platzhalter, im Text und im Banner, stehen in
+  [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md),
+  „Platzhalter“. Mit ihnen macht die Oberfläche dieselbe Rechnung vor dem
+  Senden.
+- 2000 Zeichen ist die Grenze von Discord für den Text einer Nachricht
+  ([Create Message](https://docs.discord.com/developers/resources/message#create-message)).
 
 ## Bild
 
@@ -128,7 +137,9 @@ Oberfläche schickt die Datei so, wie sie gewählt wurde:
 
 `GET …/vorschau` liefert das Banner so, wie der Bot es senden würde: mit dem
 gespeicherten Stand und der angemeldeten Person als Mitglied. Ohne Bild
-`404` `kein_bild`. Eine Vorschau vor dem Hochladen gibt es nicht; die
+`404` `kein_bild`. Eine Query an `GET …/vorschau` wird ignoriert; die
+Oberfläche hängt nach jedem Hochladen oder Speichern eine an, damit der
+Browser das Bild neu lädt. Eine Vorschau vor dem Hochladen gibt es nicht; die
 Oberfläche zeigt nach dem Hochladen die Vorschau. Damit reicht `img-src
 'self'` für sie.
 
@@ -164,7 +175,8 @@ entscheidet das Frontend. `feld` steht nur bei `400`.
 Query, Header und Body, und gibt Status, Header und Body unverändert
 zurück, auch `Set-Cookie` und `Location`. Die Header aus `web/_headers`
 gelten nur für die Dateien der Oberfläche. Antwortet der Bot nicht, gibt
-`serve.mjs` `502` zurück. `API_PORT` steht in
+`serve.mjs` `502` mit dem Body `{ "code": "nicht_erreichbar" }` zurück; die
+Oberfläche behandelt das wie `503`. `API_PORT` steht in
 [Anmeldung am Dashboard](anmeldung.md), „Umgebung“.
 
 ## Was noch fehlt
