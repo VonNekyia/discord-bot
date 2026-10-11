@@ -38,8 +38,11 @@ gehen nicht an jemanden, der schon einen Raum hat.
 
 Die Rechte eines neuen Raums kommen von seiner Kategorie. Dazu bekommen
 der Besitzer und der Bot das Recht, den Raum zu sehen und zu betreten,
-damit Sperren und Verstecken sie nicht aussperren; der Bot ausserdem das
-Recht, im Textchat des Raums zu schreiben, für das Menü.
+damit Sperren und Verstecken sie nicht aussperren. Der Besitzer bekommt
+ausserdem „Nachrichtenverlauf anzeigen“: Ohne dieses Recht sieht man im
+Chat nur Nachrichten, die ankommen, während man ihn offen hat, und das
+Menü kommt gleich beim Anlegen. Der Bot bekommt das Recht, im Textchat des
+Raums zu schreiben, für das Menü.
 
 ## Namensvorlage
 
@@ -88,6 +91,15 @@ mit dem Raum.
 
 - Den Chat eines Raums sieht, wer den Raum sehen darf, auch ohne drin zu
   sein. Darum prüft der Bot bei „Übernehmen“, ob man im Raum ist.
+- Wer nicht Besitzer ist, braucht für „Übernehmen“ und „Info“ das Recht
+  „Nachrichtenverlauf anzeigen“ aus der Kategorie; sonst sieht er das Menü
+  nur, wenn er den Chat schon offen hatte, als es kam.
+- Nach dem Sperren haben die anderen kein „Verbinden“ mehr. Für Sprachkanäle
+  nimmt Discord mit „Verbinden“ auch weitere Rechte
+  ([Implicit Permissions](https://docs.discord.com/developers/topics/permissions#implicit-permissions)),
+  also sehen die anderen den Chat danach wohl nicht mehr. Ob Discord ihn
+  ganz ausblendet oder nur das Schreiben sperrt, steht dort nicht genau;
+  das messen wir auf dem Test-Server.
 - Die Nutzerauswahl von Discord zeigt alle Mitglieder des Servers. Ob das
   gewählte Mitglied im Raum ist oder gebannt, prüft der Bot danach und sagt
   es, wenn nicht.
@@ -121,9 +133,9 @@ mit dem Raum.
 
 ## Rechte und Intent
 
-Die Rechte braucht der Bot auf dem ganzen Server, nicht nur in den
-Kategorien der Räume. Beim Anlegen eines Kanals darf er nur Rechte setzen,
-die er auf dem Server hat
+Alle Rechte unten braucht der Bot auf dem ganzen Server, nicht nur in den
+Kategorien der Räume, auch die, die er nur an andere weitergibt. Beim
+Anlegen eines Kanals darf er nur Rechte setzen, die er auf dem Server hat
 ([Create Guild Channel](https://docs.discord.com/developers/resources/guild#create-guild-channel)).
 
 | Was | Wofür |
@@ -134,6 +146,7 @@ die er auf dem Server hat
 | „Mitglieder verschieben“ | in den neuen Raum verschieben, zurück in den eigenen Raum, rauswerfen ([Modify Guild Member](https://docs.discord.com/developers/resources/guild#modify-guild-member)) |
 | „Kanal ansehen“, „Verbinden“ | in Erzeugern und Räumen; verschieben darf der Bot nur in einen Kanal, den er selbst betreten darf (ebenda) |
 | „Nachrichten senden“ | das Menü im Textchat jedes Raums; der Bot gibt sich das Recht dort beim Anlegen selbst, damit eine Kategorie es ihm nicht nimmt |
+| „Nachrichtenverlauf anzeigen“ | der Bot gibt es dem Besitzer im Raum, damit er das Menü findet ([Permissions](https://docs.discord.com/developers/topics/permissions)) |
 
 Ins Audit-Log von Discord schreibt der Bot als Grund nur feste Texte, ohne
 IDs und Namen.
