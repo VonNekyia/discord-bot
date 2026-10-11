@@ -1,0 +1,391 @@
+import { createServer, type IncomingMessage, type OutgoingHttpHeaders, type Server, type ServerResponse } from 'node:http';
+import {
+  ChannelType,
+  DiscordAPIError,
+  PermissionFlagsBits,
+  RESTJSONErrorCodes,
+  type Client,
+  type Guild,
+  type NewsChannel,
+  type TextChannel,
+} from 'discord.js';
+import type { Pool } from 'pg';
+import {
+  anmeldeFrist,
+  cookie,
+  findeSitzung,
+  gleich,
+  laufzeit,
+  legeSitzungAn,
+  liesCookies,
+  liesPerson,
+  loescheSitzung,
+  tausche,
+  widerrufe,
+  zufall,
+  zuDiscord,
+  type OAuth,
+  type Sitzung,
+} from './anmeldung.js';
+import { text } from './befehle.js';
+import { lese, pruefe, speichere, type Art } from './begruessung.js';
+
+export interface ApiUmgebung {
+  geheimnis: string;
+  dashboard: string;
+  port: number;
+}
+
+// Die Umgebung der API; undefined, wenn DISCORD_CLIENT_SECRET oder
+// DASHBOARD_URL fehlt. Siehe docs/schnittstelle/anmeldung.md, „Umgebung“.
+export function apiUmgebung(umgebung = process.env): ApiUmgebung | undefined {
+  const { DISCORD_CLIENT_SECRET, DASHBOARD_URL, API_PORT } = umgebung;
+  if (!DISCORD_CLIENT_SECRET || !DASHBOARD_URL) return undefined;
+  const dashboard = DASHBOARD_URL.replace(/\/+$/, '');
+  if (!URL.canParse(dashboard) || !/^https?:$/.test(new URL(dashboard).protocol)) {
+    throw new Error('DASHBOARD_URL ist keine Adresse mit http oder https.');
+  }
+  const port = API_PORT ? Number(API_PORT) : 4174;
+  if (!Number.isInteger(port) || port < 1 || port > 65_535) throw new Error('API_PORT ist kein Port.');
+  return { geheimnis: DISCORD_CLIENT_SECRET, dashboard, port };
+}
+
+export interface ApiOptionen {
+  client: Client;
+  db: Pool;
+  // Application-ID, zugleich Client-ID für OAuth2.
+  anwendung: string;
+  geheimnis: string;
+  dashboard: string;
+  // Basis der REST-API von Discord für OAuth2; in Tests die gemockte.
+  discord?: string;
+}
+
+export type Kanal = { id: string; name: string; banner: boolean; kategorie: { id: string; name: string } | null };
+
+// Eine Antwort mit Fehlercode. Siehe docs/schnittstelle/api.md, „Fehler“.
+class ApiFehler extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: string,
+    readonly feld?: string,
+    readonly kopf: OutgoingHttpHeaders = {},
+  ) {
+    super(code);
+  }
+}
+
+// Zählt Anfragen je Schlüssel in einem gleitenden Fenster von einer Minute.
+// Siehe docs/schnittstelle/api.md, „Grenzen je Sitzung“.
+export class Grenze {
+  private readonly zeiten = new Map<string, number[]>();
+
+  constructor(
+    private readonly hoechstens: number,
+    private readonly fenster = 60_000,
+    private readonly uhr = Date.now,
+  ) {}
+
+  // 0, wenn die Anfrage zählt; sonst die Sekunden, bis wieder eine geht.
+  pruefe(schluessel: string): number {
+    const jetzt = this.uhr();
+    const liste = (this.zeiten.get(schluessel) ?? []).filter((zeit) => zeit > jetzt - this.fenster);
+    this.zeiten.set(schluessel, liste);
+    const aelteste = liste[0];
+    if (aelteste !== undefined && liste.length >= this.hoechstens) {
+      return Math.ceil((aelteste + this.fenster - jetzt) / 1000);
+    }
+    liste.push(jetzt);
+    return 0;
+  }
+
+  // Vergisst Schlüssel ohne Anfrage im Fenster.
+  raeume(): void {
+    const grenze = this.uhr() - this.fenster;
+    for (const [schluessel, liste] of this.zeiten) if ((liste.at(-1) ?? 0) <= grenze) this.zeiten.delete(schluessel);
+  }
+}
+
+// Text- und Ankündigungskanäle, in denen der Bot sehen und senden darf,
+// sortiert wie in Discord. Siehe docs/schnittstelle/api.md, „Typen“.
+export function kanaele(guild: Guild): Kanal[] {
+  const ich = guild.members.me;
+  if (!ich) return [];
+  const ordnung = (x: { rawPosition: number; id: string }, y: { rawPosition: number; id: string }) =>
+    x.rawPosition - y.rawPosition || (BigInt(x.id) < BigInt(y.id) ? -1 : 1);
+  const liste: (TextChannel | NewsChannel)[] = [];
+  for (const kanal of guild.channels.cache.values()) {
+    if (kanal.type !== ChannelType.GuildText && kanal.type !== ChannelType.GuildAnnouncement) continue;
+    if (kanal.permissionsFor(ich).has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) liste.push(kanal);
+  }
+  liste.sort((x, y) => {
+    if (x.parent?.id === y.parent?.id) return ordnung(x, y);
+    if (!x.parent) return -1;
+    if (!y.parent) return 1;
+    return ordnung(x.parent, y.parent);
+  });
+  return liste.map((kanal) => ({
+    id: kanal.id,
+    name: kanal.name,
+    banner: kanal.permissionsFor(ich).has(PermissionFlagsBits.AttachFiles),
+    kategorie: kanal.parent && { id: kanal.parent.id, name: kanal.parent.name },
+  }));
+}
+
+// Der Bot ist auf dem Server, und die Person darf ihn jetzt verwalten.
+// Siehe docs/schnittstelle/anmeldung.md, „Rechte“.
+async function pruefeRechte(client: Client, id: string, nutzer: string): Promise<Guild> {
+  const guild = client.guilds.cache.get(id);
+  if (!guild) throw new ApiFehler(404, 'nicht_gefunden');
+  if (!guild.available) throw new ApiFehler(503, 'nicht_erreichbar');
+  const mitglied = await guild.members.fetch({ user: nutzer, force: true }).catch((fehler: unknown) => {
+    const keinMitglied = [RESTJSONErrorCodes.UnknownMember, RESTJSONErrorCodes.UnknownUser];
+    if (fehler instanceof DiscordAPIError && keinMitglied.includes(fehler.code as RESTJSONErrorCodes)) {
+      throw new ApiFehler(403, 'kein_recht');
+    }
+    throw fehler;
+  });
+  if (!mitglied.permissions.has(PermissionFlagsBits.ManageGuild)) throw new ApiFehler(403, 'kein_recht');
+  return guild;
+}
+
+// Liest den Body bis `grenze` Byte. Wird er grösser, hört es auf zu lesen.
+function liesBody(req: IncomingMessage, grenze: number): Promise<Buffer> {
+  if (Number(req.headers['content-length'] ?? 0) > grenze) return Promise.reject(new ApiFehler(413, 'zu_gross'));
+  return new Promise((fertig, scheitern) => {
+    const teile: Buffer[] = [];
+    let groesse = 0;
+    const daten = (teil: Buffer) => {
+      groesse += teil.length;
+      if (groesse <= grenze) return void teile.push(teil);
+      req.off('data', daten).off('end', ende).pause();
+      scheitern(new ApiFehler(413, 'zu_gross'));
+    };
+    const ende = () => fertig(Buffer.concat(teile));
+    req.on('data', daten).once('end', ende).once('error', scheitern);
+  });
+}
+
+// JSON aus dem Body; undefined, wenn er kein JSON ist.
+async function liesJson(req: IncomingMessage): Promise<unknown> {
+  if (!/^application\/json\s*(;|$)/i.test(req.headers['content-type'] ?? '')) throw new ApiFehler(415, 'kein_json');
+  const body = await liesBody(req, 16 * 1024);
+  try {
+    return JSON.parse(body.toString('utf8'));
+  } catch {
+    return undefined;
+  }
+}
+
+interface Anfrage {
+  req: IncomingMessage;
+  res: ServerResponse;
+  url: URL;
+  cookies: Map<string, string>;
+  teile: string[];
+  sitzung?: Sitzung;
+  server?: Guild;
+}
+
+interface Route {
+  methode: string;
+  muster: RegExp;
+  // Für das Log; nie der Pfad, er trägt IDs.
+  name: string;
+  sitzung: boolean;
+  // Mit {id}: Grenze und Rechte vorher.
+  server: boolean;
+  tue(a: Anfrage): Promise<void>;
+}
+
+// Jede Antwort trägt diese Header. Liegt noch ungelesener Body an, schliesst
+// die Verbindung danach, statt ihn zu lesen.
+function sende(a: Anfrage, status: number, kopf: OutgoingHttpHeaders, body?: string): void {
+  if (a.res.headersSent) return void a.res.destroy();
+  a.res.writeHead(status, {
+    'cache-control': 'no-store',
+    'x-content-type-options': 'nosniff',
+    ...(a.req.complete ? {} : { connection: 'close' }),
+    ...kopf,
+  });
+  a.res.end(body);
+}
+
+function json(a: Anfrage, status: number, wert: unknown, kopf: OutgoingHttpHeaders = {}): void {
+  const body = JSON.stringify(wert);
+  sende(a, status, { 'content-type': 'application/json; charset=utf-8', 'content-length': Buffer.byteLength(body), ...kopf }, body);
+}
+
+// Die API des Dashboards. Lauscht noch nicht; das tut der Aufrufer, nur auf 127.0.0.1.
+// Siehe docs/schnittstelle/api.md.
+export function erstelleApi(o: ApiOptionen): Server {
+  const origin = new URL(o.dashboard).origin;
+  const sicher = o.dashboard.startsWith('https://');
+  const oauth: OAuth = {
+    discord: o.discord ?? 'https://discord.com/api/v10',
+    anwendung: o.anwendung,
+    geheimnis: o.geheimnis,
+    zurueck: `${o.dashboard}/api/anmelden/zurueck`,
+  };
+  const grenze = new Grenze(60);
+  const sortierer = new Intl.Collator('de');
+  const anmeldungWeg = cookie('anmeldung', '', '/api/anmelden', 0, sicher);
+
+  const routen: Route[] = [
+    {
+      methode: 'GET',
+      muster: /^\/api\/anmelden$/,
+      name: 'anmelden',
+      sitzung: false,
+      server: false,
+      async tue(a) {
+        const state = zufall();
+        sende(a, 302, { location: zuDiscord(oauth, state), 'set-cookie': cookie('anmeldung', state, '/api/anmelden', anmeldeFrist, sicher) });
+      },
+    },
+    {
+      methode: 'GET',
+      muster: /^\/api\/anmelden\/zurueck$/,
+      name: 'anmelden/zurueck',
+      sitzung: false,
+      server: false,
+      // Siehe docs/schnittstelle/anmeldung.md, „Ablauf“.
+      async tue(a) {
+        try {
+          const state = a.url.searchParams.get('state');
+          const erwartet = a.cookies.get('anmeldung');
+          if (!state || !erwartet || !gleich(state, erwartet)) throw new Error('state fehlt oder passt nicht');
+          const code = a.url.searchParams.get('code');
+          if (!code) throw new Error('kein Code, die Person hat abgelehnt');
+          const token = await tausche(oauth, code);
+          let person;
+          try {
+            person = await liesPerson(oauth, token);
+          } finally {
+            await widerrufe(oauth, token);
+          }
+          const kennung = await legeSitzungAn(o.db, person);
+          sende(a, 302, { location: '/dashboard/', 'set-cookie': [cookie('sitzung', kennung, '/', laufzeit, sicher), anmeldungWeg] });
+        } catch (fehler) {
+          console.error(`Anmeldung: ${text(fehler)}`);
+          sende(a, 302, { location: '/dashboard/?fehler=anmeldung', 'set-cookie': anmeldungWeg });
+        }
+      },
+    },
+    {
+      methode: 'POST',
+      muster: /^\/api\/abmelden$/,
+      name: 'abmelden',
+      sitzung: true,
+      server: false,
+      async tue(a) {
+        await loescheSitzung(o.db, a.sitzung!.kennung);
+        sende(a, 204, { 'set-cookie': cookie('sitzung', '', '/', 0, sicher) });
+      },
+    },
+    {
+      methode: 'GET',
+      muster: /^\/api\/ich$/,
+      name: 'ich',
+      sitzung: true,
+      server: false,
+      async tue(a) {
+        const { nutzer, name, avatar } = a.sitzung!;
+        json(a, 200, { id: nutzer, name, avatar: avatar && o.client.rest.cdn.avatar(nutzer, avatar, { size: 128 }) });
+      },
+    },
+    {
+      methode: 'GET',
+      muster: /^\/api\/server$/,
+      name: 'server',
+      sitzung: true,
+      server: false,
+      async tue(a) {
+        const liste = a.sitzung!.server
+          .map((id) => o.client.guilds.cache.get(id))
+          .filter((guild): guild is Guild => guild?.available === true)
+          .map((guild) => ({ id: guild.id, name: guild.name, icon: guild.iconURL({ size: 128 }) }))
+          .sort((x, y) => sortierer.compare(x.name, y.name));
+        json(a, 200, liste);
+      },
+    },
+    {
+      methode: 'GET',
+      muster: /^\/api\/server\/(\d{1,20})\/kanaele$/,
+      name: 'kanaele',
+      sitzung: true,
+      server: true,
+      async tue(a) {
+        json(a, 200, kanaele(a.server!));
+      },
+    },
+    {
+      methode: 'GET',
+      muster: /^\/api\/server\/(\d{1,20})\/begruessung$/,
+      name: 'begruessung',
+      sitzung: true,
+      server: true,
+      async tue(a) {
+        json(a, 200, await lese(o.db, a.server!.id));
+      },
+    },
+    {
+      methode: 'PUT',
+      muster: /^\/api\/server\/(\d{1,20})\/begruessung\/(beitritt|abschied)$/,
+      name: 'begruessung speichern',
+      sitzung: true,
+      server: true,
+      async tue(a) {
+        const eingabe = await liesJson(a.req);
+        const karte = new Map(kanaele(a.server!).map((kanal) => [kanal.id, kanal]));
+        const ergebnis = pruefe(eingabe, karte, false);
+        if ('code' in ergebnis) throw new ApiFehler(400, ergebnis.code, ergebnis.feld);
+        await speichere(o.db, a.server!.id, a.teile[2] as Art, ergebnis.einstellung);
+        json(a, 200, ergebnis.einstellung);
+      },
+    },
+  ];
+
+  async function bearbeite(req: IncomingMessage, res: ServerResponse): Promise<void> {
+    const url = new URL(req.url ?? '/', 'http://api');
+    const a: Anfrage = { req, res, url, cookies: liesCookies(req.headers.cookie), teile: [] };
+    let route: Route | undefined;
+    for (const r of routen) {
+      const treffer = r.methode === req.method ? r.muster.exec(url.pathname) : null;
+      if (treffer) {
+        route = r;
+        a.teile = [...treffer];
+        break;
+      }
+    }
+    try {
+      if (!route) throw new ApiFehler(404, 'nicht_gefunden');
+      // Siehe docs/schnittstelle/anmeldung.md, „Origin“.
+      if (route.methode !== 'GET' && req.headers.origin !== origin) throw new ApiFehler(403, 'origin_falsch');
+      if (route.sitzung) {
+        a.sitzung = await findeSitzung(o.db, a.cookies.get('sitzung'));
+        if (!a.sitzung) throw new ApiFehler(401, 'nicht_angemeldet');
+      }
+      if (route.server) {
+        // Die Grenze vor den Rechten: Eine abgelehnte Anfrage kostet Discord nichts.
+        const warten = grenze.pruefe(a.sitzung!.kennung.toString('hex'));
+        if (warten > 0) throw new ApiFehler(429, 'zu_viele', undefined, { 'retry-after': String(warten) });
+        a.server = await pruefeRechte(o.client, a.teile[1]!, a.sitzung!.nutzer);
+      }
+      await route.tue(a);
+    } catch (fehler) {
+      if (fehler instanceof ApiFehler) {
+        return json(a, fehler.status, fehler.feld ? { code: fehler.code, feld: fehler.feld } : { code: fehler.code }, fehler.kopf);
+      }
+      console.error(`API ${route?.name ?? '?'}: ${text(fehler)}`);
+      json(a, 503, { code: 'nicht_erreichbar' });
+    }
+  }
+
+  const server = createServer((req, res) => void bearbeite(req, res));
+  server.requestTimeout = 30_000;
+  server.headersTimeout = 10_000;
+  const uhr = setInterval(() => grenze.raeume(), 60_000).unref();
+  server.on('close', () => clearInterval(uhr));
+  return server;
+}

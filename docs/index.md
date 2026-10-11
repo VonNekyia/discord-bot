@@ -29,6 +29,7 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 - [Wiederanlauf](bot/wiederanlauf.md): Neuverbinden durch discord.js, Codes, nach denen der Bot endet, was nicht getestet ist.
 - [Datenschutz](bot/datenschutz.md): was der Bot speichert, was ins Log geht.
 - [Datenbank](bot/datenbank.md): PostgreSQL über `pg`, Verbindung, Discord-IDs als `bigint`, Pool und seine Werte, Migrationen unter Sperre und in Transaktionen, Dev-Datenbank in Docker, was noch fehlt.
+- [API im Bot](bot/dashboard-api.md): wie das Backend die API des Dashboards baut, Module, Start und Ende, Reihenfolge der Prüfungen, Grenzen und Zeitlimits, Aufräumen.
 - [Cache](bot/cache.md): wann cachen und wann nicht, `ladeCache`, Standardwerte, Invalidierung, Grenzen.
 
 ## Oberfläche

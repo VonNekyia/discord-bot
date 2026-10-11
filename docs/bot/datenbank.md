@@ -5,7 +5,9 @@ code:
   - bot/src/datenbank.ts
   - bot/src/index.ts
   - bot/compose.yaml
-  - bot/migrationen/.gitkeep
+  - bot/migrationen/
+  - bot/migrationen/0001-sitzungen.sql
+  - bot/migrationen/0002-begruessungen.sql
 ---
 
 # Datenbank
@@ -14,8 +16,7 @@ Der Bot nutzt PostgreSQL 18 über `pg` mit dessen eingebautem Pool, siehe
 Entscheidung [0007](../entscheidungen/0007-postgres-mit-pg.md). Sie ist die
 einzige Datenbank des Projekts. Beim Start wendet der Bot neue Migrationen
 an und öffnet einen Pool für den ganzen Prozess. Ohne Datenbank startet er
-nicht. Tabellen mit Daten gibt es noch keine; heute misst nur `/ping` die
-Datenbank.
+nicht. Welche Tabellen es gibt, steht unter „Tabellen“.
 
 ## Verbindung
 
@@ -41,7 +42,7 @@ Snowflake mit 64 Bit, die oberen 42 Bit zählen die Millisekunden seit
 2015 ([Doku von Discord](https://discord.com/developers/docs/reference#snowflakes)).
 Das oberste Bit ist darum erst ab dem Jahr 2084 gesetzt.
 
-`pg` liefert `bigint` als Text, nicht als `number`, damit über 2^53 keine
+`pg` liefert `bigint` als Text, auch in `bigint[]`, nicht als `number`, damit über 2^53 keine
 Stelle verloren geht. So bleibt es: IDs werden als Text gelesen,
 verglichen und geschrieben.
 
@@ -63,8 +64,9 @@ der Pool sie weg und meldet `error`. `oeffne` loggt dann
 `Datenbank: <Meldung>`, und die nächste Anfrage baut eine neue Verbindung
 auf. Ohne Zuhörer auf `error` endete der Prozess.
 
-Bei `SIGINT` und `SIGTERM` schliesst der Bot zuerst die Verbindung zu
-Discord, dann den Pool, und endet mit Exit 0.
+Bei `SIGINT` und `SIGTERM` schliesst der Bot zuerst die API, dann die
+Verbindung zu Discord, dann den Pool, und endet mit Exit 0. So kommt keine
+Anfrage mehr an, wenn Discord oder die Datenbank schon weg sind.
 
 ## Migrationen
 
@@ -95,6 +97,20 @@ Anweisung, die nicht in einer Transaktion laufen darf, etwa
 
 Eine angewendete Migration wird nicht mehr geändert. Eine Korrektur ist
 eine neue Datei.
+
+## Tabellen
+
+Jede Tabelle entsteht in einer Migration in `bot/migrationen/`; dort
+stehen ihre Spalten.
+
+| Tabelle | Migration | Inhalt | Beschrieben in |
+|---|---|---|---|
+| `migrationen` | `migriere` selbst | Name und Zeit jeder angewendeten Datei | „Migrationen“ oben |
+| `sitzungen` | `0001-sitzungen.sql` | Sitzungen des Dashboards; Schlüssel ist der SHA-256 der Kennung | [Anmeldung am Dashboard](../schnittstelle/anmeldung.md), „Sitzung“ |
+| `begruessungen` | `0002-begruessungen.sql` | eine Einstellung je Server und Art | [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md) |
+
+Was davon personenbezogen ist und wie lange es bleibt, steht in
+[Datenschutz](datenschutz.md), „Was der Bot speichert“.
 
 ## Dev-Datenbank
 

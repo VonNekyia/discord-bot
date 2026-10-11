@@ -12,7 +12,9 @@ code:
 
 Der Bot läuft unter Node 24 aus `bot/`. Er braucht den
 `DISCORD_BOT_TOKEN`, mit dem er sich beim Gateway anmeldet, und eine
-PostgreSQL, siehe [Datenbank](../bot/datenbank.md). Entwickelt wird
+PostgreSQL, siehe [Datenbank](../bot/datenbank.md). Für das Dashboard
+kommen `DISCORD_CLIENT_SECRET` und `DASHBOARD_URL` dazu; ohne sie startet
+er ohne API. Entwickelt wird
 mit einem eigenen Test-Bot auf einem Test-Server; den Bot der Produktion
 fasst kein Agent an.
 
@@ -45,15 +47,30 @@ Soll der Bot öffentlich werden, kommen „Öffentlicher Bot“ an und als Link
 „Von Discord bereitgestellter Link“ mit den Scopes `bot` und
 `applications.commands`, ohne Rechte.
 
+Für das Dashboard fehlen noch zwei Einstellungen. Der Maintainer trägt sie
+ein, kein Agent; danach stehen sie mit Datum in der Tabelle oben. Bis dahin
+geht die Anmeldung am Dashboard nicht.
+
+| Seite | Einstellung | Wert |
+|---|---|---|
+| OAuth2 | Client-Secret | erzeugen, als `DISCORD_CLIENT_SECRET` ablegen, siehe „Secrets“ |
+| OAuth2 | Redirects | `DASHBOARD_URL` mit `/api/anmelden/zurueck`, lokal `http://localhost:4173/api/anmelden/zurueck` |
+
+Die Redirect-URL muss genau so eingetragen sein, siehe
+[Anmeldung am Dashboard](../schnittstelle/anmeldung.md), „Umgebung“.
+
 ## Secrets
 
 | Name | Wofür | Wo |
 |---|---|---|
 | `DISCORD_BOT_TOKEN` | Anmeldung am Gateway und an der REST-API | lokal `bot/.env`, in GitHub Secret des Repositorys |
 | `DB_PASSWORD` | Passwort der Datenbank | lokal `bot/.env`, für die Produktion Secret des Repositorys |
+| `DISCORD_CLIENT_SECRET` | Tausch des Codes bei der Anmeldung am Dashboard | lokal `bot/.env`, in GitHub Secret des Repositorys |
 
 `DB_HOST`, `DB_PORT`, `DB_NAME` und `DB_USER` sind keine Secrets; für die
-Dev-Datenbank stehen sie schon in `bot/.env.example`.
+Dev-Datenbank stehen sie schon in `bot/.env.example`. `DASHBOARD_URL` und
+`API_PORT` sind auch keine, siehe
+[Anmeldung am Dashboard](../schnittstelle/anmeldung.md), „Umgebung“.
 
 Lokal:
 
@@ -62,11 +79,12 @@ cp bot/.env.example bot/.env
 ```
 
 Dann die Werte in `bot/.env` eintragen; `DB_PASSWORD` für die
-Dev-Datenbank frei wählen. In GitHub setzt der Maintainer das
-Secret; der Wert geht nie durch einen Chat oder ein Log:
+Dev-Datenbank frei wählen. In GitHub setzt der Maintainer die
+Secrets; ein Wert geht nie durch einen Chat oder ein Log:
 
 ```bash
 gh secret set DISCORD_BOT_TOKEN -R VonNekyia/discord-bot
+gh secret set DISCORD_CLIENT_SECRET -R VonNekyia/discord-bot
 ```
 
 Die CI braucht keins davon: Die Tests laufen gegen eine gemockte API und
@@ -87,6 +105,8 @@ npm start
 Pflichtvariable der Datenbank, endet der Bot sofort mit Exit 1. Dann wendet
 er neue Migrationen an. Beim Start registriert er seine Befehle,
 siehe [Rate-Limits](../bot/rate-limits.md), „Befehle registrieren“.
+Danach öffnet er die API, wenn `DISCORD_CLIENT_SECRET` und `DASHBOARD_URL`
+da sind, siehe [API im Bot](../bot/dashboard-api.md), „Start und Ende“.
 
 ## Einladen
 

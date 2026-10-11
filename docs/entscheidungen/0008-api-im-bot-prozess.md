@@ -6,6 +6,7 @@ date: 2026-10-11
 issues: []
 code:
   - bot/src/index.ts
+  - bot/src/api.ts
   - web/serve.mjs
 ---
 
