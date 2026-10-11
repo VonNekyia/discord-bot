@@ -153,7 +153,10 @@ export class Knoepfe {
       if (aktion === 'info') return this.info(l);
       if (aktion === 'uebernehmen') return await this.uebernehmen(l);
       if (l.nutzer !== l.besitzer) return nurBesitzer(l.besitzer);
-      if (i.isUserSelectMenu() && mitAuswahl(aktion)) return await this.mitZiel(l, aktion, i.values[0] ?? '');
+      if (i.isUserSelectMenu() && mitAuswahl(aktion)) {
+        const ziel = i.values[0] ?? '';
+        return await this.mitZiel(l, aktion, ziel, i.users.get(ziel)?.bot ?? false);
+      }
       if (i.isModalSubmit() && aktion === 'umbenennen') return await this.umbenennen(l, i.fields.getTextInputValue('wert'));
       if (i.isModalSubmit() && aktion === 'limit') return await this.limit(l, i.fields.getTextInputValue('wert'));
       if (i.isButton() && (aktion === 'sperren' || aktion === 'entsperren' || aktion === 'verstecken' || aktion === 'zeigen')) {
@@ -205,7 +208,8 @@ export class Knoepfe {
     return zahl === 0 ? 'Der Raum hat kein Limit mehr.' : `Das Limit ist jetzt ${zahl}.`;
   }
 
-  private async mitZiel(l: Lage, aktion: MitAuswahl, ziel: string): Promise<string> {
+  // `istBot` kommt aus der Nutzerauswahl; Rauswerfen und Bannen treffen auch Bots.
+  private async mitZiel(l: Lage, aktion: MitAuswahl, ziel: string, istBot: boolean): Promise<string> {
     const verb = { rauswerfen: 'rauswerfen', bannen: 'bannen', entbannen: 'entbannen', uebergeben: 'zum Besitzer machen' }[aktion];
     if (ziel === l.nutzer && aktion !== 'entbannen') return `Dich selbst kannst du nicht ${verb}.`;
     if (ziel === l.bot && aktion !== 'entbannen') return `Den Bot kannst du nicht ${verb}.`;
@@ -238,6 +242,8 @@ export class Knoepfe {
       await l.raum.permissionOverwrites.set(rechte.entbanne(r, ziel), grund.entbannen);
       return `${wer} ist nicht mehr gebannt.`;
     }
+    // Kein Bot wird Besitzer: Bliebe er im Raum, ginge auch „Übernehmen“ nicht mehr.
+    if (istBot) return 'Einem Bot kannst du den Raum nicht übergeben.';
     if (!istDrin) return `${wer} ist nicht im Raum.`;
     return this.neuerBesitzer(l, ziel, grund.uebergeben, `${wer} ist jetzt Besitzer.`, `${wer} hat schon einen eigenen Raum.`);
   }

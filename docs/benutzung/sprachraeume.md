@@ -125,8 +125,12 @@ mit dem Raum.
   wendet Einträge für Personen nach denen für Rollen an
   ([Permission Overwrites](https://docs.discord.com/developers/topics/permissions#permission-overwrites)).
   Ebenso sieht ein versteckter Raum, wer „Kanal ansehen“ so hat.
-- Wer den Besitz abgibt, behält sein Recht, den Raum zu sehen und zu
-  betreten. Der neue Besitzer bekommt dieselben Rechte wie der erste.
+- Der neue Besitzer bekommt dieselben Rechte wie der erste. Wer den Besitz
+  abgibt, behält seinen Rechte-Eintrag wie jeder mit eigenem „Verbinden“:
+  Er kommt auch in einen gesperrten oder versteckten Raum, bis der neue
+  Besitzer entsperrt oder zeigt. Dann gilt für ihn die Kategorie.
+- Bots können „Besitz übergeben“ nicht bekommen; rauswerfen und bannen kann
+  man sie.
 - Die Knöpfe stehen in drei Reihen: Zugang, Raum, Mitglieder.
 - Einen Kanal lässt Discord nur wenige Male in kurzer Zeit umbenennen;
   `@discordjs/rest` rechnet mit 2 Umbenennungen je 10 Minuten und Kanal

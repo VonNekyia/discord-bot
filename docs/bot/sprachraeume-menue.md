@@ -93,8 +93,8 @@ Darum gilt:
 
 | Zustand | gilt, wenn | Sperren, Verstecken, Bannen | Entsperren, Zeigen, Entbannen |
 |---|---|---|---|
-| gesperrt | @everyone verbietet „Verbinden“, und keine Rolle erlaubt es | @everyone und jede Rolle mit Eintrag: „Verbinden“ verboten; wer drin ist, bekommt einen eigenen Eintrag mit „Verbinden“ | jede Rolle: „Verbinden“ wie in der Kategorie; Personen verlieren ihr eigenes „Verbinden“ |
-| versteckt | @everyone verbietet „Kanal ansehen“, und keine Rolle erlaubt es | ebenso mit „Kanal ansehen“; wer drin ist, bekommt „Kanal ansehen“ und „Verbinden“ | ebenso; ist der Raum gesperrt, behält jeder sein eigenes „Verbinden“ |
+| gesperrt | @everyone verbietet „Verbinden“, und keine Rolle erlaubt es | @everyone und jede Rolle mit Eintrag: „Verbinden“ verboten; wer drin ist, bekommt einen eigenen Eintrag mit „Verbinden“; Einträge anderer Personen bleiben, auch der eines früheren Besitzers | jede Rolle und jede Person mit eigenem „Verbinden“, auch ein früherer Besitzer: „Verbinden“ wie in der Kategorie; nur Besitzer, Bot und Gebannte bleiben, wie sie sind |
+| versteckt | @everyone verbietet „Kanal ansehen“, und keine Rolle erlaubt es | ebenso mit „Kanal ansehen“; wer drin ist, bekommt „Kanal ansehen“ und „Verbinden“ | ebenso mit „Kanal ansehen“, auch für einen früheren Besitzer; ist der Raum nicht gesperrt, auch „Verbinden“, sonst behält jeder sein eigenes „Verbinden“ |
 | gebannt | der Eintrag einer Person verbietet „Kanal ansehen“ und „Verbinden“, der Eintrag der Kategorie für sie nicht | beides verboten, eigenes Erlaubtes weg | beides wie in der Kategorie |
 
 - „Wie in der Kategorie“ heisst: wie der Eintrag derselben ID in der
@@ -116,6 +116,10 @@ inzwischen jemand anderes den Raum. Hat der neue Besitzer schon einen Raum,
 weist `UNIQUE (server, besitzer)` das ab (23505), auch bei zwei
 gleichzeitigen Wechseln; der Bot prüft das nicht vorher selbst. Danach
 bekommt der neue Besitzer dieselben Rechte wie der erste (`mitBesitzer`).
+Der alte behält seinen Eintrag, bis Entsperren oder Zeigen ihn wie oben auf
+die Kategorie setzt. Einen Bot nimmt „Besitz übergeben“ nicht, auch keinen
+fremden (`bot` aus der Nutzerauswahl); bliebe er im Raum, ginge
+„Übernehmen“ nicht mehr.
 Scheitern die Rechte, gilt der Besitz trotzdem, und ins Log kommt eine
 Zeile.
 

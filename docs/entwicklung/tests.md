@@ -191,6 +191,7 @@ States. Die Datei nutzt einen eigenen Server und eigene Personen.
 | Entbannen: hebt den Bann auf … | Eintrag weg; nicht gebannt und Nicht-Besitzer: Hinweise |
 | Besitz übergeben: an ein Mitglied im Raum … | Zeile in `raeume`, Rechte des Besitzers, Grund; danach Hinweis an den alten Besitzer |
 | Besitz übergeben: nicht im Raum, schon ein eigener Raum … | Hinweise; mit eigenem Raum weist `UNIQUE` ab; Besitz bleibt, kein PATCH |
+| Besitz übergeben: kein anderer Bot wird Besitzer … | Bot in der Auswahl: Hinweis, Besitz bleibt, kein PATCH; Rauswerfen trennt ihn |
 | Übernehmen: wer im Raum ist und keinen Raum hat … | `deferReply`, Zeile, Rechte, Grund |
 | Übernehmen: Hinweise … | Besitzer drin, nicht drin, schon Besitzer, eigener Raum; Besitz bleibt |
 | Info: für jeden, der den Chat sieht … | Besitzer, Limit, gesperrt, versteckt, Zahl der Gebannten; „keins“ bei 0 |
@@ -198,7 +199,7 @@ States. Die Datei nutzt einen eigenen Server und eigene Personen.
 | istMenue erkennt nur das Präfix … | andere `custom_id` nicht; unbekannte Aktion mit Präfix bekommt einen Hinweis |
 | fehlt dem Bot ein Recht (50013) … / ein anderer Fehler … | Hinweis oder „Das hat nicht geklappt.“, je eine Logzeile ohne ID und Token |
 | dauer: Sekunden unter einer Minute … | 50 ms, 12 s, 5 und 6 min |
-| Rechte im Raum: … | `raumrechte` ohne Discord: Sperren und Verstecken hin und zurück ergeben die Einträge vom Anlegen; ohne Kategorie; Zeigen bei gesperrtem Raum; Bann und Entbannen; Gebannte bleiben gebannt; Kategorie-Sperre ist kein Bann; Besitzer und Bot behalten ihre Rechte; neuer Besitzer |
+| Rechte im Raum: … | `raumrechte` ohne Discord: Sperren und Verstecken hin und zurück ergeben die Einträge vom Anlegen; ohne Kategorie; Zeigen bei gesperrtem Raum; Bann und Entbannen; Gebannte bleiben gebannt; Kategorie-Sperre ist kein Bann; Besitzer und Bot behalten ihre Rechte; neuer Besitzer; der alte behält seinen Eintrag bis Entsperren oder Zeigen, dann wie in der Kategorie |
 | Beitritt: Platzhalter im Text maskiert, nur das neue Mitglied pingt | Text mit Spitzname und Servername maskiert, `{anzahl}`, `allowed_mentions` |
 | Abschied eines Mitglieds ausserhalb des Caches … | Partial mit globalem Anzeigenamen, `allowed_mentions` ohne Nutzer |
 | darf der Bot im Kanal nicht senden … | keine Nachricht, eine Logzeile ohne ID und Namen |

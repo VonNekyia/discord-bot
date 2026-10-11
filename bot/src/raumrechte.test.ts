@@ -130,4 +130,21 @@ describe('Rechte im Raum', () => {
   test('ein neuer Besitzer bekommt dieselben Rechte wie der erste', () => {
     assert.deepEqual(von(mitBesitzer(raum(), GAST), GAST), e(GAST, person, besitzerRechte, 0n));
   });
+
+  test('der alte Besitzer behält seinen Eintrag, bis Entsperren oder Zeigen ihn auf die Kategorie setzt', () => {
+    // Nach der Übergabe gehört der Raum GAST; BESITZER hat nur noch einen eigenen Eintrag.
+    const nachGast = (eintraege: Eintrag[]): Raum => ({ ...raum(eintraege), besitzer: GAST });
+    const uebergeben = mitBesitzer(raum(), GAST);
+    assert.deepEqual(von(uebergeben, BESITZER), von(start, BESITZER));
+
+    // Gesperrt kommt er mit seinem eigenen „Verbinden“ weiter hinein, entsperrt gilt die Kategorie.
+    const zu = sperre(nachGast(uebergeben), [GAST]);
+    assert.deepEqual(von(zu, BESITZER), von(start, BESITZER));
+    assert.deepEqual(von(entsperre(nachGast(zu)), BESITZER), e(BESITZER, person, R.ViewChannel | R.ReadMessageHistory, 0n));
+
+    // Ebenso Verstecken und Zeigen: danach Sehen und Verbinden wie in der Kategorie.
+    const weg = verstecke(nachGast(uebergeben), [GAST]);
+    assert.deepEqual(von(weg, BESITZER), von(start, BESITZER));
+    assert.deepEqual(von(zeige(nachGast(weg)), BESITZER), e(BESITZER, person, R.ReadMessageHistory, 0n));
+  });
 });

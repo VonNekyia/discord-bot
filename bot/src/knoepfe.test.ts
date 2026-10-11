@@ -33,6 +33,8 @@ const SERVER = '300000000000000009';
 const BESITZER = '200000000000000031';
 const GAST = '200000000000000032';
 const DRITTER = '200000000000000033';
+// Ein anderer Bot im Raum, etwa für Musik.
+const MUSIKBOT = '100000000000000002';
 const KATEGORIE = '520000000000000001';
 const RAUM = '520000000000000002';
 // Ein zweiter Raum, der GAST gehören kann, und ein Sprachkanal, der kein Raum ist.
@@ -170,12 +172,12 @@ describe('Menü der Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_H
     return mock.antworten.filter((a) => a.token === token);
   }
   const drueckt = (von: string, aktion: string, kanalId = RAUM) => los(von, 3, { custom_id: `sprachraum:${aktion}`, component_type: 2 }, kanalId);
-  const waehlt = (von: string, aktion: string, wen: string) =>
+  const waehlt = (von: string, aktion: string, wen: string, bot = false) =>
     los(von, 3, {
       custom_id: `sprachraum:${aktion}`,
       component_type: 5,
       values: [wen],
-      resolved: { users: { [wen]: mitglied(wen, []).user }, members: { [wen]: { roles: [], joined_at: '2026-01-01T00:00:00.000Z', permissions: '0', flags: 0 } } },
+      resolved: { users: { [wen]: { ...mitglied(wen, []).user, bot } }, members: { [wen]: { roles: [], joined_at: '2026-01-01T00:00:00.000Z', permissions: '0', flags: 0 } } },
     });
   const schickt = (von: string, aktion: string, wert: string) =>
     los(von, 5, { custom_id: `sprachraum:${aktion}`, components: [{ type: 18, id: 1, component: { type: 4, id: 2, custom_id: 'wert', value: wert } }] });
@@ -381,6 +383,16 @@ describe('Menü der Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_H
     assert.equal(text(await waehlt(BESITZER, 'uebergeben', GAST)), `<@${GAST}> hat schon einen eigenen Raum.`);
     assert.equal(await besitzer(), BESITZER);
     assert.equal(mock.geaendert.length, 0);
+  });
+
+  test('Besitz übergeben: kein anderer Bot wird Besitzer; Rauswerfen trifft ihn weiter', async () => {
+    stimme(BESITZER, RAUM);
+    stimme(MUSIKBOT, RAUM);
+    assert.equal(text(await waehlt(BESITZER, 'uebergeben', MUSIKBOT, true)), 'Einem Bot kannst du den Raum nicht übergeben.');
+    assert.equal(await besitzer(), BESITZER);
+    assert.equal(mock.geaendert.length, 0);
+    assert.equal(text(await waehlt(BESITZER, 'rauswerfen', MUSIKBOT, true)), `<@${MUSIKBOT}> ist raus.`);
+    assert.deepEqual(mock.verschoben, [{ nutzer: MUSIKBOT, kanal: null, grund: 'Sprachraum: rausgeworfen' }]);
   });
 
   test('Übernehmen: wer im Raum ist und keinen Raum hat, wird Besitzer, wenn der Besitzer nicht drin ist', async () => {
