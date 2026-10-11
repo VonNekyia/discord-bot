@@ -99,8 +99,11 @@ Im [Dashboard](dashboard.md) dazu:
 | Bild entfernen | `button.link-button` | Actions, „Links“, „In text“; vom Orchestrator festgelegt |
 | Serverliste | `.grid.grid-3` mit `a.card`, `.card-icon`, `.kicker`, `h4` | Content, „Cards“ |
 | Laden | `.skeleton` in `.grid.grid-3` | Feedback, „Loading and empty states“ |
-| Kein Server, kein Bild | `.empty` | Feedback, „Loading and empty states“ |
-| Beitritt und Abschied | `.tabs` mit `#tab-1` und `#tab-2` | Navigation, „Tabs“ |
+| Kein Server, kein Bild, kein Erzeuger | `.empty` | Feedback, „Loading and empty states“ |
+| Beitritt, Abschied, Sprachräume | `.tabs` mit `#tab-1` bis `#tab-3` | Navigation, „Tabs“ |
+| Liste der Erzeuger | `.grid` mit je einem `article.card`, darin `.form` für den Abstand der Felder; „Erzeuger hinzufügen“ und „Entfernen“ als `button.link-button` | Content, „Cards“; vom Orchestrator festgelegt |
+| Limit eines Erzeugers | `input type="number"` in `.field` | Inputs, „Text fields and text area“; vom Orchestrator festgelegt |
+| Fehlende Rechte für Sprachräume | `.message-warn` oben im Tab | Feedback, „Messages“ |
 | Formular | `.form`, `.field`, `.help`, `.error`, `.field-error` | Inputs, „Text fields and text area“ |
 | Kanal | `select` in `.field`, Kategorien als `optgroup` | Inputs, „Select“ |
 | Aktiv, Banner | `label.choice` mit Checkbox | Inputs, „Checkbox, radio and switch“; Checkbox statt Switch, vom Orchestrator festgelegt |
@@ -159,6 +162,10 @@ Ohne eigene Regel, ebenso festgelegt:
   „Ansehen | Quelltext“ ein `.button.button-quiet`.
 - Das Datei-Feld nimmt `image/png`, `image/jpeg` und `image/webp`; die
   Hilfe sagt „PNG, JPEG oder WebP, bis 4 MiB, am besten 1100 × 440 px.“
+- Jeder Erzeuger der Sprachräume ist eine Karte (`article.card`) mit den
+  Feldern darin; ein `.form` in der Karte gibt ihnen den Abstand. Optionen,
+  die nicht gehen, sind im Select gesperrt und sagen, warum. Stand
+  2026-10-12.
 
 ## Bewegung
 

@@ -1,10 +1,11 @@
 ---
 title: Dashboard
-description: Die Seite /dashboard/ in web/; ihre Zustände von abgemeldet bis Formular, wie Anmelden, Abmelden, Hochladen, Speichern, Testnachricht und Vorschau ablaufen, was sie vor dem Senden prüft und welche Meldung sie wann zeigt.
+description: Die Seite /dashboard/ in web/; ihre Zustände von abgemeldet bis Formular, wie Anmelden, Abmelden, Hochladen, Speichern, Testnachricht und Vorschau ablaufen, der Tab Sprachräume mit seinen Erzeugern, was sie vor dem Senden prüft und welche Meldung sie wann zeigt.
 code:
   - web/dashboard/index.html
   - web/src/dashboard.ts
   - web/src/begruessung.ts
+  - web/src/sprachraeume.ts
   - web/src/api.ts
   - web/src/platzhalter.ts
   - web/src/texte.ts
@@ -13,7 +14,8 @@ code:
 # Dashboard
 
 Unter `/dashboard/` meldet man sich mit Discord an, wählt einen Server und
-stellt ein, was kitty bei Beitritt und Abschied schickt. Die Seite ist
+stellt ein, was kitty bei Beitritt und Abschied schickt und wo
+Sprachräume entstehen. Die Seite ist
 statisch (`web/dashboard/index.html`), das Skript `web/src/dashboard.ts`
 holt alles über die [API des Dashboards](../schnittstelle/api.md). Ohne
 Skript geht sie nicht und sagt das, siehe Entscheidung
@@ -32,11 +34,13 @@ aussehen, steht in [Design der Oberfläche](design.md), „Elemente“.
 | laden | Serverliste oder Server wird geholt | drei Skeletons |
 | Serverliste | angemeldet | Leiste mit Avatar, Name und „Abmelden“; je Server eine Karte mit Icon und Name |
 | keine Server | `GET /api/server` gibt `[]` | leerer Zustand mit Link zum neuen Anmelden |
-| Server | Hash `#server-<id>` mit einem Server aus der Liste | Tabs „Beitritt“ und „Abschied“, je ein Formular mit Vorschau |
+| Server | Hash `#server-<id>` mit einem Server aus der Liste | Tabs „Beitritt“ und „Abschied“, je ein Formular mit Vorschau, und „Sprachräume“, siehe „Sprachräume“ unten |
 
 Der Hash trägt den gewählten Server, so gehen Zurück im Browser und ein
 Lesezeichen. Ein Hash mit einem Server, der nicht in der Liste steht,
-zeigt die Liste. Scheitert `GET …/kanaele` oder `GET …/begruessung`, geht
+zeigt die Liste. Beim Öffnen holt die Seite vier Dinge zugleich: `GET
+…/kanaele`, `GET …/begruessung`, `GET …/sprachkanaele` und `GET
+…/sprachraeume`. Scheitert eins davon, geht
 die Seite zurück zur Liste und zeigt die Meldung darüber, etwa bei `403`,
 `404`, `429` oder `503`; nur bei `401` zeigt sie die Anmeldung. Ein Server,
 der gerade nicht geht, nimmt so nicht die ganze Seite mit: Die anderen
@@ -88,6 +92,33 @@ Je Art (`beitritt`, `abschied`) ein Formular, `web/src/begruessung.ts`:
 | Speichern | Primary button | „Speichern \| Beitritt“ oder „Speichern \| Abschied“; gesperrt, solange die Anfrage läuft |
 | Testnachricht senden | Link-Knopf unter den Meldungen zu „Speichern“, darunter eine Hilfe und eigene Meldungen | siehe „Abläufe“; kein zweiter Primary button |
 
+## Sprachräume
+
+Der dritte Tab stellt die Sprachräume des Servers ein, nach
+[API der Sprachräume](../schnittstelle/sprachraeume.md),
+`web/src/sprachraeume.ts`. Was in Discord passiert, steht in
+[Sprachräume](../benutzung/sprachraeume.md).
+
+| Teil | Element | Verhalten |
+|---|---|---|
+| Warnung | `.message-warn` oben | nur bei `ohneKategorie.bereit: false`; nennt die Rechte aus [Sprachräume](../benutzung/sprachraeume.md), „Rechte und Intent“ |
+| Aktiv | Checkbox | `an`; darunter eine Hilfe: Jeder Raum bekommt sein Menü im eigenen Textchat, Änderungen gelten für neue Räume |
+| Erzeuger | je einer als `.card` in einer `.grid` | Kopfzeile „Erzeuger 1“, mit dem Namen des gewählten Sprachkanals |
+| Erzeuger, Feld | Select | die Sprachkanäle in der Reihenfolge der API, je Kategorie eine `optgroup`. Gesperrt: ohne `bereit` („kitty fehlt ein Recht“) und schon in einem anderen Eintrag gewählt („schon gewählt“) |
+| Kategorie | Select | „Kategorie des Erzeugers“ (`null`) und die Kategorien; ohne `bereit` gesperrt. Die Hilfe sagt, wo Räume entstehen |
+| Name | Textfeld | Hilfe zu `{name}` und wie viele Zeichen frei sind, mit 32 Zeichen für `{name}` gerechnet |
+| Limit | Zahl, 0 bis 99 | Hilfe: 0 heisst unbegrenzt |
+| Entfernen | Link-Knopf je Karte | nimmt den Eintrag aus der Liste; gespeichert wird erst mit „Speichern“ |
+| Erzeuger hinzufügen | Link-Knopf unter der Liste | neuer Eintrag mit `{name}s Raum`, Limit 0, Kategorie `null`, Fokus auf dem Select; bei 10 gesperrt, mit Hinweis |
+| kein Erzeuger | `.empty` | solange die Liste leer ist |
+| Speichern | Primary button | „Speichern \| Sprachräume“, `PUT …/sprachraeume` mit allen Einträgen in ihrer Reihenfolge |
+
+Gespeicherte IDs, die es nicht mehr gibt, zeigt der Tab wie den Kanal der
+Begrüssung: Das Select steht auf „Bitte wählen“ bzw. „Kategorie des
+Erzeugers“, und am Feld steht der Satz zu `erzeuger_unbekannt` bzw.
+`kategorie_unbekannt`, bis man es ändert. Was gespeichert ist und nicht
+mehr geht, etwa ein Erzeuger ohne `bereit`, steht schon beim Laden am Feld.
+
 ## Prüfen vor dem Senden
 
 Die Seite prüft dieselben Regeln wie das Backend, damit der Fehler gleich
@@ -100,6 +131,8 @@ am Feld steht. Das Backend prüft trotzdem.
 | Aktiv braucht einen Kanal | Fehler am Kanal | ebenda |
 | Aktiv braucht Text oder Banner | Meldung unter dem Knopf | ebenda |
 | Bild: Typ, Grösse, Pixel je Seite, lesbar | Typ und Grösse aus der Datei, Pixel mit `createImageBitmap` | [API des Dashboards](../schnittstelle/api.md), „Bild“ |
+| Sprachräume, je Eintrag: Sprachkanal gewählt, bekannt, `bereit`, nicht doppelt; Kategorie bekannt und `bereit`, bei `null` die des Erzeugers oder `ohneKategorie`; Name ohne NUL, nicht leer, nicht zu lang (`{name}` mit 32 Zeichen); Limit ganze Zahl von 0 bis 99 | je Feld der erste Fehler am Eintrag, in der Reihenfolge des Backends; alle Einträge auf einmal | [API der Sprachräume](../schnittstelle/sprachraeume.md), „Sprachräume einstellen“ |
+| Sprachräume: Aktiv braucht einen Erzeuger | Meldung unter dem Knopf | ebenda |
 
 ## Meldungen
 
@@ -109,6 +142,8 @@ sagt, was passiert ist, der zweite, was zu tun ist.
 | Wo | wann |
 |---|---|
 | am Feld (`.field-error`, `.error`) | Fehler mit `feld` `kanal`, `text` oder `bannerText`; jeder Fehler beim Bild |
+| am Feld eines Erzeugers | Fehler mit `feld` `erzeuger.<i>.kanal`, `.kategorie`, `.name` oder `.limit`; `i` zählt in der Liste, wie sie gesendet wurde, ab 0 |
+| unter der Liste der Erzeuger | Fehler mit `feld` `erzeuger`, etwa `zu_viele_erzeuger` |
 | unter „Speichern“ | Erfolg und jeder andere Fehler beim Speichern |
 | unter „Testnachricht senden“ | Erfolg und jeder Fehler der Testnachricht ohne `feld`, etwa `429` oder `503`; `test_ohne_kanal` und `kanal_unbekannt` stehen am Kanal, `test_ohne_inhalt` am Text, mit Sätzen, die vom gespeicherten Stand sprechen |
 | über der Serverliste | jeder Fehler beim Öffnen eines Servers ausser `401` |
@@ -116,9 +151,9 @@ sagt, was passiert ist, der zweite, was zu tun ist.
 
 `429` nennt die Sekunden aus `Retry-After`. Eine Antwort ohne JSON ab
 `500` gilt als nicht erreichbar, ebenso ein `fetch`, das gar keine Antwort
-bekommt. `ungueltig` mit `feld` `text` oder `bannerText` bekommt denselben
-Satz wie NUL vor dem Senden (`steuerzeichen`), denn die Seite schickt dort
-immer einen String.
+bekommt. `ungueltig` mit `feld` `text`, `bannerText` oder
+`erzeuger.<i>.name` bekommt denselben Satz wie NUL vor dem Senden
+(`steuerzeichen`), denn die Seite schickt dort immer einen String.
 
 ## Was noch fehlt
 

@@ -14,6 +14,13 @@ export type Einstellung = {
   bild: boolean;
 };
 
+// Sprachräume, siehe docs/schnittstelle/sprachraeume.md.
+export type Sprachkanal = { id: string; name: string; kategorie: { id: string; name: string } | null; bereit: boolean };
+export type Kategorie = { id: string; name: string; bereit: boolean };
+export type SprachDaten = { sprachkanaele: Sprachkanal[]; kategorien: Kategorie[]; ohneKategorie: { bereit: boolean } };
+export type Erzeuger = { kanal: string; kategorie: string | null; name: string; limit: number };
+export type Sprachraeume = { an: boolean; erzeuger: Erzeuger[] };
+
 // Ein Fehler der API mit Status, festem Code und, bei 400, dem Feld.
 // Ohne Antwort oder ohne Code im Body gilt nicht_erreichbar ab 500.
 export class ApiFehler extends Error {
@@ -64,6 +71,10 @@ export const api = {
   },
   // Ohne Body; die Testnachricht nimmt den gespeicherten Stand. `banner` sagt, ob das Banner mitging.
   testSenden: async (id: string, art: Art) => json<{ banner: boolean }>(await senden('POST', `${begruessung(id)}/${art}/test`)),
+  sprachkanaele: async (id: string) => json<SprachDaten>(await senden('GET', `/api/server/${encodeURIComponent(id)}/sprachkanaele`)),
+  sprachraeume: async (id: string) => json<Sprachraeume>(await senden('GET', `/api/server/${encodeURIComponent(id)}/sprachraeume`)),
+  sprachraeumeSpeichern: async (id: string, wert: Sprachraeume) =>
+    json<Sprachraeume>(await senden('PUT', `/api/server/${encodeURIComponent(id)}/sprachraeume`, JSON.stringify(wert), 'application/json')),
   // Die Query ändert sich bei jedem Aufruf, damit der Browser neu lädt; die API ignoriert sie.
   vorschau: (id: string, art: Art) => `${begruessung(id)}/${art}/vorschau?v=${Date.now()}`,
 };

@@ -21,3 +21,8 @@ function laenge(text: string, werte: Werte): number {
 
 export const laengeImText = (text: string) => laenge(text, imText);
 export const laengeImBanner = (text: string) => laenge(text, imBanner);
+
+// Namen der Sprachräume kennen nur {name}, mit höchstens 32 Zeichen.
+// Siehe docs/schnittstelle/sprachraeume.md, „Sprachräume einstellen“.
+export const grenzeRaumname = 100;
+export const laengeImRaumnamen = (vorlage: string) => vorlage.length + (vorlage.split('{name}').length - 1) * (32 - '{name}'.length);

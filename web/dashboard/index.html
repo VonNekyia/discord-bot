@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dashboard · kitty</title>
-    <meta name="description" content="Stell ein, was kitty auf deinem Discord-Server schreibt, wenn jemand beitritt oder geht." />
+    <meta name="description" content="Stell ein, was kitty auf deinem Discord-Server tut: Begrüssung bei Beitritt und Abschied, eigene Sprachräume." />
     <link rel="icon" href="../favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="../logo192.png" />
     <link rel="stylesheet" href="../site.css" />
@@ -19,8 +19,8 @@
       </div>
       <div class="hero-inner">
         <p class="eyebrow">Dashboard</p>
-        <h1>Begrüssung <em>einstellen.</em></h1>
-        <p class="hero-copy">Wähl einen Server und stell ein, was kitty schreibt, wenn jemand beitritt oder den Server verlässt.</p>
+        <h1>Server <em>einstellen.</em></h1>
+        <p class="hero-copy">Wähl einen Server und stell ein, was kitty schreibt, wenn jemand kommt oder geht, und wo eigene Sprachräume entstehen.</p>
         <div id="anmelden" class="hero-actions" hidden><a class="button" href="/api/anmelden"><span>Anmelden</span><strong>mit Discord</strong></a></div>
         <div id="kopf-meldung" class="hero-actions" role="alert" hidden></div>
       </div>
@@ -58,14 +58,15 @@
       <section id="begruessung" class="section ground-cream" hidden>
         <div class="section-heading">
           <p id="server-name" class="eyebrow eyebrow-dark name"></p>
-          <h2>Beitritt und <em>Abschied.</em></h2>
-          <p class="lead">Für beides wählst du Kanal, Text und Banner getrennt. <a href="#">Anderen Server wählen</a></p>
+          <h2>Begrüssung und <em>Sprachräume.</em></h2>
+          <p class="lead">Beitritt und Abschied stellst du getrennt ein, die Sprachräume für den ganzen Server. <a href="#">Anderen Server wählen</a></p>
         </div>
         <div class="tabs">
-          <input type="radio" name="tabs" id="tab-1" checked /><input type="radio" name="tabs" id="tab-2" />
-          <div class="tab-list"><label for="tab-1">Beitritt</label><label for="tab-2">Abschied</label></div>
+          <input type="radio" name="tabs" id="tab-1" checked /><input type="radio" name="tabs" id="tab-2" /><input type="radio" name="tabs" id="tab-3" />
+          <div class="tab-list"><label for="tab-1">Beitritt</label><label for="tab-2">Abschied</label><label for="tab-3">Sprachräume</label></div>
           <div id="panel-beitritt" class="tab-panel tab-p1"></div>
           <div id="panel-abschied" class="tab-panel tab-p2"></div>
+          <div id="panel-sprachraeume" class="tab-panel tab-p3"></div>
         </div>
       </section>
     </main>
@@ -121,6 +122,57 @@
           </div>
         </div>
       </div>
+    </template>
+
+    <template id="vorlage-sprachraeume">
+      <form class="form" novalidate>
+        <!-- Die sieben Rechte: siehe docs/benutzung/sprachraeume.md, „Rechte und Intent“. -->
+        <div class="message message-warn" data-warnung hidden><div><strong>kitty fehlen Rechte auf dem Server.</strong>Ohne „Kanäle verwalten“, „Rollen verwalten“, „Mitglieder verschieben“, „Kanal ansehen“, „Verbinden“, „Nachrichten senden“ und „Nachrichtenverlauf anzeigen“ auf dem ganzen Server entsteht kein Sprachraum. Gib kitty diese Rechte und lade die Seite neu.</div></div>
+        <label class="choice"><input type="checkbox" name="an" data-id="an" /> Aktiv</label>
+        <span class="help">Wer einen Erzeuger betritt, bekommt einen eigenen Sprachraum. Jeder Raum bekommt sein Menü mit den Knöpfen im eigenen Textchat. Was du hier änderst, gilt für Räume, die danach entstehen.</span>
+        <div class="grid" data-liste></div>
+        <div class="empty" data-leer>
+          <h4>Noch kein Erzeuger.</h4>
+          <p>Füg einen Sprachkanal hinzu, etwa „➕ Talk“. Wer ihn betritt, bekommt einen Raum.</p>
+        </div>
+        <span class="error" data-liste-fehler hidden></span>
+        <button class="link-button" type="button" data-hinzufuegen>Erzeuger hinzufügen</button>
+        <span class="help" data-voll hidden>Mehr als 10 Erzeuger hat ein Server nicht.</span>
+        <button class="button" type="submit"><span>Speichern</span><strong>Sprachräume</strong></button>
+        <div data-meldung role="status"></div>
+      </form>
+    </template>
+
+    <template id="vorlage-erzeuger">
+      <article class="card">
+        <div class="form">
+          <p class="kicker" data-kopf>Erzeuger</p>
+          <div class="field" data-feld="kanal">
+            <label data-fuer="kanal">Erzeuger</label>
+            <select data-id="kanal" name="kanal"><option value="">Bitte wählen</option></select>
+            <span class="error" hidden></span>
+          </div>
+          <div class="field" data-feld="kategorie">
+            <label data-fuer="kategorie">Kategorie</label>
+            <select data-id="kategorie" name="kategorie"><option value="">Kategorie des Erzeugers</option></select>
+            <span class="help" data-ort></span>
+            <span class="error" hidden></span>
+          </div>
+          <div class="field" data-feld="name">
+            <label data-fuer="name">Name</label>
+            <input data-id="name" type="text" name="name" />
+            <span class="help"><code>{name}</code> wird zum Namen des Besitzers. <span data-rest></span></span>
+            <span class="error" hidden></span>
+          </div>
+          <div class="field" data-feld="limit">
+            <label data-fuer="limit">Limit</label>
+            <input data-id="limit" type="number" name="limit" min="0" max="99" step="1" inputmode="numeric" />
+            <span class="help">So viele dürfen in den Raum; 0 heisst unbegrenzt.</span>
+            <span class="error" hidden></span>
+          </div>
+          <button class="link-button" type="button" data-entfernen>Entfernen</button>
+        </div>
+      </article>
     </template>
   </body>
 </html>
