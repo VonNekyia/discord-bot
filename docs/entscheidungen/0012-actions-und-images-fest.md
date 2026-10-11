@@ -28,8 +28,9 @@ während danach `npm ci`, die Tests und Lighthouse liefen.
 ## Entscheidung
 
 Jede Action steht mit ihrem vollen Commit-SHA im Workflow, ihr Tag als
-Kommentar dahinter. Ein Service-Image steht mit seinem Digest, Tag und
-Fassung als Kommentar. `actions/checkout` läuft mit
+Kommentar dahinter. Ein Service-Image steht mit Tag und Digest,
+`postgres:18@sha256:…`; gezogen wird der Digest, der Tag zeigt, welcher
+Linie es folgt. `actions/checkout` läuft mit
 `persist-credentials: false`. Wie man SHA und Digest erneuert, steht in
 [CI und Ablauf einer PR](../entwicklung/ci.md), „Actions und Images“.
 
@@ -45,8 +46,9 @@ Fassung als Kommentar. `actions/checkout` läuft mit
 - Updates und Sicherheitsfixes der Actions und von PostgreSQL in der CI
   kommen nicht mehr von selbst. Wer sie will, erneuert SHA oder Digest in
   einer eigenen PR.
-- Ein Werkzeug, das SHAs und Digests erneuert, etwa Dependabot, kommt nur
-  mit eigener PR und Entscheidung dazu (`AGENTS.md`, Regel 23).
+- Ein Werkzeug, das SHAs und Digests erneuert, kommt nur mit eigener PR
+  und Entscheidung dazu (`AGENTS.md`, Regel 23). Der Maintainer zieht
+  Renovate Dependabot vor.
 - Ein Schritt, der nach dem Checkout Git mit Anmeldung braucht, etwa ein
   Push, muss das Token selbst setzen. Heute braucht das keiner.
 - Die Dev-Datenbank in `bot/compose.yaml` bleibt beim Tag `18`, damit sie

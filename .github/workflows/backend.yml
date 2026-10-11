@@ -22,7 +22,7 @@ jobs:
     # Das Image fest an seinen Digest, siehe docs/entwicklung/ci.md, „Actions und Images“.
     services:
       postgres:
-        image: postgres@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336 # 18, 18.6
+        image: postgres:18@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336
         env:
           POSTGRES_DB: kitty
           POSTGRES_USER: kitty

@@ -155,8 +155,8 @@ Werden die Klammern übergangen, fällt das zweite durch.
 
 Jede Action steht mit ihrem vollen Commit-SHA im Workflow, ihr Tag als
 Kommentar dahinter. Das Image der PostgreSQL im Job „Backend“ steht mit
-seinem Digest, Tag und Fassung als Kommentar. Ein Tag lässt sich auf
-anderen Code umhängen, ein SHA nicht; siehe
+Tag und Digest, `postgres:18@sha256:…`; gezogen wird der Digest. Ein Tag
+lässt sich auf anderen Code umhängen, ein SHA nicht; siehe
 [0012](../entscheidungen/0012-actions-und-images-fest.md).
 
 `actions/checkout` läuft mit `persist-credentials: false`. So liegt das
