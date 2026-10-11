@@ -110,9 +110,10 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
 
   beforeEach(async () => {
     if (!ziel) return;
-    for (const liste of [mock.angelegt, mock.verschoben, mock.geloescht]) liste.length = 0;
+    for (const liste of [mock.angelegt, mock.verschoben, mock.geloescht, mock.nachrichten]) liste.length = 0;
     mock.anlegenFehler = undefined;
     mock.verschiebenFehler = undefined;
+    mock.nachrichtFehler = undefined;
     guild.voiceStates.cache.clear();
     for (const id of guild.channels.cache.keys()) if (BigInt(id) >= 800000000000000000n) guild.channels.cache.delete(id);
     await vergiss(db, SERVER);
@@ -173,8 +174,54 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
       ]),
     );
     const raum = [...guild.channels.cache.keys()].find((id) => BigInt(id) >= 800000000000000000n) ?? '';
-    assert.deepEqual(mock.verschoben, [{ nutzer: BESITZER, kanal: raum }]);
+    assert.deepEqual(mock.verschoben, [{ nutzer: BESITZER, kanal: raum, grund: 'Sprachraum angelegt' }]);
     assert.deepEqual(await zeile(raum), { server: SERVER, besitzer: BESITZER });
+  });
+
+  test('nach dem Anlegen kommt das Menü in den Textchat des Raums: zwölf Knöpfe in drei Reihen', async () => {
+    await speichereSprachraeume(db, SERVER, standard);
+    await betritt(raeume(), BESITZER, K.erzeuger);
+    const raum = mock.verschoben[0]?.kanal ?? '';
+    assert.equal(mock.nachrichten.length, 1);
+    const menue = mock.nachrichten[0];
+    assert.equal(menue?.kanal, raum);
+    assert.match(menue?.json.content ?? '', /^## Dein Sprachraum\n/);
+    assert.deepEqual(menue?.json.allowed_mentions, { parse: [] });
+    const reihen = menue?.json.components ?? [];
+    assert.deepEqual(
+      reihen.map((r) => r.components.length),
+      [4, 4, 4],
+    );
+    const knoepfe = reihen.flatMap((r) => r.components);
+    assert.ok(knoepfe.every((k) => k.type === 2 && k.custom_id?.startsWith('sprachraum:')));
+    assert.deepEqual(knoepfe.map((k) => k.label).sort(), [
+      'Bannen',
+      'Besitz übergeben',
+      'Entbannen',
+      'Entsperren',
+      'Info',
+      'Limit',
+      'Rauswerfen',
+      'Sperren',
+      'Umbenennen',
+      'Verstecken',
+      'Zeigen',
+      'Übernehmen',
+    ]);
+  });
+
+  test('scheitert das Menü, bleibt der Raum ohne Knöpfe; eine Logzeile ohne IDs', async (t) => {
+    const log = t.mock.method(console, 'error', () => {});
+    await speichereSprachraeume(db, SERVER, standard);
+    mock.nachrichtFehler = [403, 50013];
+    await betritt(raeume(), BESITZER, K.erzeuger);
+    const raum = mock.verschoben[0]?.kanal ?? '';
+    assert.deepEqual(await zeile(raum), { server: SERVER, besitzer: BESITZER });
+    assert.deepEqual(mock.geloescht, []);
+    assert.equal(log.mock.callCount(), 1);
+    const zeileLog = String(log.mock.calls[0]?.arguments[0]);
+    assert.match(zeileLog, /^Sprachraum: Menü nicht gesendet: /);
+    assert.doesNotMatch(zeileLog, /\d{17,}/);
   });
 
   test('ohne Kategorie hat der Raum nur die Einträge von Besitzer und Bot', async () => {
@@ -195,7 +242,7 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
     stimme(BESITZER, raum);
     await betritt(r, BESITZER, K.erzeuger, raum);
     assert.equal(mock.angelegt.length, 1);
-    assert.deepEqual(mock.verschoben.at(-1), { nutzer: BESITZER, kanal: raum });
+    assert.deepEqual(mock.verschoben.at(-1), { nutzer: BESITZER, kanal: raum, grund: 'Sprachraum: in den eigenen Raum' });
   });
 
   test('höchstens ein neuer Raum je 30 s und Mitglied', async () => {

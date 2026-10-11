@@ -1,6 +1,6 @@
 ---
 title: Sprachräume im Bot
-description: Wie der Bot die Sprachräume baut; Module, Belegung aus den Voice States, Anlegen in einem Aufruf, nacheinander je Mitglied, erwartete Fehler, Löschen nach 2 s, Abgleich beim Start, Audit-Log und Log, was das Menü noch bringt.
+description: Wie der Bot die Sprachräume baut; Module, Belegung aus den Voice States, Anlegen in einem Aufruf mit dem Menü danach, nacheinander je Mitglied, erwartete Fehler, Löschen nach 2 s, Abgleich beim Start, Audit-Log und Log.
 code:
   - bot/src/raeume.ts
   - bot/src/sprachraeume.ts
@@ -15,14 +15,16 @@ Was die Sprachräume tun, steht in [Sprachräume](../benutzung/sprachraeume.md),
 die Routen in [API der Sprachräume](../schnittstelle/sprachraeume.md), warum
 so in Entscheidung [0011](../entscheidungen/0011-sprachraeume-mit-knoepfen.md).
 Diese Seite sagt, wie das Backend es baut, und hält die Regeln fest, die der
-Code nicht brechen darf. Das Menü im Chat des Raums fehlt noch.
+Code nicht brechen darf. Das Menü im Chat jedes Raums steht in
+[Menü der Sprachräume im Bot](sprachraeume-menue.md).
 
 ## Module
 
 | Datei | Inhalt |
 |---|---|
 | `bot/src/sprachraeume.ts` | Einstellungen, `liste` mit `bereit`, `pruefe` mit den Regeln beim Speichern |
-| `bot/src/raeume.ts` | `Raeume`: Erzeuger betreten, anlegen, verschieben, leere löschen, Abgleich beim Start; `belegung`, `eintraege` |
+| `bot/src/raeume.ts` | `Raeume`: Erzeuger betreten, anlegen, verschieben, Menü posten, leere löschen, Abgleich beim Start; `belegung`, `eintraege`, `besitzerVon` |
+| `bot/src/menue.ts`, `bot/src/knoepfe.ts`, `bot/src/raumrechte.ts` | das Menü, siehe [Menü der Sprachräume im Bot](sprachraeume-menue.md) |
 | `bot/src/aufraeumen.ts` | `vergiss` und `behalteNur` für alle Tabellen je Server |
 | `bot/src/ordnung.ts` | `wieDiscord`: Kanäle sortieren wie Discord |
 
@@ -59,6 +61,9 @@ Voice States ohne Kanal räumt ein Sweeper alle 10 Minuten weg
    und nicht verboten.
 5. Die Zeile in `raeume`, dann `guild.members.edit` mit `channel`.
    Scheitert eins davon, geht der neue Raum wieder.
+6. Das Menü in den Textchat des Raums (`menue` aus `bot/src/menue.ts`).
+   Scheitert es, bleibt der Raum ohne Knöpfe, mit einer Logzeile; bei
+   40032 und 10003 ohne.
 
 Jedes Mitglied besitzt höchstens einen Raum je Server: `UNIQUE (server,
 besitzer)` in der Tabelle `raeume`, siehe [Datenbank](datenbank.md),
@@ -103,20 +108,6 @@ in [API im Bot](dashboard-api.md), „Aufräumen“.
 Ins Audit-Log von Discord schreibt der Bot nur feste Gründe
 (`Sprachraum angelegt`, `Sprachraum leer`, `Sprachraum: in den eigenen
 Raum`, `Sprachraum: Verschieben gescheitert`). Ins Log kommen nur Zeilen wie
-`Sprachraum: nicht angelegt: <Fehler>`, ohne IDs und Namen, siehe
+`Sprachraum: nicht angelegt: <Fehler>` oder
+`Sprachraum: Menü nicht gesendet: <Fehler>`, ohne IDs und Namen, siehe
 [Datenschutz](datenschutz.md), „Was ins Log geht“.
-
-## Was das Menü noch bringt
-
-Mit dem Menü kommen dazu, für den nächsten Auftrag festgehalten:
-
-- **Umbenennen:** `@discordjs/rest` behandelt `PATCH /channels/:id` mit
-  `name` als Sublimit (`hasSublimit`) und wartet bei 429 still. Der Client
-  bekommt darum `rejectOnRateLimit` für `/channels`; der Bot fängt den
-  `RateLimitError` und nennt die Wartezeit. Vor jedem Aufruf an Discord
-  ruft er `deferReply` ephemeral, wegen der Frist von 3 s.
-- **Sperren und Verstecken:** Die eigenen Rechte für alle im Raum gehen in
-  einem `PATCH` mit der ganzen Liste (`permissionOverwrites.set`), nicht je
-  Mitglied mit `PUT`; das Sublimit gilt dafür nicht. Entsperren und Zeigen
-  räumen sie wieder ab, damit die Grenze von 1000 Einträgen (30060) nicht
-  vollläuft.

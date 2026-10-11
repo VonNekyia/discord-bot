@@ -1,4 +1,12 @@
-import { Client, GatewayIntentBits, Options, Partials, type ClientOptions } from 'discord.js';
+import { Client, GatewayIntentBits, Options, Partials, type ClientOptions, type RateLimitData } from 'discord.js';
+
+// Nur `PATCH /channels/:id` wartet bei einem Rate-Limit nicht, sondern wirft
+// einen `RateLimitError`: Umbenennen kann bis zu 10 Minuten warten, und das
+// Menü nennt dann die Wartezeit. Alles andere, auch Nachrichten in
+// `/channels/:id/messages`, wartet weiter. Siehe docs/bot/rate-limits.md, „Kanäle ändern“.
+export function wartetNicht(daten: Pick<RateLimitData, 'method' | 'route'>): boolean {
+  return daten.method.toUpperCase() === 'PATCH' && daten.route === '/channels/:id';
+}
 
 // Der Client von discord.js mit den Intents und Grenzen des Bots. Guilds
 // für Server und Kanäle, GuildMembers und das Partial für Beitritt und
@@ -7,6 +15,7 @@ import { Client, GatewayIntentBits, Options, Partials, type ClientOptions } from
 // States ohne Kanal räumt ein Sweeper alle 10 Minuten weg.
 // Siehe docs/bot/datenschutz.md, „Was der Bot speichert“.
 export function erstelleClient(optionen: Partial<ClientOptions> = {}): Client {
+  const { rest, ...weiter } = optionen;
   return new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildVoiceStates],
     partials: [Partials.GuildMember],
@@ -19,6 +28,7 @@ export function erstelleClient(optionen: Partial<ClientOptions> = {}): Client {
       ...Options.DefaultSweeperSettings,
       voiceStates: { interval: 600, filter: () => (zustand) => zustand.channelId === null },
     },
-    ...optionen,
+    rest: { rejectOnRateLimit: wartetNicht, ...rest },
+    ...weiter,
   });
 }

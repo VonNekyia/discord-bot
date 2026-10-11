@@ -60,10 +60,39 @@ export function gilde(id: string, name: string, eigentuemer: string, channels: o
   };
 }
 
+export interface Knopf {
+  type: number;
+  custom_id?: string;
+  label?: string;
+  style?: number;
+}
+
 export interface Nachricht {
   kanal: string;
-  json: { content?: string; allowed_mentions?: unknown; attachments?: unknown[] };
+  json: { content?: string; allowed_mentions?: unknown; attachments?: unknown[]; components?: { type: number; components: Knopf[] }[] };
   dateien: { name: string; daten: Buffer }[];
+}
+
+export interface Ueberschreibung {
+  id: string;
+  type: number;
+  allow: string;
+  deny: string;
+}
+
+// Eine Antwort auf eine Interaktion: der Callback mit seinem Typ (4 Antwort,
+// 5 Antwort später, 6 Update später, 9 Formular) oder `bearbeitet` für
+// `PATCH /webhooks/{id}/{token}/messages/@original`.
+export interface Antwort {
+  token: string;
+  typ: number | 'bearbeitet';
+  daten: {
+    content?: string;
+    flags?: number;
+    custom_id?: string;
+    title?: string;
+    components?: { type: number; components?: Knopf[]; component?: Knopf & { value?: string } }[];
+  };
 }
 
 export interface MockDiscord {
@@ -79,12 +108,42 @@ export interface MockDiscord {
   avatare: string[];
   // Angelegte Kanäle (Body von POST /guilds/{id}/channels), Verschiebungen
   // (PATCH auf ein Mitglied mit channel_id) und gelöschte Kanäle.
-  angelegt: { name: string; type: number; parent_id: string | null; user_limit: number; permission_overwrites: { id: string; type: number; allow: string; deny: string }[] }[];
-  verschoben: { nutzer: string; kanal: string | null }[];
+  angelegt: { name: string; type: number; parent_id: string | null; user_limit: number; permission_overwrites: Ueberschreibung[] }[];
+  verschoben: { nutzer: string; kanal: string | null; grund?: string }[];
   geloescht: string[];
+  // Kanäle, die `PATCH /channels/{id}` kennt: die angelegten und die, die ein Test einträgt.
+  kanaele: Map<string, Record<string, unknown>>;
+  // Jedes `PATCH /channels/{id}` mit Body und Grund im Audit-Log.
+  geaendert: { kanal: string; body: { name?: string; user_limit?: number; permission_overwrites?: Ueberschreibung[] }; grund?: string }[];
+  antworten: Antwort[];
   // Antwortet Discord mit einem Fehler: Status und Code, sonst undefined.
   anlegenFehler?: [number, number];
   verschiebenFehler?: [number, number];
+  aendernFehler?: [number, number];
+  nachrichtFehler?: [number, number];
+  // Sekunden in `Retry-After`, wenn ein `PATCH /channels/{id}` einen Namen setzt.
+  umbenennenWarten?: number;
+}
+
+// Eine Nachricht des Bots, wie Discord sie zurückgibt.
+export function nachrichtDaten(kanal: string, content: string, components: object[] = []) {
+  return {
+    id: '700000000000000001',
+    channel_id: kanal,
+    author: { id: BOT, username: 'kitty', discriminator: '0', avatar: null, bot: true },
+    content,
+    timestamp: '2026-01-01T00:00:00.000Z',
+    edited_timestamp: null,
+    tts: false,
+    mention_everyone: false,
+    mentions: [],
+    mention_roles: [],
+    attachments: [],
+    embeds: [],
+    components,
+    pinned: false,
+    type: 0,
+  };
 }
 
 // Teilt multipart/form-data in payload_json und Dateien.
@@ -118,6 +177,9 @@ export async function mockDiscord(): Promise<MockDiscord> {
     angelegt: [],
     verschoben: [],
     geloescht: [],
+    kanaele: new Map(),
+    geaendert: [],
+    antworten: [],
   } as unknown as MockDiscord;
   let naechsterKanal = 800000000000000001n;
   mock.server = createServer((req, res) => {
@@ -130,6 +192,8 @@ export async function mockDiscord(): Promise<MockDiscord> {
       mock.anfragen.push({ methode: req.method ?? '', pfad, kopf: req.headers, body });
       const antworte = (status: number, wert: unknown) =>
         res.writeHead(status, { 'content-type': 'application/json' }).end(JSON.stringify(wert));
+      const kopf = req.headers['x-audit-log-reason'];
+      const grund = typeof kopf === 'string' ? decodeURIComponent(kopf) : undefined;
       const basic = `Basic ${Buffer.from(`${ANWENDUNG}:${GEHEIMNIS}`).toString('base64')}`;
       const form = new URLSearchParams(body);
       if (pfad.startsWith('/cdn/')) {
@@ -150,32 +214,49 @@ export async function mockDiscord(): Promise<MockDiscord> {
       if (pfad === '/api/v10/users/@me/guilds') return antworte(200, mock.meineServer);
       const nachricht = /^\/api\/v10\/channels\/(\d+)\/messages$/.exec(pfad);
       if (nachricht && req.method === 'POST') {
+        if (mock.nachrichtFehler) return antworte(mock.nachrichtFehler[0], { message: 'Fehler', code: mock.nachrichtFehler[1] });
         const typ = req.headers['content-type'] ?? '';
         const inhalt = typ.startsWith('multipart/') ? multipart(roh, typ) : { json: JSON.parse(body), dateien: [] };
         mock.nachrichten.push({ kanal: nachricht[1] ?? '', ...inhalt });
-        return antworte(200, {
-          id: '700000000000000001',
-          channel_id: nachricht[1],
-          author: { id: BOT, username: 'kitty', discriminator: '0', avatar: null, bot: true },
-          content: inhalt.json.content ?? '',
-          timestamp: '2026-01-01T00:00:00.000Z',
-          edited_timestamp: null,
-          tts: false,
-          mention_everyone: false,
-          mentions: [],
-          mention_roles: [],
-          attachments: [],
-          embeds: [],
-          pinned: false,
-          type: 0,
-        });
+        return antworte(200, nachrichtDaten(nachricht[1] ?? '', inhalt.json.content ?? ''));
+      }
+      const rueckruf = /^\/api\/v10\/interactions\/(\d+)\/([^/]+)\/callback(\?.*)?$/.exec(pfad);
+      if (rueckruf && req.method === 'POST') {
+        const daten = JSON.parse(body);
+        mock.antworten.push({ token: rueckruf[2] ?? '', typ: daten.type, daten: daten.data ?? {} });
+        return res.writeHead(204).end();
+      }
+      const bearbeitet = /^\/api\/v10\/webhooks\/(\d+)\/([^/]+)\/messages\/(?:@|%40)original(\?.*)?$/.exec(pfad);
+      if (bearbeitet && req.method === 'PATCH') {
+        const daten = JSON.parse(body);
+        mock.antworten.push({ token: bearbeitet[2] ?? '', typ: 'bearbeitet', daten });
+        return antworte(200, nachrichtDaten('700000000000000099', daten.content ?? ''));
+      }
+      const aendern = /^\/api\/v10\/channels\/(\d+)$/.exec(pfad);
+      if (aendern && req.method === 'PATCH') {
+        const daten = JSON.parse(body);
+        mock.geaendert.push({ kanal: aendern[1] ?? '', body: daten, grund });
+        if (mock.umbenennenWarten !== undefined && 'name' in daten) {
+          const warten = String(mock.umbenennenWarten);
+          return res
+            .writeHead(429, { 'content-type': 'application/json', 'retry-after': warten, 'x-ratelimit-scope': 'user' })
+            .end(JSON.stringify({ message: 'You are being rate limited.', retry_after: mock.umbenennenWarten, global: false }));
+        }
+        if (mock.aendernFehler) return antworte(mock.aendernFehler[0], { message: 'Fehler', code: mock.aendernFehler[1] });
+        const alt = mock.kanaele.get(aendern[1] ?? '');
+        if (!alt) return antworte(404, { message: 'Unknown Channel', code: 10003 });
+        const neu = { ...alt, ...daten };
+        mock.kanaele.set(aendern[1] ?? '', neu);
+        return antworte(200, neu);
       }
       const anlegen = /^\/api\/v10\/guilds\/(\d+)\/channels$/.exec(pfad);
       if (anlegen && req.method === 'POST') {
         if (mock.anlegenFehler) return antworte(mock.anlegenFehler[0], { message: 'Fehler', code: mock.anlegenFehler[1] });
         const daten = JSON.parse(body);
         mock.angelegt.push(daten);
-        return antworte(201, { ...daten, id: String(naechsterKanal++), guild_id: anlegen[1], position: 0 });
+        const neu = { ...daten, id: String(naechsterKanal++), guild_id: anlegen[1], position: 0 };
+        mock.kanaele.set(neu.id, neu);
+        return antworte(201, neu);
       }
       const kanalWeg = /^\/api\/v10\/channels\/(\d+)$/.exec(pfad);
       if (kanalWeg && req.method === 'DELETE') {
@@ -185,7 +266,7 @@ export async function mockDiscord(): Promise<MockDiscord> {
       const treffer = /^\/api\/v10\/guilds\/(\d+)\/members\/(\d+)$/.exec(pfad);
       if (treffer && req.method === 'PATCH') {
         if (mock.verschiebenFehler) return antworte(mock.verschiebenFehler[0], { message: 'Fehler', code: mock.verschiebenFehler[1] });
-        mock.verschoben.push({ nutzer: treffer[2] ?? '', kanal: JSON.parse(body).channel_id ?? null });
+        mock.verschoben.push({ nutzer: treffer[2] ?? '', kanal: JSON.parse(body).channel_id ?? null, grund });
         return antworte(200, mitglied(treffer[2] ?? '', []));
       }
       const eintrag = treffer && mock.mitglieder.get(`${treffer[1]}/${treffer[2]}`);
