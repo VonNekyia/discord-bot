@@ -1,6 +1,6 @@
 ---
 title: Sprachräume
-description: Eigene Sprachkanäle auf Zeit; wer einen Erzeuger betritt, bekommt einen Raum, steuert ihn mit Knöpfen im Menü, und der Raum verschwindet, wenn er leer ist. Ablauf, Namensvorlage, Menü und Knöpfe, Grenzen, Rechte und Intent.
+description: Eigene Sprachkanäle auf Zeit; wer einen Erzeuger betritt, bekommt einen Raum, steuert ihn mit Knöpfen im Textchat des Raums, und der Raum verschwindet, wenn er leer ist. Ablauf, Namensvorlage, Menü und Knöpfe, Grenzen, Rechte und Intent.
 code:
   - bot/src/index.ts
 ---
@@ -9,9 +9,10 @@ code:
 
 Wer einen Erzeuger betritt, einen Sprachkanal wie „➕ Talk“, bekommt einen
 eigenen Sprachkanal, den Raum, und wird hineinverschoben. Gesteuert wird
-der Raum mit Knöpfen in einem Menü, das der Bot in einen Textkanal postet,
-ohne Befehle. Ist der Raum leer, löscht der Bot ihn. Welche Erzeuger es
-gibt und wo das Menü steht, stellt das Team im Dashboard ein, siehe
+der Raum mit Knöpfen in einem Menü, das der Bot in den Textchat des Raums
+postet, ohne Befehle. Ist der Raum leer, löscht der Bot ihn, und das Menü
+verschwindet mit ihm. Welche Erzeuger es gibt, stellt das Team im
+Dashboard ein, siehe
 [API der Sprachräume](../schnittstelle/sprachraeume.md), „Sprachräume einstellen“.
 Warum es so gebaut ist, steht in Entscheidung
 [0011](../entscheidungen/0011-sprachraeume-mit-knoepfen.md).
@@ -23,6 +24,7 @@ Warum es so gebaut ist, steht in Entscheidung
    dorthin. Sonst legt der Bot einen neuen Raum an: in der Kategorie des
    Erzeugers oder der eingestellten, mit dem Namen aus der Vorlage und dem
    eingestellten Limit, und verschiebt ihn hinein. Er ist der Besitzer.
+   Danach postet der Bot das Menü in den Textchat des neuen Raums.
 3. Verlässt er den Erzeuger, bevor das Verschieben klappt, löscht der Bot
    den neuen Raum sofort wieder.
 4. Wird ein Raum leer, wartet der Bot 2 s und löscht ihn, wenn er dann noch
@@ -36,7 +38,8 @@ gehen nicht an jemanden, der schon einen Raum hat.
 
 Die Rechte eines neuen Raums kommen von seiner Kategorie. Dazu bekommen
 der Besitzer und der Bot das Recht, den Raum zu sehen und zu betreten,
-damit Sperren und Verstecken sie nicht aussperren.
+damit Sperren und Verstecken sie nicht aussperren; der Bot ausserdem das
+Recht, im Textchat des Raums zu schreiben, für das Menü.
 
 ## Namensvorlage
 
@@ -55,14 +58,18 @@ damit Sperren und Verstecken sie nicht aussperren.
 
 ## Menü
 
-Der Bot postet in den eingestellten Textkanal eine Nachricht mit der
-Überschrift „Dein Sprachraum“, einem kurzen Text und den Knöpfen unten.
-Ein Knopf wirkt immer auf den Raum, in dem man gerade ist. Jede Antwort
-des Bots sieht nur, wer gedrückt hat. Umbenennen und Limit öffnen ein
-Formular, Rauswerfen, Bannen, Entbannen und Besitz übergeben die
-Nutzerauswahl von Discord
+Jeder Sprachkanal hat bei Discord einen eigenen Textchat; ein Bot schreibt
+dort wie in einem Textkanal
+([`VoiceChannel#send`](https://discord.js.org/docs/packages/discord.js/14.27.0/VoiceChannel:Class#send)).
+Gleich nach dem Anlegen postet der Bot in den Textchat des Raums eine
+Nachricht mit der Überschrift „Dein Sprachraum“, einem kurzen Text und den
+Knöpfen unten. Ein Knopf wirkt immer auf den Raum, in dessen Chat er
+steht. Jede Antwort des Bots sieht nur, wer gedrückt hat. Umbenennen und
+Limit öffnen ein Formular, Rauswerfen, Bannen, Entbannen und Besitz
+übergeben die Nutzerauswahl von Discord
 ([Component Reference](https://docs.discord.com/developers/components/reference)).
-Das Menü wirkt auch nach einem Neustart des Bots weiter.
+Das Menü wirkt auch nach einem Neustart des Bots weiter und verschwindet
+mit dem Raum.
 
 | Knopf | Wer darf | Was passiert |
 |---|---|---|
@@ -77,13 +84,13 @@ Das Menü wirkt auch nach einem Neustart des Bots weiter.
 | Entbannen | Besitzer | Auswahl eines Mitglieds. Ist es gebannt, ist der Bann aufgehoben. |
 | Besitz übergeben | Besitzer | Auswahl eines Mitglieds im Raum, das keinen eigenen Raum hat. Es wird Besitzer. |
 | Übernehmen | jedes Mitglied im Raum ohne eigenen Raum, wenn der Besitzer nicht drin ist | Es wird Besitzer. |
-| Info | jedes Mitglied im Raum | Besitzer, Limit, ob gesperrt oder versteckt, Zahl der Gebannten. |
+| Info | jeder, der den Chat sieht | Besitzer, Limit, ob gesperrt oder versteckt, Zahl der Gebannten. |
 
+- Den Chat eines Raums sieht, wer den Raum sehen darf, auch ohne drin zu
+  sein. Darum prüft der Bot bei „Übernehmen“, ob man im Raum ist.
 - Die Nutzerauswahl von Discord zeigt alle Mitglieder des Servers. Ob das
   gewählte Mitglied im Raum ist oder gebannt, prüft der Bot danach und sagt
   es, wenn nicht.
-- Wer in keinem Raum ist, bekommt den Hinweis, zuerst einen Erzeuger zu
-  betreten.
 - Wer nicht Besitzer ist, bekommt den Hinweis, dass nur der Besitzer das
   darf, und wer es gerade ist.
 - Sich selbst und den Bot kann man nicht rauswerfen, bannen oder zum
@@ -126,7 +133,7 @@ die er auf dem Server hat
 | „Rollen verwalten“ | Rechte eines Raums setzen: Sperren, Verstecken, Bannen, Besitzer und Bot beim Anlegen. Discord verlangt dafür dieses Recht, und der Bot kann nur Rechte vergeben, die er selbst hat ([Edit Channel Permissions](https://docs.discord.com/developers/resources/channel#edit-channel-permissions)) |
 | „Mitglieder verschieben“ | in den neuen Raum verschieben, zurück in den eigenen Raum, rauswerfen ([Modify Guild Member](https://docs.discord.com/developers/resources/guild#modify-guild-member)) |
 | „Kanal ansehen“, „Verbinden“ | in Erzeugern und Räumen; verschieben darf der Bot nur in einen Kanal, den er selbst betreten darf (ebenda) |
-| „Kanal ansehen“, „Nachrichten senden“, „Nachrichtenverlauf anzeigen“ im Menü-Kanal | das Menü senden, und das gemerkte Menü wiederfinden und löschen ([Get Channel Message](https://docs.discord.com/developers/resources/message#get-channel-message)) |
+| „Nachrichten senden“ | das Menü im Textchat jedes Raums; der Bot gibt sich das Recht dort beim Anlegen selbst, damit eine Kategorie es ihm nicht nimmt |
 
 Ins Audit-Log von Discord schreibt der Bot als Grund nur feste Texte, ohne
 IDs und Namen.
@@ -136,6 +143,8 @@ IDs und Namen.
 - Fehlt dem Bot ein Recht oder ist die Kategorie voll, legt er keinen Raum
   an; das Mitglied bleibt im Erzeuger. Ins Log kommt eine Zeile ohne IDs
   und Namen.
+- Scheitert das Menü im Textchat, bleibt der Raum trotzdem, nur ohne
+  Knöpfe. Ins Log kommt eine Zeile ohne IDs und Namen.
 - Wird ein Raum von Hand gelöscht, vergisst der Bot ihn.
 - Beim Start vergisst der Bot Räume, die es nicht mehr gibt, und löscht
   Räume, die leer sind.

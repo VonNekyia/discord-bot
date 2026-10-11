@@ -16,13 +16,13 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 - [Einrichtung und Betrieb](benutzung/einrichtung.md): Bot im Developer Portal, `DISCORD_BOT_TOKEN` lokal und als GitHub-Secret, bauen, starten, einladen, Dienst.
 - [Befehle](benutzung/befehle.md): jeder Slash-Befehl mit Antwort, Sichtbarkeit, Rechten und Intents.
 - [Begrüssung bei Beitritt und Abschied](benutzung/begruessung.md): Platzhalter, Banner aus einem eigenen Bild, Standardwerte, Rechte, der Intent `GuildMembers`, die Bremse bei vielen Beitritten.
-- [Sprachräume](benutzung/sprachraeume.md): Räume auf Zeit über Erzeuger, Namensvorlage, Menü mit Knöpfen, Grenzen, Rechte und der Intent `GuildVoiceStates`.
+- [Sprachräume](benutzung/sprachraeume.md): Räume auf Zeit über Erzeuger, Namensvorlage, Menü mit Knöpfen im Textchat des Raums, Grenzen, Rechte und der Intent `GuildVoiceStates`.
 
 ## Schnittstelle
 
 - [API des Dashboards](schnittstelle/api.md): jede Route unter `/api/`, Typen, Testnachricht, Grenzen, Fehlercodes, die Weiterleitung von `serve.mjs`.
 - [Anmeldung am Dashboard](schnittstelle/anmeldung.md): Discord-Login mit OAuth2, Sitzung und Cookie, Rechte, Origin, Umgebungsvariablen.
-- [API der Sprachräume](schnittstelle/sprachraeume.md): Sprachkanäle und Kategorien, Sprachräume einstellen, Menü senden, Typen und Codes.
+- [API der Sprachräume](schnittstelle/sprachraeume.md): Sprachkanäle und Kategorien, Sprachräume einstellen, Typen und Codes.
 
 ## Bot
 
@@ -58,4 +58,4 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 - [0008: Die API des Dashboards im Prozess des Bots](entscheidungen/0008-api-im-bot-prozess.md): `node:http` im Bot, ein Origin mit der Oberfläche, Sitzung in PostgreSQL; kein eigener Server, kein Framework, kein Token im Browser.
 - [0009: Banner mit @napi-rs/canvas und Inter](entscheidungen/0009-banner-mit-napi-rs-canvas.md): `@napi-rs/canvas` 1.0.10 gepinnt, Lizenzen aus der SBOM, WebP für Bilder, Inter als Schrift; kein sharp, kein node-canvas; teilweise abgelöst durch 0010.
 - [0010: Ersatzschriften im Banner für Emoji und CJK](entscheidungen/0010-ersatzschriften-im-banner.md): Noto Color Emoji als COLRv1 und Noto Sans CJK JP Bold hinter Inter, 22 MB; keine Teilmengen, keine einfarbigen Emoji.
-- [0011: Sprachräume mit Knöpfen statt Befehlen](entscheidungen/0011-sprachraeume-mit-knoepfen.md): Erzeuger, ein Menü je Server, Zustand in den Rechten des Kanals, nur der Besitzer in PostgreSQL; keine Slash-Befehle, kein Menü je Raum.
+- [0011: Sprachräume mit Knöpfen statt Befehlen](entscheidungen/0011-sprachraeume-mit-knoepfen.md): Erzeuger, ein Menü im Textchat jedes Raums, Zustand in den Rechten des Kanals, nur der Besitzer in PostgreSQL; keine Slash-Befehle, kein gemeinsamer Menü-Kanal.

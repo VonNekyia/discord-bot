@@ -50,7 +50,6 @@ in [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md).
 | `GET /api/server/{id}/sprachkanaele` | siehe [API der Sprachräume](sprachraeume.md) |
 | `GET /api/server/{id}/sprachraeume` | ebenda |
 | `PUT /api/server/{id}/sprachraeume` | ebenda |
-| `POST /api/server/{id}/sprachraeume/menue` | ebenda |
 
 `{art}` ist `beitritt` oder `abschied`, sonst `404`. Jede Route mit `{id}`
 prüft zuerst die Rechte, siehe [Anmeldung am Dashboard](anmeldung.md),
@@ -66,7 +65,6 @@ type Kanal = {
   id: string;
   name: string;
   banner: boolean;
-  verlauf: boolean;
   kategorie: { id: string; name: string } | null;
 };
 type Einstellung = {
@@ -91,9 +89,7 @@ type Einstellung = {
   leeren Zustand.
 - `GET …/kanaele` liefert Text- und Ankündigungskanäle, in denen der Bot
   den Kanal sehen und Nachrichten senden darf. `banner` ist `true`, wenn er
-  dort auch Dateien anhängen darf, `verlauf`, wenn er den
-  Nachrichtenverlauf anzeigen darf (kommt mit den Sprachräumen); das braucht das Menü der
-  [Sprachräume](sprachraeume.md). `kategorie` ist die Kategorie, in der
+  dort auch Dateien anhängen darf. `kategorie` ist die Kategorie, in der
   der Kanal steht, oder `null`; die Oberfläche kann danach gruppieren.
 - Die Liste ist schon sortiert wie in Discord: Kanäle ohne Kategorie zuerst,
   dann die Kategorien nach ihrer Position; innerhalb einer Gruppe nach
@@ -211,15 +207,14 @@ nichts zu senden, obwohl die Regeln oben es erlaubt haben.
 | alle Routen mit `{id}` zusammen | 60 je Minute und Sitzung | jede prüft die Rechte mit einem Aufruf an Discord; eine Sitzung soll nicht das Budget des Bots verbrauchen, das er für Interaktionen braucht |
 | `PUT …/bild`, `GET …/vorschau` und `POST …/test` zusammen | 20 je Minute und Sitzung | sie dekodieren oder zeichnen Bilder |
 | `POST …/test` | 3 je Minute und Server, über alle Sitzungen | jede Testnachricht landet im Kanal, den alle sehen |
-| `POST …/sprachraeume/menue` | 3 je Minute und Server, über alle Sitzungen | jedes Menü landet im Kanal, den alle sehen |
 
 Darüber `429` `zu_viele` mit `Retry-After` in Sekunden. Ein Aufruf zählt zu
 jeder Zeile, die passt.
 
 - Die beiden Grenzen je Sitzung werden vor den Rechten geprüft, damit eine
   abgelehnte Anfrage Discord nichts kostet.
-- Die Grenzen je Server sind die Ausnahme. Sie zählen erst nach den Rechten
-  und den Regeln der Route, direkt vor dem Senden. Sonst könnte
+- Die Grenze je Server ist die Ausnahme. Sie zählt erst nach den Rechten
+  und den Regeln der Testnachricht, direkt vor dem Senden. Sonst könnte
   jeder Angemeldete mit drei Anfragen auf einen fremden Server dessen
   Testnachricht sperren und bekäme dafür nur `403`.
 
@@ -231,7 +226,7 @@ entscheidet das Frontend. `feld` steht nur bei `400`.
 
 | Status | Code | Wann |
 |---|---|---|
-| `400` | siehe „Einstellung speichern“ und „Testnachricht“ oben und [API der Sprachräume](sprachraeume.md), dazu `bild_zu_klein` | Eingabe ungültig, oder für eine Testnachricht oder das Menü fehlt etwas |
+| `400` | siehe „Einstellung speichern“ und „Testnachricht“ oben und [API der Sprachräume](sprachraeume.md), dazu `bild_zu_klein` | Eingabe ungültig, oder für eine Testnachricht fehlt etwas |
 | `401` | `nicht_angemeldet` | keine oder abgelaufene Sitzung; die Oberfläche zeigt die Anmeldung |
 | `403` | `kein_recht` | kein „Server verwalten“ auf diesem Server |
 | `403` | `origin_falsch` | `Origin` fehlt oder passt nicht |

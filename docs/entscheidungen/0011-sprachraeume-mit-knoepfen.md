@@ -1,6 +1,6 @@
 ---
 title: "0011: Sprachräume mit Knöpfen statt Befehlen"
-description: Warum Sprachräume über Erzeuger entstehen und mit Knöpfen, Formularen und Auswahlmenüs in einem einzigen Menü gesteuert werden, warum Sperren, Verstecken und Bann in den Rechten des Kanals stehen und nur der Besitzer in PostgreSQL, und welche Rechte der Bot dafür bekommt.
+description: Warum Sprachräume über Erzeuger entstehen und mit Knöpfen, Formularen und Auswahlmenüs in einem Menü im Textchat jedes Raums gesteuert werden, warum Sperren, Verstecken und Bann in den Rechten des Kanals stehen und nur der Besitzer in PostgreSQL, und welche Rechte der Bot dafür bekommt.
 status: gilt
 date: 2026-10-11
 issues: []
@@ -23,9 +23,11 @@ im Dashboard ein. Was Nutzer sehen, steht in
 
 - **Erzeuger:** Räume entstehen beim Betreten eines Erzeugers, gemeldet
   über den Intent `GuildVoiceStates`, siehe [Intents](../bot/intents.md).
-- **Ein Menü je Server:** Eine Nachricht des Bots im Menü-Kanal trägt alle
-  Knöpfe, als klassische Knöpfe in Action Rows. Ein Knopf wirkt auf den
-  Raum, in dem man gerade ist, und antwortet nur dem, der gedrückt hat.
+- **Ein Menü je Raum:** Gleich nach dem Anlegen postet der Bot in den
+  Textchat des Raums eine Nachricht mit allen Knöpfen, als klassische Knöpfe
+  in Action Rows. Ein Knopf wirkt auf den Raum, in dessen Chat er steht, und
+  antwortet nur dem, der gedrückt hat. So will es der Maintainer: Die
+  Knöpfe stehen dort, wo man ist, nicht in einem eigenen Kanal.
   Umbenennen und Limit öffnen ein Formular, die Knöpfe für Mitglieder die
   Nutzerauswahl von Discord. Der Bot erkennt die Knöpfe über `interactionCreate`
   und ein festes Präfix in `custom_id`, ohne Collector; so wirkt das Menü
@@ -44,8 +46,10 @@ im Dashboard ein. Was Nutzer sehen, steht in
 
 - **Slash-Befehle.** Der Maintainer will Knöpfe; Befehle muss man kennen
   und tippen.
-- **Ein Menü in jedem Raum**, im Textchat des Sprachkanals. Je Raum eine
-  Nachricht mehr, und sie verschwände mit dem Raum.
+- **Ein Menü je Server in einem eigenen Textkanal.** So war es zuerst
+  geplant. Der Maintainer will die Knöpfe aber im Raum selbst. Dazu bräuchte
+  ein gemeinsames Menü einen Kanal mehr, das Team müsste es einrichten, und
+  der Bot müsste sich die Nachricht merken und wiederfinden.
 - **Gesperrt, versteckt und gebannt in der Datenbank.** Zwei Quellen für
   denselben Zustand; ändert das Team die Rechte von Hand, liefen sie
   auseinander.
@@ -74,3 +78,5 @@ im Dashboard ein. Was Nutzer sehen, steht in
   Wartezeit, statt zu warten, bis die Interaktion abläuft.
 - Jedes Mitglied besitzt höchstens einen Raum je Server, auch nach „Besitz
   übergeben“ und „Übernehmen“.
+- Jeder Raum bekommt eine Nachricht des Bots. Sie verschwindet mit dem Raum;
+  der Bot muss sie sich nicht merken.
