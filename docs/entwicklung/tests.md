@@ -8,6 +8,8 @@ code:
   - bot/src/api.test.ts
   - bot/src/begruessung.test.ts
   - bot/src/client.test.ts
+  - bot/src/senden.test.ts
+  - bot/src/testhilfe.ts
   - bot/package.json
   - .github/workflows/backend.yml
 ---
@@ -41,21 +43,30 @@ Interaktionen ersetzt `interaktion` durch ein Objekt mit nur dem, was
 ## Die API des Dashboards
 
 `bot/src/api.test.ts` startet die API mit `erstelleApi` auf einem freien
-Port und spricht sie mit `fetch` an, ohne Weiterleitungen zu folgen. Dazu:
+Port und spricht sie mit `fetch` an, ohne Weiterleitungen zu folgen.
+`bot/src/senden.test.ts` ruft `begruesse` mit Mitgliedern auf, wie
+discord.js sie bei Beitritt und Abschied bringt. Beide nutzen
+`bot/src/testhilfe.ts`:
 
 - `mockDiscord`: ein `node:http`-Server für OAuth2 (`/oauth2/token`,
-  `/oauth2/token/revoke`, `/users/@me`, `/users/@me/guilds`) und für
-  `GET /guilds/{id}/members/{user}`. Er merkt sich jede Anfrage; je
-  Test lässt sich die Antwort für Person und Mitglieder ändern.
+  `/oauth2/token/revoke`, `/users/@me`, `/users/@me/guilds`), für
+  `GET /guilds/{id}/members/{user}`, für `POST /channels/{id}/messages`,
+  auch mit Dateien, und für das CDN der Avatare. Er merkt sich jede
+  Anfrage und jede Nachricht; je Test lässt sich die Antwort für Person und
+  Mitglieder ändern.
 - `discordClient`: ein Client aus `erstelleClient` ohne Gateway, dessen
-  REST auf den Mock zeigt. Die Server legt er so in den Cache, wie
+  REST und CDN auf den Mock zeigen. Die Server legt er so in den Cache, wie
   `GUILD_CREATE` sie bringt, mit Rollen, Kanälen und dem Bot als Mitglied.
   So rechnet discord.js Rechte und Kanäle selbst.
 - `roh`: schickt rohe Bytes über `node:net`, für Bodies, die nie enden.
+- `pngKopf`, `pngBild`, `jpegMitExif`: ein PNG nur mit Kopf, ein ganzes PNG
+  und ein JPEG mit EXIF-Drehung, Beschreibung und GPS.
 
 Die Tests brauchen PostgreSQL wie die in „Tests gegen PostgreSQL“ und
-wenden vorher die Migrationen aus `bot/migrationen/` an. Ihre Sitzungen
-und Einstellungen fallen danach weg. Alle IDs sind erfunden
+wenden vorher die Migrationen aus `bot/migrationen/` an. Ihre Sitzungen,
+Einstellungen und Bilder fallen danach weg; jede Datei nutzt eigene
+Server. Wer `behalteNur` testet, tut das in einer Transaktion, die
+zurückrollt, weil die Dateien gleichzeitig laufen. Alle IDs sind erfunden
 (`AGENTS.md`, Regel 21).
 
 ## Was abgedeckt ist
@@ -84,6 +95,8 @@ und Einstellungen fallen danach weg. Alle IDs sind erfunden
 | jede Prüfregel meldet ihren Code und ihr Feld | `pruefe`: jede Zeile der Tabelle „Einstellung speichern“ |
 | die Regeln gelten in der Reihenfolge der Tabelle | bei mehreren Fehlern der erste |
 | eine gültige Einstellung kommt so zurück … | `bild` aus dem Stand, nicht aus der Eingabe |
+| maskiere setzt vor jedes ASCII-Satzzeichen genau einen Backslash | Markdown, Erwähnung, Emoji; höchstens doppelt so lang; Umlaute, CJK und Emoji bleiben |
+| ersetze maskiert im Text, lässt das Banner roh … | `<@…>` im Text, `@Name` im Banner; unbekannte Platzhalter bleiben; ein eingesetztes `{server}` bleibt stehen |
 | apiUmgebung braucht Secret und Adresse des Dashboards | ohne eins keine API, Standardport, falsche Adresse oder Port beendet den Start |
 | Grenze lässt 60 Anfragen je Minute zu … | mit falscher Uhr: 61. Anfrage, Sekunden bis zur nächsten, gleitendes Fenster |
 | anmelden setzt ein state-Cookie und leitet zu Discord | Parameter der Weiterleitung, Cookie mit `HttpOnly`, `SameSite=Lax`, ohne `Secure` bei http |
@@ -100,9 +113,21 @@ und Einstellungen fallen danach weg. Alle IDs sind erfunden
 | begruessung liefert Standardwerte, speichert … | Standardwerte, `PUT` und wieder lesen |
 | Speichern prüft Origin, Content-Type und Regeln | `403`, `415`, kaputtes JSON, Regeln mit Code und Feld |
 | ein Body über 16 KiB gibt 413, ohne ihn ganz zu lesen | `Content-Length` zu gross ohne Body; chunked ohne Ende; danach `Connection: close` |
-| verlässt der Bot einen Server … | `vergiss` und `behalteNur` |
-| unbekannte Routen, Arten und die Routen für Bilder geben 404 | auch `…/bild` und `…/vorschau`, bis sie gebaut sind |
+| verlässt der Bot einen Server, gehen Einstellungen und Bilder … | `vergiss` und `behalteNur` für beide Tabellen |
+| mit dem ShardingManager gleicht ein Prozess nur … | Shard 1 von 2: der Server auf Shard 0 bleibt |
+| unbekannte Routen, Arten und Methoden geben 404 | auch `POST` und `GET` auf `…/bild` |
+| ein Bild wird geprüft, bevor es dekodiert wird | `bildtyp`; ein PNG nur mit Kopf und 20000 × 20000 px gibt `bild_zu_gross`, nicht `bild_unlesbar`; zu klein, kein Bild |
+| ein Bild über 4 MiB gibt 413, ohne es zu lesen | `Content-Length` über 4 MiB ohne Body |
+| ein JPEG mit GPS wird gedreht … | WebP mit 1100 × 440, ohne `Exif`, ohne Beschreibung; Drehung 6 an den Farben; danach `bild: true`, `banner_ohne_recht` |
+| Vorschau: 404 ohne Bild, sonst ein PNG … | `kein_bild`, PNG mit 1100 × 440, Avatar vom CDN; `DELETE` löscht Bild und `banner` |
+| Bild und Vorschau zusammen höchstens 20 je Minute … | die 21. Anfrage `429` ohne Aufruf an Discord; `kanaele` geht weiter |
 | kein Code, Token, Cookie, state und keine ID im Log | Anmeldung mit Erfolg und drei Fehlern, eine Route mit `503`; keine Zeile enthält einen der Werte |
+| Beitritt: Platzhalter im Text maskiert, nur das neue Mitglied pingt | Text mit Spitzname und Servername maskiert, `{anzahl}`, `allowed_mentions` |
+| Abschied eines Mitglieds ausserhalb des Caches … | Partial mit globalem Anzeigenamen, `allowed_mentions` ohne Nutzer |
+| darf der Bot im Kanal nicht senden … | keine Nachricht, eine Logzeile ohne ID und Namen |
+| mit Banner hängt der Bot beitritt.png … | Datei mit 1100 × 440, Avatar vom CDN |
+| scheitert das Banner oder fehlt „Dateien anhängen“ … | beide Male nur der Text, je eine Logzeile ohne ID |
+| leerer Text ohne Banner schickt nichts … | auch eine ausgeschaltete Art; kein Log |
 
 ## Tests gegen PostgreSQL
 

@@ -14,3 +14,30 @@ contributors, see docs/frontend/LICENSE. The tokens and rules in
 web/site.css are copied from it.
 
 Publisher and responsible: VonNekyia. Contact: contact@mcterranova.com
+
+Third-party notices
+
+The bot draws banners with @napi-rs/canvas 1.0.10 (MIT). npm installs its
+prebuilt binary (@napi-rs/canvas-<platform>); it is not part of this
+repository. The binary bundles the components below. The list comes from
+the CycloneDX SBOM of version 1.0.11, which builds the same Skia and Rust
+crates, see docs/entscheidungen/0009-banner-mit-napi-rs-canvas.md.
+
+- FreeType (FreeType License): Portions of this software are copyright
+  (c) 2026 The FreeType Project (www.freetype.org). All rights reserved.
+- libjpeg-turbo (BSD-3-Clause, IJG, Zlib): This software is based in part
+  on the work of the Independent JPEG Group.
+- ICU (ICU License): Copyright (c) 2016 and later Unicode, Inc. and others.
+  License and terms of use: https://www.unicode.org/copyright.html
+- cssparser, cssparser-color, cssparser-macros and dtoa-short are under the
+  Mozilla Public License 2.0. They are used unchanged, as part of the
+  binary. Their source is available at https://github.com/servo/rust-cssparser
+  and https://github.com/upsuper/dtoa-short.
+- Further components under BSD-3-Clause, BSD-2-Clause, Apache-2.0, MIT,
+  ISC, Unlicense, Unicode-3.0, libpng-2.0 and Zlib: libwebp, libjxl,
+  libavif, libaom, highway, wuffs, harfbuzz, expat, brotli, libpng, zlib
+  and 86 Rust crates. The SBOM lists each with its version and license.
+
+The banner font is Inter 4.1 SemiBold, Copyright (c) 2016 The Inter
+Project Authors, under the SIL Open Font License 1.1, see
+bot/schrift/OFL.txt. It is included unchanged.

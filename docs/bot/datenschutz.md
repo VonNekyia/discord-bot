@@ -25,7 +25,7 @@ aber noch nicht gebaut.
 |---|---|---|---|
 | Sitzung: SHA-256 der Kennung, Discord-ID, Name, Avatar-Hash, IDs der Server mit „Server verwalten“, Ablaufdatum | Anmeldung am Dashboard, Liste der Server | 7 Tage ab Anmeldung; Abmelden löscht sofort, abgelaufene löscht der Bot spätestens nach einem Tag | gebaut |
 | Begrüssung je Server und Art: Server-ID, Kanal-ID, Schalter, Texte | Nachricht bei Beitritt und Abschied | bis das Team sie ändert oder der Bot den Server verlässt | gebaut |
-| Bild je Server und Art, beim Hochladen auf 1100 × 440 px zugeschnitten und neu kodiert, ohne Metadaten wie EXIF oder GPS; es kann Personen zeigen | Hintergrund des Banners | bis es ersetzt oder gelöscht wird oder der Bot den Server verlässt | kommt mit dem Dashboard |
+| Bild je Server und Art, beim Hochladen auf 1100 × 440 px zugeschnitten und neu kodiert, ohne Metadaten wie EXIF oder GPS; es kann Personen zeigen | Hintergrund des Banners | bis es ersetzt oder gelöscht wird oder der Bot den Server verlässt | gebaut |
 
 „Der Bot verlässt den Server“ heisst auch: Er wurde entfernt, während er
 aus war. Beim Start gleicht er ab und löscht dann, siehe
@@ -38,7 +38,8 @@ Nicht gespeichert werden:
   Anmeldung, siehe [Anmeldung am Dashboard](../schnittstelle/anmeldung.md),
   „Ablauf“.
 - Name und Avatar eines Mitglieds, das beitritt oder geht. Sie kommen in
-  keine Tabelle; im Speicher hält sie nur der begrenzte Cache unten.
+  keine Tabelle. Den Avatar lädt der Bot für das Banner vom CDN von Discord
+  und vergisst ihn danach; Namen hält nur der begrenzte Cache unten.
 
 Welche Tabelle was hält, steht in [Datenbank](datenbank.md), „Tabellen“.
 Der Cache von discord.js und der eigene Cache

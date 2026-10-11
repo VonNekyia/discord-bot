@@ -5,6 +5,7 @@ code:
   - bot/src/index.ts
   - bot/src/api.ts
   - bot/src/begruessung.ts
+  - bot/src/banner.ts
   - web/serve.mjs
 ---
 

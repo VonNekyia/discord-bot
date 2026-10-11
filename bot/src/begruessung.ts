@@ -66,6 +66,35 @@ export function pruefe(eingabe: unknown, kanaele: ReadonlyMap<string, { banner: 
   return { einstellung: { an, kanal, text, banner, bannerText, bild } };
 }
 
+// Was die Platzhalter für ein Mitglied werden.
+export interface Werte {
+  id: string;
+  name: string;
+  server: string;
+  anzahl: number;
+}
+
+// Setzt vor jedes ASCII-Satzzeichen einen Backslash. Discord liest dann
+// keins davon als Markdown, als Erwähnung oder als Emoji; jedes Zeichen wird
+// höchstens doppelt so lang. Siehe docs/benutzung/begruessung.md, „Platzhalter“.
+export function maskiere(text: string): string {
+  return text.replace(/[!-/:-@[-`{-~]/g, '\\$&');
+}
+
+// Ersetzt die Platzhalter in einem Durchgang; ein eingesetzter Wert wird
+// nicht noch einmal ersetzt. Andere Wörter in Klammern bleiben.
+// Siehe docs/benutzung/begruessung.md, „Platzhalter“.
+export function ersetze(vorlage: string, w: Werte, wo: 'text' | 'banner'): string {
+  const imText = wo === 'text';
+  const werte: Record<string, string> = {
+    '{nutzer}': imText ? `<@${w.id}>` : `@${w.name}`,
+    '{name}': imText ? maskiere(w.name) : w.name,
+    '{server}': imText ? maskiere(w.server) : w.server,
+    '{anzahl}': String(w.anzahl),
+  };
+  return vorlage.replace(/\{(?:nutzer|name|server|anzahl)\}/g, (platzhalter) => werte[platzhalter] ?? platzhalter);
+}
+
 interface Zeile {
   art: Art;
   an: boolean;
@@ -75,17 +104,43 @@ interface Zeile {
   banner_text: string;
 }
 
-// Beide Einstellungen eines Servers; ohne Zeile die Standardwerte.
+// Beide Einstellungen eines Servers; ohne Zeile die Standardwerte. `bild`
+// sagt, ob ein Bild gespeichert ist.
 export async function lese(db: Pick<Pool, 'query'>, server: string): Promise<Record<Art, Einstellung>> {
-  const { rows } = await db.query<Zeile>(
-    'SELECT art, an, kanal, text, banner, banner_text FROM begruessungen WHERE server = $1',
-    [server],
-  );
+  const [{ rows }, bilder] = await Promise.all([
+    db.query<Zeile>('SELECT art, an, kanal, text, banner, banner_text FROM begruessungen WHERE server = $1', [server]),
+    db.query<{ art: Art }>('SELECT art FROM bilder WHERE server = $1', [server]),
+  ]);
+  const mitBild = new Set(bilder.rows.map((z) => z.art));
   const ergebnis = { beitritt: standard('beitritt'), abschied: standard('abschied') };
   for (const z of rows) {
     ergebnis[z.art] = { an: z.an, kanal: z.kanal, text: z.text, banner: z.banner, bannerText: z.banner_text, bild: false };
   }
+  for (const art of mitBild) ergebnis[art].bild = true;
   return ergebnis;
+}
+
+// Das Bild als WebP, wie `bereiteVor` es gespeichert hat.
+export async function liesBild(db: Pick<Pool, 'query'>, server: string, art: Art): Promise<Buffer | undefined> {
+  const { rows } = await db.query<{ daten: Buffer }>('SELECT daten FROM bilder WHERE server = $1 AND art = $2', [server, art]);
+  return rows[0]?.daten;
+}
+
+export async function speichereBild(db: Pick<Pool, 'query'>, server: string, art: Art, daten: Buffer): Promise<void> {
+  await db.query(
+    'INSERT INTO bilder (server, art, daten) VALUES ($1, $2, $3) ON CONFLICT (server, art) DO UPDATE SET daten = EXCLUDED.daten',
+    [server, art, daten],
+  );
+}
+
+// Löscht das Bild und setzt `banner` auf false, in einer Anweisung.
+// Siehe docs/schnittstelle/api.md, „Bild“.
+export async function loescheBild(db: Pick<Pool, 'query'>, server: string, art: Art): Promise<void> {
+  await db.query(
+    `WITH weg AS (DELETE FROM bilder WHERE server = $1 AND art = $2)
+     UPDATE begruessungen SET banner = false WHERE server = $1 AND art = $2`,
+    [server, art],
+  );
 }
 
 export async function speichere(db: Pick<Pool, 'query'>, server: string, art: Art, e: Einstellung): Promise<void> {
@@ -99,10 +154,13 @@ export async function speichere(db: Pick<Pool, 'query'>, server: string, art: Ar
   );
 }
 
-// Löscht die Einstellungen eines Servers, den der Bot verlassen hat.
+// Löscht Einstellungen und Bilder eines Servers, den der Bot verlassen hat.
 // Siehe docs/benutzung/begruessung.md, „Wenn etwas fehlt“.
 export async function vergiss(db: Pick<Pool, 'query'>, server: string): Promise<void> {
-  await db.query('DELETE FROM begruessungen WHERE server = $1', [server]);
+  await db.query(
+    'WITH weg AS (DELETE FROM bilder WHERE server = $1) DELETE FROM begruessungen WHERE server = $1',
+    [server],
+  );
 }
 
 // Die Shards eines Prozesses, den der ShardingManager gestartet hat.
@@ -111,15 +169,18 @@ export interface Shards {
   count: number;
 }
 
-// Löscht beim Start die Einstellungen der Server, die nicht in `server`
-// stehen, und gibt ihre Zahl zurück. Mit `shards` nur unter den Servern
-// dieser Shards; die anderen sieht der Prozess nicht.
+// Löscht beim Start Einstellungen und Bilder der Server, die nicht in
+// `server` stehen, und gibt die Zahl dieser Server zurück. Mit `shards` nur
+// unter den Servern dieser Shards; die anderen sieht der Prozess nicht.
 // Siehe docs/bot/dashboard-api.md, „Aufräumen“.
 export async function behalteNur(db: Pick<Pool, 'query'>, server: string[], shards?: Shards): Promise<number> {
-  const { rowCount } = await db.query(
-    `DELETE FROM begruessungen WHERE NOT (server = ANY($1))
-       AND ($2::int IS NULL OR (server >> 22) % $2 = ANY($3::int[]))`,
+  const fremd = `NOT (server = ANY($1)) AND ($2::int IS NULL OR (server >> 22) % $2 = ANY($3::int[]))`;
+  const { rows } = await db.query<{ zahl: number }>(
+    `WITH bilder_weg AS (DELETE FROM bilder WHERE ${fremd} RETURNING server),
+          einstellungen_weg AS (DELETE FROM begruessungen WHERE ${fremd} RETURNING server)
+     SELECT count(DISTINCT server)::int AS zahl
+     FROM (SELECT server FROM bilder_weg UNION ALL SELECT server FROM einstellungen_weg) AS weg`,
     [server, shards?.count ?? null, shards?.ids ?? []],
   );
-  return rowCount ?? 0;
+  return rows[0]?.zahl ?? 0;
 }

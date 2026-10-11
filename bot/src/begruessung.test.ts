@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { hoechstens, pruefe, standard } from './begruessung.js';
+import { ersetze, hoechstens, maskiere, pruefe, standard } from './begruessung.js';
 
 const kanaele = new Map([
   ['500000000000000001', { banner: true }],
@@ -70,4 +70,19 @@ test('eine gültige Einstellung kommt so zurück, wie sie gespeichert wird; bild
   assert.deepEqual(pruefe(mit({ an: true, text: '', banner: true }), kanaele, true), {
     einstellung: { ...standard('beitritt'), an: true, kanal: '500000000000000001', text: '', banner: true, bild: true },
   });
+});
+
+test('maskiere setzt vor jedes ASCII-Satzzeichen genau einen Backslash', () => {
+  assert.equal(maskiere('**Fett** <@1> `c` :e: # x_y ~z~ |s|'), String.raw`\*\*Fett\*\* \<\@1\> \`c\` \:e\: \# x\_y \~z\~ \|s\|`);
+  assert.equal(maskiere('!'.repeat(32)).length, 64);
+  assert.equal(maskiere('Jörg Ünal 名前 😀'), 'Jörg Ünal 名前 😀');
+});
+
+test('ersetze maskiert im Text, lässt das Banner roh und ersetzt jeden Platzhalter nur einmal', () => {
+  const werte = { id: '200000000000000002', name: '*Max* {server}', server: 'Probe_Server', anzahl: 42 };
+  assert.equal(
+    ersetze('Hallo {nutzer}, {name} auf {server} ({anzahl}). {Name} {foo} {nutzer', werte, 'text'),
+    String.raw`Hallo <@200000000000000002>, \*Max\* \{server\} auf Probe\_Server (42). {Name} {foo} {nutzer`,
+  );
+  assert.equal(ersetze('{nutzer} {name} {server}', werte, 'banner'), '@*Max* {server} *Max* {server} Probe_Server');
 });

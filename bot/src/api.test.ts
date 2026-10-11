@@ -1,16 +1,40 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { createServer, type Server } from 'node:http';
-import { connect, type AddressInfo } from 'node:net';
+import type { Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { after, before, describe, test, type TestContext } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { ChannelType, ClientUser, PermissionFlagsBits as R, type Client } from 'discord.js';
+import type { Client } from 'discord.js';
 import type { Pool } from 'pg';
 import { legeSitzungAn, raeumeAuf } from './anmeldung.js';
 import { apiUmgebung, erstelleApi, Grenze } from './api.js';
-import { behalteNur, speichere, standard, vergiss } from './begruessung.js';
-import { erstelleClient } from './client.js';
+import { createCanvas, loadImage } from '@napi-rs/canvas';
+import { masse } from './banner.js';
+import { behalteNur, speichere, speichereBild, standard, vergiss } from './begruessung.js';
 import { migriere, oeffne, verbindung } from './datenbank.js';
+import {
+  ANWENDUNG,
+  ChannelType,
+  CODE,
+  DASHBOARD,
+  discordClient,
+  frage,
+  GEHEIMNIS,
+  gilde,
+  jpegMitExif,
+  kanal,
+  mitglied,
+  mockDiscord,
+  PERSON,
+  pngBild,
+  pngKopf,
+  R,
+  roh,
+  ROLLE_TEAM,
+  schliesse,
+  TOKEN,
+  type MockDiscord,
+} from './testhilfe.js';
 
 // Gegen eine gemockte Discord-API und eine echte PostgreSQL; ohne DB_HOST
 // übersprungen, in der CI immer dabei. Alle IDs sind erfunden.
@@ -18,17 +42,12 @@ import { migriere, oeffne, verbindung } from './datenbank.js';
 const ziel = verbindung();
 if (!ziel && process.env.CI) throw new Error('In der CI muss die Datenbank da sein: DB_* fehlt.');
 
-const BOT = '100000000000000001';
-const PERSON = '200000000000000002';
 const FREMD = '200000000000000003';
-const ANWENDUNG = '600000000000000001';
 const SERVER = '300000000000000003';
 const OHNE_BOT = '300000000000000004';
 const EIGENER = '300000000000000005';
 const NUR_MITGLIED = '300000000000000006';
 const ANDERER_SHARD = '300000000004194307';
-const ROLLE_BOT = '400000000000000001';
-const ROLLE_TEAM = '400000000000000002';
 const K = {
   infos: '500000000000000001',
   allgemein: '500000000000000002',
@@ -40,136 +59,28 @@ const K = {
   versteckt: '500000000000000022',
   stimme: '500000000000000023',
 };
-const CODE = 'code-aus-discord-7f3a';
-const TOKEN = 'zugang-aus-discord-91c2';
-const GEHEIMNIS = 'geheimnis-der-anwendung-5d1e';
-const DASHBOARD = 'http://localhost:4173';
 
-function rolle(id: string, name: string, rechte: bigint, position: number) {
-  return { id, name, permissions: String(rechte), position, color: 0, hoist: false, managed: false, mentionable: false, flags: 0 };
-}
+const gilden = [
+  gilde(SERVER, 'Probe', '200000000000000099', [
+    kanal(K.infos, ChannelType.GuildCategory, 'Infos', 1, null),
+    kanal(K.allgemein, ChannelType.GuildCategory, 'Allgemein', 0, null),
+    kanal(K.ohne, ChannelType.GuildText, 'ohne-kategorie', 5, null),
+    kanal(K.hallo, ChannelType.GuildText, 'hallo', 1, K.infos),
+    kanal(K.neues, ChannelType.GuildAnnouncement, 'neues', 0, K.infos),
+    kanal(K.willkommen, ChannelType.GuildText, 'willkommen', 0, K.allgemein),
+    kanal(K.regeln, ChannelType.GuildText, 'regeln', 0, K.allgemein, R.AttachFiles),
+    kanal(K.versteckt, ChannelType.GuildText, 'versteckt', 2, K.allgemein, R.ViewChannel),
+    kanal(K.stimme, ChannelType.GuildVoice, 'stimme', 3, K.allgemein),
+  ]),
+  gilde(EIGENER, 'Alpha', PERSON),
+];
 
-function kanal(id: string, type: ChannelType, name: string, position: number, parent_id: string | null, verboten = 0n) {
-  const permission_overwrites = verboten ? [{ id: ROLLE_BOT, type: 0, allow: '0', deny: String(verboten) }] : [];
-  return { id, type, name, position, parent_id, permission_overwrites };
-}
-
-function mitglied(id: string, roles: string[]) {
-  return { user: { id, username: `nutzer-${id.slice(-2)}`, discriminator: '0', avatar: null }, roles, joined_at: '2026-01-01T00:00:00.000Z', deaf: false, mute: false, flags: 0 };
-}
-
-// Ein Server, wie GUILD_CREATE ihn bringt, mit dem Bot als Mitglied.
-function gilde(id: string, name: string, eigentuemer: string, channels: object[] = []) {
-  return {
-    id,
-    name,
-    icon: null,
-    owner_id: eigentuemer,
-    features: [],
-    emojis: [],
-    stickers: [],
-    roles: [
-      rolle(id, '@everyone', 0n, 0),
-      rolle(ROLLE_BOT, 'kitty', R.ViewChannel | R.SendMessages | R.AttachFiles, 1),
-      rolle(ROLLE_TEAM, 'Team', R.ManageGuild, 2),
-    ],
-    channels,
-    members: [mitglied(BOT, [ROLLE_BOT])],
-  };
-}
-
-interface MockDiscord {
-  url: string;
-  anfragen: { methode: string; pfad: string; kopf: Record<string, string | string[] | undefined>; body: string }[];
-  // `${server}/${nutzer}` → Mitglied oder Status.
-  mitglieder: Map<string, object | number>;
-  person: number;
-}
-
-// Gemockte Discord-API für OAuth2 und für Mitglieder.
-async function mockDiscord(): Promise<MockDiscord & { server: Server }> {
-  const mock = { anfragen: [], mitglieder: new Map(), person: 200 } as unknown as MockDiscord & { server: Server };
-  mock.server = createServer((req, res) => {
-    let body = '';
-    req.on('data', (teil) => (body += teil));
-    req.on('end', () => {
-      const pfad = req.url ?? '';
-      mock.anfragen.push({ methode: req.method ?? '', pfad, kopf: req.headers, body });
-      const antworte = (status: number, wert: unknown) =>
-        res.writeHead(status, { 'content-type': 'application/json' }).end(JSON.stringify(wert));
-      const basic = `Basic ${Buffer.from(`${ANWENDUNG}:${GEHEIMNIS}`).toString('base64')}`;
-      const form = new URLSearchParams(body);
-      if (pfad === '/api/v10/oauth2/token') {
-        const passt = req.headers.authorization === basic && form.get('code') === CODE && form.get('grant_type') === 'authorization_code';
-        return passt ? antworte(200, { access_token: TOKEN, token_type: 'Bearer', expires_in: 604800, scope: 'identify guilds' }) : antworte(400, { error: 'invalid_grant' });
-      }
-      if (pfad === '/api/v10/oauth2/token/revoke') return antworte(req.headers.authorization === basic ? 200 : 401, {});
-      if (pfad.startsWith('/api/v10/users/@me') && req.headers.authorization !== `Bearer ${TOKEN}`) return antworte(401, {});
-      if (pfad === '/api/v10/users/@me') {
-        return mock.person === 200
-          ? antworte(200, { id: PERSON, username: 'probe', global_name: 'Probe Person', avatar: 'abc123' })
-          : antworte(mock.person, {});
-      }
-      if (pfad === '/api/v10/users/@me/guilds') {
-        return antworte(200, [
-          { id: SERVER, name: 'Probe', owner: false, permissions: String(R.ManageGuild) },
-          { id: OHNE_BOT, name: 'Ohne Bot', owner: true, permissions: '0' },
-          { id: EIGENER, name: 'Eigener', owner: false, permissions: String(R.Administrator) },
-          { id: NUR_MITGLIED, name: 'Nur Mitglied', owner: false, permissions: String(R.SendMessages) },
-        ]);
-      }
-      const treffer = /^\/api\/v10\/guilds\/(\d+)\/members\/(\d+)$/.exec(pfad);
-      const eintrag = treffer && mock.mitglieder.get(`${treffer[1]}/${treffer[2]}`);
-      if (typeof eintrag === 'object' && eintrag) return antworte(200, eintrag);
-      if (eintrag === 500) return antworte(500, { message: 'Internal Server Error', code: 0 });
-      return antworte(404, { message: 'Unknown Member', code: 10007 });
-    });
-  });
-  await new Promise<void>((fertig) => mock.server.listen(0, '127.0.0.1', fertig));
-  mock.url = `http://127.0.0.1:${(mock.server.address() as AddressInfo).port}`;
-  return mock;
-}
-
-// Ein Client wie nach dem Start, ohne Gateway: Server im Cache, REST gegen den Mock.
-function discordClient(api: string): Client {
-  const client = erstelleClient({ rest: { api: `${api}/api`, retries: 0 } });
-  client.rest.setToken('test');
-  client.user = Reflect.construct(ClientUser, [client, { id: BOT, username: 'kitty', discriminator: '0', bot: true, avatar: null }]);
-  const guilds = client.guilds as unknown as { _add(daten: unknown): unknown };
-  guilds._add(
-    gilde(SERVER, 'Probe', '200000000000000099', [
-      kanal(K.infos, ChannelType.GuildCategory, 'Infos', 1, null),
-      kanal(K.allgemein, ChannelType.GuildCategory, 'Allgemein', 0, null),
-      kanal(K.ohne, ChannelType.GuildText, 'ohne-kategorie', 5, null),
-      kanal(K.hallo, ChannelType.GuildText, 'hallo', 1, K.infos),
-      kanal(K.neues, ChannelType.GuildAnnouncement, 'neues', 0, K.infos),
-      kanal(K.willkommen, ChannelType.GuildText, 'willkommen', 0, K.allgemein),
-      kanal(K.regeln, ChannelType.GuildText, 'regeln', 0, K.allgemein, R.AttachFiles),
-      kanal(K.versteckt, ChannelType.GuildText, 'versteckt', 2, K.allgemein, R.ViewChannel),
-      kanal(K.stimme, ChannelType.GuildVoice, 'stimme', 3, K.allgemein),
-    ]),
-  );
-  guilds._add(gilde(EIGENER, 'Alpha', PERSON));
-  return client;
-}
-
-// Eine Anfrage an die API, ohne Weiterleitungen zu folgen.
-async function frage(basis: string, pfad: string, init: { method?: string; sitzung?: string; headers?: Record<string, string>; body?: string } = {}) {
-  const headers: Record<string, string> = { ...init.headers };
-  if (init.sitzung) headers.cookie = `sitzung=${init.sitzung}`;
-  return fetch(`${basis}${pfad}`, { method: init.method ?? 'GET', headers, body: init.body, redirect: 'manual' });
-}
-
-// Schickt rohe Bytes und liest, bis der Server die Verbindung schliesst.
-function roh(port: number, daten: string): Promise<string> {
-  return new Promise((fertig, scheitern) => {
-    const socket = connect(port, '127.0.0.1', () => socket.write(daten));
-    let antwort = '';
-    socket.on('data', (teil) => (antwort += teil));
-    socket.on('end', () => fertig(antwort));
-    socket.on('error', (fehler) => (antwort ? fertig(antwort) : scheitern(fehler)));
-  });
-}
+const meineServer = [
+  { id: SERVER, name: 'Probe', owner: false, permissions: String(R.ManageGuild) },
+  { id: OHNE_BOT, name: 'Ohne Bot', owner: true, permissions: '0' },
+  { id: EIGENER, name: 'Eigener', owner: false, permissions: String(R.Administrator) },
+  { id: NUR_MITGLIED, name: 'Nur Mitglied', owner: false, permissions: String(R.SendMessages) },
+];
 
 test('apiUmgebung braucht Secret und Adresse des Dashboards', () => {
   assert.equal(apiUmgebung({ DASHBOARD_URL: DASHBOARD }), undefined);
@@ -199,7 +110,9 @@ test('Grenze lässt 60 Anfragen je Minute zu und nennt die Sekunden bis zur näc
 
 describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt' }, () => {
   let db: Pool;
-  let mock: MockDiscord & { server: Server };
+  let mock: MockDiscord;
+  // Server, deren Einstellungen die API im Cache gelöscht hat.
+  const geleert: string[] = [];
   let client: Client;
   let api: Server;
   let basis: string;
@@ -211,8 +124,17 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
     await migriere(ziel, fileURLToPath(new URL('../migrationen', import.meta.url)));
     db = oeffne(ziel);
     mock = await mockDiscord();
-    client = discordClient(mock.url);
-    api = erstelleApi({ client, db, anwendung: ANWENDUNG, geheimnis: GEHEIMNIS, dashboard: DASHBOARD, discord: `${mock.url}/api/v10` });
+    mock.meineServer = meineServer;
+    client = discordClient(mock, gilden);
+    api = erstelleApi({
+      client,
+      db,
+      anwendung: ANWENDUNG,
+      geheimnis: GEHEIMNIS,
+      dashboard: DASHBOARD,
+      discord: `${mock.url}/api/v10`,
+      einstellungen: { delete: (server) => geleert.push(server) },
+    });
     await new Promise<void>((fertig) => api.listen(0, '127.0.0.1', fertig));
     port = (api.address() as AddressInfo).port;
     basis = `http://127.0.0.1:${port}`;
@@ -222,10 +144,10 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
     if (!ziel) return;
     await db.query('DELETE FROM sitzungen WHERE nutzer = ANY($1)', [[PERSON, FREMD]]);
     await db.query('DELETE FROM begruessungen WHERE server = ANY($1)', [[SERVER, EIGENER, ANDERER_SHARD]]);
+    await db.query('DELETE FROM bilder WHERE server = ANY($1)', [[SERVER, EIGENER, ANDERER_SHARD]]);
     api.closeAllConnections();
     await new Promise((fertig) => api.close(fertig));
-    mock.server.closeAllConnections();
-    await new Promise((fertig) => mock.server.close(fertig));
+    await schliesse(mock);
     await client.destroy();
     await db.end();
   });
@@ -301,7 +223,8 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
       assert.deepEqual(await ich.json(), {
         id: PERSON,
         name: 'Probe Person',
-        avatar: `https://cdn.discordapp.com/avatars/${PERSON}/abc123.webp?size=128`,
+        // Das CDN zeigt im Test auf den Mock.
+        avatar: `${mock.url}/cdn/avatars/${PERSON}/abc123.webp?size=128`,
       });
       const server = await frage(basis, '/api/server', { sitzung: kennung });
       assert.deepEqual(await server.json(), [
@@ -482,50 +405,186 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
       assert.match(antwort, /\r\nConnection: close\r\n/i);
     });
 
-    test('verlässt der Bot einen Server, gehen dessen Einstellungen, auch beim Abgleich nach dem Start', async () => {
-      const zahl = async (server: string) => (await db.query('SELECT 1 FROM begruessungen WHERE server = $1', [server])).rowCount;
-      await speichere(db, SERVER, 'beitritt', standard('beitritt'));
-      await speichere(db, EIGENER, 'abschied', standard('abschied'));
+    test('verlässt der Bot einen Server, gehen Einstellungen und Bilder, auch beim Abgleich nach dem Start', async () => {
+      const zahl = async (server: string) =>
+        (await db.query('SELECT (SELECT count(*) FROM begruessungen WHERE server = $1) + (SELECT count(*) FROM bilder WHERE server = $1) AS n', [server])).rows[0].n;
+      const bild = pngBild(10, 10);
+      for (const server of [SERVER, EIGENER]) {
+        await speichere(db, server, 'beitritt', standard('beitritt'));
+        await speichereBild(db, server, 'beitritt', bild);
+      }
       await vergiss(db, SERVER);
-      assert.equal(await zahl(SERVER), 0);
-      assert.equal(await zahl(EIGENER), 1);
-      // Alle anderen Server bleiben; so löscht der Test keine fremden Zeilen der Dev-Datenbank.
-      const andere = await db.query<{ server: string }>('SELECT DISTINCT server FROM begruessungen WHERE server <> $1', [EIGENER]);
-      assert.equal(await behalteNur(db, andere.rows.map((z) => z.server)), 1);
-      assert.equal(await zahl(EIGENER), 0);
+      assert.equal(await zahl(SERVER), '0');
+      assert.equal(await zahl(EIGENER), '2');
+      // In einer Transaktion, die zurückrollt: Die Dev-Datenbank verliert nichts,
+      // und Zeilen anderer Testdateien, die währenddessen entstehen, bleiben.
+      const verbindung = await db.connect();
+      try {
+        await verbindung.query('BEGIN');
+        const andere = await verbindung.query<{ server: string }>(
+          'SELECT server FROM begruessungen WHERE server <> $1 UNION SELECT server FROM bilder WHERE server <> $1',
+          [EIGENER],
+        );
+        assert.ok((await behalteNur(verbindung, andere.rows.map((z) => z.server))) >= 1);
+        const { rows } = await verbindung.query(
+          'SELECT (SELECT count(*) FROM begruessungen WHERE server = $1) + (SELECT count(*) FROM bilder WHERE server = $1) AS n',
+          [EIGENER],
+        );
+        assert.equal(rows[0].n, '0');
+      } finally {
+        await verbindung.query('ROLLBACK');
+        verbindung.release();
+      }
     });
 
     test('mit dem ShardingManager gleicht ein Prozess nur unter den Servern seiner Shards ab', async () => {
       const shard = (id: string) => Number((BigInt(id) >> 22n) % 2n);
       assert.deepEqual([shard(EIGENER), shard(ANDERER_SHARD)], [0, 1]);
-      const zahl = async (server: string) => (await db.query('SELECT 1 FROM begruessungen WHERE server = $1', [server])).rowCount;
-      await speichere(db, EIGENER, 'beitritt', standard('beitritt'));
-      await speichere(db, ANDERER_SHARD, 'beitritt', standard('beitritt'));
-      const andere = await db.query<{ server: string }>(
-        'SELECT DISTINCT server FROM begruessungen WHERE server <> ALL($1)',
-        [[EIGENER, ANDERER_SHARD]],
-      );
-      // Der Prozess mit Shard 1 von 2 kennt keinen der beiden; EIGENER liegt auf Shard 0 und bleibt.
-      assert.equal(await behalteNur(db, andere.rows.map((z) => z.server), { ids: [1], count: 2 }), 1);
-      assert.equal(await zahl(EIGENER), 1);
-      assert.equal(await zahl(ANDERER_SHARD), 0);
+      for (const server of [EIGENER, ANDERER_SHARD]) {
+        await speichere(db, server, 'beitritt', standard('beitritt'));
+        await speichereBild(db, server, 'beitritt', pngBild(10, 10));
+      }
+      const verbindung = await db.connect();
+      try {
+        await verbindung.query('BEGIN');
+        const andere = await verbindung.query<{ server: string }>(
+          'SELECT server FROM begruessungen WHERE server <> ALL($1) UNION SELECT server FROM bilder WHERE server <> ALL($1)',
+          [[EIGENER, ANDERER_SHARD]],
+        );
+        // Der Prozess mit Shard 1 von 2 kennt keinen der beiden; EIGENER liegt auf Shard 0 und bleibt.
+        assert.ok((await behalteNur(verbindung, andere.rows.map((z) => z.server), { ids: [1], count: 2 })) >= 1);
+        const zahl = async (server: string) =>
+          (await verbindung.query('SELECT (SELECT count(*) FROM begruessungen WHERE server = $1) + (SELECT count(*) FROM bilder WHERE server = $1) AS n', [server])).rows[0].n;
+        assert.equal(await zahl(EIGENER), '2');
+        assert.equal(await zahl(ANDERER_SHARD), '0');
+      } finally {
+        await verbindung.query('ROLLBACK');
+        verbindung.release();
+      }
     });
 
-    test('unbekannte Routen, Arten und die Routen für Bilder geben 404', async () => {
+    test('unbekannte Routen, Arten und Methoden geben 404', async () => {
       const kennung = await sitzung();
       for (const [method, pfad] of [
         ['GET', '/api/gibt-es-nicht'],
         ['GET', '/api/server/abc/kanaele'],
         ['PUT', `/api/server/${SERVER}/begruessung/geburtstag`],
-        ['PUT', `/api/server/${SERVER}/begruessung/beitritt/bild`],
-        ['DELETE', `/api/server/${SERVER}/begruessung/beitritt/bild`],
-        ['GET', `/api/server/${SERVER}/begruessung/beitritt/vorschau`],
+        ['POST', `/api/server/${SERVER}/begruessung/beitritt/bild`],
+        ['GET', `/api/server/${SERVER}/begruessung/beitritt/bild`],
         ['DELETE', '/api/ich'],
       ] as const) {
         const antwort = await frage(basis, pfad, { method, sitzung: kennung, headers: { origin: DASHBOARD } });
         assert.equal(antwort.status, 404, `${method} ${pfad}`);
         assert.deepEqual(await antwort.json(), { code: 'nicht_gefunden' });
       }
+    });
+  });
+
+  describe('Bilder und Vorschau', () => {
+    const pfad = `/api/server/${SERVER}/begruessung/beitritt`;
+    const hoch = (kennung: string, typ: string, body: Buffer) =>
+      frage(basis, `${pfad}/bild`, { method: 'PUT', sitzung: kennung, headers: { origin: DASHBOARD, 'content-type': typ }, body });
+    const json = { origin: DASHBOARD, 'content-type': 'application/json' };
+
+    test('ein Bild wird geprüft, bevor es dekodiert wird', async () => {
+      const kennung = await sitzung();
+      await db.query('DELETE FROM bilder WHERE server = $1', [SERVER]);
+      const faelle: [string, Buffer, number, string][] = [
+        ['image/gif', pngBild(300, 300), 415, 'bildtyp'],
+        // Nur der Kopf: Würde der Bot zuerst dekodieren, käme bild_unlesbar.
+        ['image/png', pngKopf(20000, 20000), 413, 'bild_zu_gross'],
+        ['image/png', pngKopf(4097, 300), 413, 'bild_zu_gross'],
+        ['image/png', pngBild(199, 300), 400, 'bild_zu_klein'],
+        ['image/png', Buffer.from('kein Bild'), 415, 'bild_unlesbar'],
+        ['image/png', pngKopf(500, 500), 415, 'bild_unlesbar'],
+      ];
+      for (const [typ, body, status, code] of faelle) {
+        const antwort = await hoch(kennung, typ, body);
+        assert.equal(antwort.status, status, code);
+        assert.deepEqual(await antwort.json(), { code });
+      }
+      assert.equal((await db.query('SELECT 1 FROM bilder WHERE server = $1', [SERVER])).rowCount, 0);
+    });
+
+    test('ein Bild über 4 MiB gibt 413, ohne es zu lesen', { timeout: 5_000 }, async () => {
+      const kennung = await sitzung();
+      const antwort = await roh(
+        port,
+        `PUT ${pfad}/bild HTTP/1.1\r\nHost: localhost\r\nOrigin: ${DASHBOARD}\r\nCookie: sitzung=${kennung}\r\nContent-Type: image/png\r\nContent-Length: 4194305\r\n\r\n`,
+      );
+      assert.match(antwort, /^HTTP\/1\.1 413 [^]*\{"code":"bild_zu_gross"\}$/);
+    });
+
+    test('ein JPEG mit GPS wird gedreht, auf 1100 × 440 zugeschnitten und ohne Metadaten gespeichert', async () => {
+      const kennung = await sitzung();
+      geleert.length = 0;
+      const jpeg = await jpegMitExif(1000, 400, 'GEHEIMER-ORT');
+      assert.ok(jpeg.includes('GEHEIMER-ORT') && jpeg.includes('Exif'));
+      assert.equal((await hoch(kennung, 'image/jpeg', jpeg)).status, 204);
+      assert.deepEqual(geleert, [SERVER]);
+
+      const { rows } = await db.query<{ daten: Buffer }>('SELECT daten FROM bilder WHERE server = $1 AND art = $2', [SERVER, 'beitritt']);
+      const daten = rows[0]?.daten ?? Buffer.alloc(0);
+      assert.equal(`${daten.subarray(0, 4)}${daten.subarray(8, 12)}`, 'RIFFWEBP');
+      assert.deepEqual(masse(daten), { breite: 1100, hoehe: 440 });
+      for (const merkmal of ['GEHEIMER-ORT', 'Exif', 'EXIF', 'XMP ']) assert.ok(!daten.includes(merkmal), merkmal);
+      // Quer, links rot, rechts blau; nach Drehung 6 hochkant, oben rot, unten blau.
+      const flaeche = createCanvas(1100, 440);
+      const g = flaeche.getContext('2d');
+      g.drawImage(await loadImage(daten), 0, 0);
+      const pixel = (x: number, y: number) => [...g.getImageData(x, y, 1, 1).data.slice(0, 3)];
+      const [oben, unten] = [pixel(100, 40), pixel(100, 400)];
+      assert.ok((oben[0] ?? 0) > 200 && (oben[2] ?? 0) < 60, `oben ${oben}`);
+      assert.ok((unten[2] ?? 0) > 200 && (unten[0] ?? 0) < 60, `unten ${unten}`);
+
+      const gelesen = (await (await frage(basis, `/api/server/${SERVER}/begruessung`, { sitzung: kennung })).json()) as Record<string, { bild: boolean }>;
+      assert.deepEqual([gelesen.beitritt?.bild, gelesen.abschied?.bild], [true, false]);
+      const mitBanner = { an: true, kanal: K.willkommen, text: '', banner: true, bannerText: 'Hallo {name}' };
+      const gespeichert = await frage(basis, pfad, { method: 'PUT', sitzung: kennung, headers: json, body: JSON.stringify(mitBanner) });
+      assert.equal(gespeichert.status, 200);
+      assert.deepEqual(await gespeichert.json(), { ...mitBanner, bild: true });
+      const ohneRecht = await frage(basis, pfad, { method: 'PUT', sitzung: kennung, headers: json, body: JSON.stringify({ ...mitBanner, kanal: K.regeln }) });
+      assert.deepEqual(await ohneRecht.json(), { code: 'banner_ohne_recht', feld: 'banner' });
+    });
+
+    test('Vorschau: 404 ohne Bild, sonst ein PNG mit 1100 × 440; DELETE löscht Bild und Banner', async () => {
+      const kennung = await sitzung();
+      const ohne = await frage(basis, `/api/server/${SERVER}/begruessung/abschied/vorschau?v=1`, { sitzung: kennung });
+      assert.equal(ohne.status, 404);
+      assert.deepEqual(await ohne.json(), { code: 'kein_bild' });
+      const avatare = mock.avatare.length;
+      const vorschau = await frage(basis, `${pfad}/vorschau?v=2`, { sitzung: kennung });
+      assert.equal(vorschau.status, 200);
+      assert.equal(vorschau.headers.get('content-type'), 'image/png');
+      assert.equal(vorschau.headers.get('cache-control'), 'no-store');
+      const png = Buffer.from(await vorschau.arrayBuffer());
+      assert.equal(png.subarray(1, 4).toString('latin1'), 'PNG');
+      assert.deepEqual(masse(png), { breite: 1100, hoehe: 440 });
+      assert.equal(mock.avatare.length, avatare + 1);
+
+      geleert.length = 0;
+      const weg = await frage(basis, `${pfad}/bild`, { method: 'DELETE', sitzung: kennung, headers: { origin: DASHBOARD } });
+      assert.equal(weg.status, 204);
+      assert.deepEqual(geleert, [SERVER]);
+      const gelesen = (await (await frage(basis, `/api/server/${SERVER}/begruessung`, { sitzung: kennung })).json()) as Record<string, { bild: boolean; banner: boolean }>;
+      assert.deepEqual([gelesen.beitritt?.bild, gelesen.beitritt?.banner], [false, false]);
+      assert.equal((await frage(basis, `${pfad}/vorschau`, { sitzung: kennung })).status, 404);
+    });
+
+    test('Bild und Vorschau zusammen höchstens 20 je Minute, mit Retry-After, ohne Discord zu fragen', async () => {
+      const kennung = await sitzung();
+      const vorher = mitgliederAbrufe();
+      for (let i = 0; i < 10; i++) {
+        assert.equal((await frage(basis, `${pfad}/vorschau`, { sitzung: kennung })).status, 404);
+        assert.equal((await hoch(kennung, 'image/gif', pngBild(10, 10))).status, 415);
+      }
+      const antwort = await frage(basis, `${pfad}/vorschau`, { sitzung: kennung });
+      assert.equal(antwort.status, 429);
+      assert.deepEqual(await antwort.json(), { code: 'zu_viele' });
+      const warten = Number(antwort.headers.get('retry-after'));
+      assert.ok(warten >= 1 && warten <= 60, String(warten));
+      assert.equal(mitgliederAbrufe(), vorher + 20);
+      assert.equal((await frage(basis, `/api/server/${SERVER}/kanaele`, { sitzung: kennung })).status, 200);
     });
   });
 

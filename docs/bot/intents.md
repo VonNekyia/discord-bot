@@ -3,11 +3,13 @@ title: Intents
 description: Welche Gateway-Intents und Partials der Bot anfordert und warum; welche er bewusst nicht anfordert, und was vor einem neuen privilegierten Intent zu tun ist.
 code:
   - bot/src/index.ts
+  - bot/src/client.ts
 ---
 
 # Intents
 
-Der Bot fordert heute nur `Guilds` an (`new Client` in `bot/src/index.ts`).
+Der Bot fordert `Guilds` und `GuildMembers` an, dazu
+`Partials.GuildMember` (`erstelleClient` in `bot/src/client.ts`).
 Slash-Befehle kommen als Interaktion und brauchen keinen weiteren Intent.
 Jeder neue Intent braucht einen Befehl oder eine Funktion, die ihn braucht,
 und eine Zeile hier (`AGENTS.md`, Regel 24).
@@ -15,7 +17,7 @@ und eine Zeile hier (`AGENTS.md`, Regel 24).
 | Intent | Angefordert | Grund |
 |---|---|---|
 | `Guilds` | ja | discord.js braucht ihn für den Cache von Servern und Kanälen |
-| `GuildMembers` | nein, kommt mit der Begrüssung | privilegiert; Discord schickt `GUILD_MEMBER_ADD` und `GUILD_MEMBER_REMOVE` nur mit ihm, und die [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md) braucht genau diese Ereignisse |
+| `GuildMembers` | ja | privilegiert; Discord schickt `GUILD_MEMBER_ADD` und `GUILD_MEMBER_REMOVE` nur mit ihm, und die [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md) braucht genau diese Ereignisse |
 | `GuildPresences` | nein | privilegiert; nichts braucht den Status |
 | `MessageContent` | nein | privilegiert; Befehle kommen als Interaktion, nicht als Nachricht |
 

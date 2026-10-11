@@ -12,6 +12,7 @@
     "start": "node --env-file=.env dist/index.js"
   },
   "dependencies": {
+    "@napi-rs/canvas": "1.0.10",
     "discord.js": "^14.27.0",
     "lru-cache": "^11.5.3",
     "pg": "^8.23.1"

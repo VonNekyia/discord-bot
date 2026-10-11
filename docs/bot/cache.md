@@ -11,7 +11,9 @@ code:
 Speicher: begrenzte Grösse, Ablaufzeit, und
 ein fehlender Wert wird beim ersten Zugriff geladen. Darunter liegt
 `lru-cache`, siehe Entscheidung [0006](../entscheidungen/0006-lru-cache.md).
-Heute nutzt ihn noch nichts, weil noch keine Tabelle Daten hat.
+Heute nutzt ihn die Begrüssung: `einstellungen` in `bot/src/index.ts`
+hält beide Einstellungen je Server, und jeder Beitritt und Abschied liest
+sie dort. Die API ruft nach jedem Schreiben `delete`.
 
 ## Wann cachen
 
