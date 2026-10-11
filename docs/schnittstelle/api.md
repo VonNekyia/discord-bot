@@ -46,6 +46,7 @@ in [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md).
 | `PUT /api/server/{id}/begruessung/{art}/bild` | `204` |
 | `DELETE /api/server/{id}/begruessung/{art}/bild` | `204` |
 | `GET /api/server/{id}/begruessung/{art}/vorschau` | `200` `image/png` |
+| `POST /api/server/{id}/begruessung/{art}/test` | `200` `{ banner: boolean }`; die Testnachricht ist gesendet |
 
 `{art}` ist `beitritt` oder `abschied`, sonst `404`. Jede Route mit `{id}`
 prüft zuerst die Rechte, siehe [Anmeldung am Dashboard](anmeldung.md),
@@ -159,16 +160,60 @@ Browser das Bild neu lädt. Eine Vorschau vor dem Hochladen gibt es nicht; die
 Oberfläche zeigt nach dem Hochladen die Vorschau. Damit reicht `img-src
 'self'` für sie.
 
+## Testnachricht
+
+`POST …/test` schickt die Begrüssung einmal in den gespeicherten Kanal, so
+wie der Bot sie bei einem Ereignis schicken würde: mit dem gespeicherten
+Stand und der angemeldeten Person als Mitglied, wie bei der Vorschau. Die
+Route liest keinen Body und prüft keinen `Content-Type`; die Oberfläche
+schickt `POST` ohne Body und ohne Header, den `Origin` setzt der Browser.
+
+- Sie antwortet `200` mit `{ "banner": true }`, wenn das Banner mitging,
+  sonst `{ "banner": false }`. So kann die Oberfläche sagen, dass nur der
+  Text ankam.
+- Sie geht auch, wenn `an` aus ist. So lässt sich vor dem Einschalten
+  probieren.
+- Sie pingt niemanden, auch nicht mit `{nutzer}` beim Beitritt:
+  `allowed_mentions` ist leer.
+- Vor dem Text steht die Zeile `-# Testnachricht aus dem Dashboard`, in
+  Discord als kleiner, grauer Untertext
+  ([Markdown in Discord](https://support.discord.com/hc/en-us/articles/210298617)).
+  Wird die Nachricht damit länger als 2000 Zeichen, fällt die Zeile weg.
+- Banner und fehlende Rechte gelten wie beim echten Senden, siehe
+  [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md),
+  „Wenn etwas fehlt“: Ohne „Dateien anhängen“ geht nur der Text.
+- Die Bremse gilt für Testnachrichten nicht; sie haben die Grenze unten.
+
+Das Backend prüft in dieser Reihenfolge und antwortet beim ersten Fehler
+mit `400`, dem Code und dem Feld:
+
+| Regel | Code | Feld |
+|---|---|---|
+| ein Kanal ist gespeichert | `test_ohne_kanal` | `kanal` |
+| der gespeicherte Kanal steht in `GET …/kanaele` | `kanal_unbekannt` | `kanal` |
+| es gibt etwas zu senden: Text, der nicht nur aus Leerzeichen besteht, oder ein Banner, das der Bot im Kanal anhängen darf | `test_ohne_inhalt` | `text` |
+
+Scheitert das Senden bei Discord, `503` `nicht_erreichbar`. Ebenso, wenn
+der Text leer ist und das Banner beim Zeichnen scheitert: Dann gibt es
+nichts zu senden, obwohl die Regeln oben es erlaubt haben.
+
 ## Grenzen je Sitzung
 
 | Was | Höchstens | Warum |
 |---|---|---|
 | alle Routen mit `{id}` zusammen | 60 je Minute und Sitzung | jede prüft die Rechte mit einem Aufruf an Discord; eine Sitzung soll nicht das Budget des Bots verbrauchen, das er für Interaktionen braucht |
-| `PUT …/bild` und `GET …/vorschau` zusammen | 20 je Minute und Sitzung | sie dekodieren oder zeichnen Bilder |
+| `PUT …/bild`, `GET …/vorschau` und `POST …/test` zusammen | 20 je Minute und Sitzung | sie dekodieren oder zeichnen Bilder |
+| `POST …/test` | 3 je Minute und Server, über alle Sitzungen | jede Testnachricht landet im Kanal, den alle sehen |
 
-Darüber `429` `zu_viele` mit `Retry-After` in Sekunden. Die Grenze wird vor
-den Rechten geprüft, damit eine abgelehnte Anfrage Discord nichts kostet.
-Ein Aufruf zählt zu beiden Zeilen, wenn beide passen.
+Darüber `429` `zu_viele` mit `Retry-After` in Sekunden. Ein Aufruf zählt zu
+jeder Zeile, die passt.
+
+- Die beiden Grenzen je Sitzung werden vor den Rechten geprüft, damit eine
+  abgelehnte Anfrage Discord nichts kostet.
+- Die Grenze je Server ist die Ausnahme. Sie zählt erst nach den Rechten
+  und den Regeln der Testnachricht, direkt vor dem Senden. Sonst könnte
+  jeder Angemeldete mit drei Anfragen auf einen fremden Server dessen
+  Testnachricht sperren und bekäme dafür nur `403`.
 
 ## Fehler
 
@@ -178,7 +223,7 @@ entscheidet das Frontend. `feld` steht nur bei `400`.
 
 | Status | Code | Wann |
 |---|---|---|
-| `400` | siehe „Einstellung speichern“ oben, dazu `bild_zu_klein` | Eingabe ungültig |
+| `400` | siehe „Einstellung speichern“ und „Testnachricht“ oben, dazu `bild_zu_klein` | Eingabe ungültig, oder für eine Testnachricht fehlt etwas |
 | `401` | `nicht_angemeldet` | keine oder abgelaufene Sitzung; die Oberfläche zeigt die Anmeldung |
 | `403` | `kein_recht` | kein „Server verwalten“ auf diesem Server |
 | `403` | `origin_falsch` | `Origin` fehlt oder passt nicht |
@@ -202,7 +247,6 @@ Oberfläche behandelt das wie `503`. `API_PORT` steht in
 
 ## Was noch fehlt
 
-- Eine Testnachricht aus dem Dashboard heraus.
 - Eine Grenze je IP-Adresse, vor allem für die Anmeldung. Hinter dem
   Reverse Proxy kommt jede Anfrage von `127.0.0.1`; die echte Adresse steht
   erst fest, wenn klar ist, wie der Proxy sie weitergibt.
