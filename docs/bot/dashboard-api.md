@@ -151,6 +151,3 @@ darf, steht in [Datenschutz](datenschutz.md), „Was ins Log geht“.
   `ShardingManager` sähe die API nur die Server ihres Prozesses, jeder
   weitere Prozess fände `API_PORT` belegt, und jeder hätte seine eigenen
   Grenzen. Dann braucht die API einen Weg zu allen Shards.
-- **Emoji und CJK im Banner.** Inter hat dafür keine Zeichen; im Banner
-  werden sie zu Kästchen. Abhilfe wäre eine zweite Schrift als Ersatz,
-  ebenfalls unter OFL.

@@ -41,3 +41,12 @@ crates, see docs/entscheidungen/0009-banner-mit-napi-rs-canvas.md.
 The banner font is Inter 4.1 SemiBold, Copyright (c) 2016 The Inter
 Project Authors, under the SIL Open Font License 1.1, see
 bot/schrift/OFL.txt. It is included unchanged.
+
+For characters Inter lacks, the banner falls back to two more fonts, both
+included unchanged and under the SIL Open Font License 1.1:
+
+- Noto Color Emoji 2.057 (bot/schrift/Noto-COLRv1.ttf), Copyright 2022
+  Google Inc., see bot/schrift/Noto-Color-Emoji-OFL.txt.
+- Noto Sans CJK JP Bold 2.004 (bot/schrift/NotoSansCJKjp-Bold.otf),
+  Copyright 2014-2021 Adobe (http://www.adobe.com/), see
+  bot/schrift/Noto-Sans-CJK-OFL.txt. Noto is a trademark of Google Inc.

@@ -14,6 +14,9 @@ code:
 
 # 0009: Banner mit @napi-rs/canvas und Inter
 
+Teilweise abgelöst durch [0010](0010-ersatzschriften-im-banner.md): Für
+Emoji und CJK kommen Ersatzschriften hinter Inter.
+
 ## Anlass
 
 Bei Beitritt und Abschied schickt der Bot ein Banner aus einem Bild, das
