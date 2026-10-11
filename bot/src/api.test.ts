@@ -9,8 +9,8 @@ import type { Pool } from 'pg';
 import { legeSitzungAn, raeumeAuf } from './anmeldung.js';
 import { apiUmgebung, erstelleApi, Grenze } from './api.js';
 import { createCanvas, loadImage } from '@napi-rs/canvas';
-import { masse } from './banner.js';
-import { behalteNur, speichere, speichereBild, standard, vergiss } from './begruessung.js';
+import { bereiteVor, masse } from './banner.js';
+import { behalteNur, speichere, speichereBild, standard, vergiss, type Einstellung } from './begruessung.js';
 import { migriere, oeffne, verbindung } from './datenbank.js';
 import {
   ANWENDUNG,
@@ -115,6 +115,8 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
   let mock: MockDiscord;
   // Server, deren Einstellungen die API im Cache gelöscht hat.
   const geleert: string[] = [];
+  // Die Uhr der Grenzen; ein Test rückt sie vor.
+  let jetzt = Date.now();
   let client: Client;
   let api: Server;
   let basis: string;
@@ -136,6 +138,7 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
       dashboard: DASHBOARD,
       discord: `${mock.url}/api/v10`,
       einstellungen: { delete: (server) => geleert.push(server) },
+      uhr: () => jetzt,
     });
     await new Promise<void>((fertig) => api.listen(0, '127.0.0.1', fertig));
     port = (api.address() as AddressInfo).port;
@@ -590,6 +593,109 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
       assert.ok(warten >= 1 && warten <= 60, String(warten));
       assert.equal(mitgliederAbrufe(), vorher + 20);
       assert.equal((await frage(basis, `/api/server/${SERVER}/kanaele`, { sitzung: kennung })).status, 200);
+    });
+  });
+
+  describe('Testnachricht', () => {
+    const pfad = `/api/server/${SERVER}/begruessung/beitritt/test`;
+    const teste = (kennung: string) => frage(basis, pfad, { method: 'POST', sitzung: kennung, headers: { origin: DASHBOARD } });
+    // Jeder Test in seiner eigenen Minute, damit die Grenze je Server neu zählt.
+    const neueMinute = async () => {
+      jetzt += 61_000;
+      await db.query('DELETE FROM begruessungen WHERE server = $1', [SERVER]);
+      await db.query('DELETE FROM bilder WHERE server = $1', [SERVER]);
+    };
+    const stelle = (e: Partial<Einstellung>) => speichere(db, SERVER, 'beitritt', { ...standard('beitritt'), ...e });
+
+    test('die Regeln der Testnachricht gelten in ihrer Reihenfolge', async () => {
+      await neueMinute();
+      const kennung = await sitzung();
+      const vorher = mock.nachrichten.length;
+      const faelle: [Partial<Einstellung> | undefined, string, string][] = [
+        [undefined, 'test_ohne_kanal', 'kanal'],
+        [{ kanal: K.versteckt }, 'kanal_unbekannt', 'kanal'],
+        [{ kanal: K.willkommen, text: ' \n ' }, 'test_ohne_inhalt', 'text'],
+        [{ kanal: K.willkommen, text: '', banner: true }, 'test_ohne_inhalt', 'text'],
+      ];
+      for (const [e, code, feld] of faelle) {
+        if (e) await stelle(e);
+        const antwort = await teste(kennung);
+        assert.equal(antwort.status, 400, code);
+        assert.deepEqual(await antwort.json(), { code, feld });
+      }
+      // Mit Bild, aber im Kanal ohne „Dateien anhängen“: kein Banner, also nichts zu senden.
+      await speichereBild(db, SERVER, 'beitritt', await bereiteVor(pngBild(400, 300)));
+      await stelle({ kanal: K.regeln, text: '', banner: true });
+      assert.deepEqual(await (await teste(kennung)).json(), { code: 'test_ohne_inhalt', feld: 'text' });
+      assert.equal(mock.nachrichten.length, vorher);
+    });
+
+    test('die Testnachricht geht auch, wenn an aus ist, pingt niemanden und trägt die Untertext-Zeile', async () => {
+      await neueMinute();
+      const kennung = await sitzung();
+      await stelle({ an: false, kanal: K.willkommen, text: 'Hallo {nutzer}, {name}!' });
+      const antwort = await teste(kennung);
+      assert.equal(antwort.status, 200);
+      assert.deepEqual(await antwort.json(), { banner: false });
+      const n = mock.nachrichten.at(-1);
+      assert.equal(n?.kanal, K.willkommen);
+      assert.equal(n?.json.content, String.raw`-# Testnachricht aus dem Dashboard
+Hallo <@${PERSON}>, nutzer\-02!`);
+      assert.deepEqual(n?.json.allowed_mentions, { parse: [] });
+      assert.deepEqual(n?.dateien, []);
+    });
+
+    test('würde die Nachricht mit der Zeile länger als 2000 Zeichen, fällt die Zeile weg', async () => {
+      await neueMinute();
+      const kennung = await sitzung();
+      const text = 'x'.repeat(1990);
+      await stelle({ kanal: K.willkommen, text });
+      assert.equal((await teste(kennung)).status, 200);
+      assert.equal(mock.nachrichten.at(-1)?.json.content, text);
+    });
+
+    test('mit Banner antwortet sie banner: true, im Kanal ohne Dateien geht nur der Text', async () => {
+      await neueMinute();
+      const kennung = await sitzung();
+      await speichereBild(db, SERVER, 'beitritt', await bereiteVor(pngBild(400, 300)));
+      await stelle({ kanal: K.willkommen, text: '', banner: true });
+      const mitBanner = await teste(kennung);
+      assert.deepEqual(await mitBanner.json(), { banner: true });
+      const n = mock.nachrichten.at(-1);
+      assert.equal(n?.json.content, '-# Testnachricht aus dem Dashboard');
+      assert.deepEqual(n?.dateien.map((d) => d.name), ['beitritt.png']);
+      await stelle({ kanal: K.regeln, text: 'Hallo', banner: true });
+      assert.deepEqual(await (await teste(kennung)).json(), { banner: false });
+      assert.deepEqual(mock.nachrichten.at(-1)?.dateien, []);
+    });
+
+    test('ist der Text leer und scheitert das Banner, gibt es 503 und keine Nachricht', async (t) => {
+      t.mock.method(console, 'error', () => {});
+      await neueMinute();
+      const kennung = await sitzung();
+      await speichereBild(db, SERVER, 'beitritt', Buffer.from('kein Bild'));
+      await stelle({ kanal: K.willkommen, text: '', banner: true });
+      const vorher = mock.nachrichten.length;
+      const antwort = await teste(kennung);
+      assert.equal(antwort.status, 503);
+      assert.deepEqual(await antwort.json(), { code: 'nicht_erreichbar' });
+      assert.equal(mock.nachrichten.length, vorher);
+    });
+
+    test('die Grenze je Server zählt erst nach den Rechten: eine fremde Sitzung sperrt nichts', async () => {
+      await neueMinute();
+      await stelle({ kanal: K.willkommen, text: 'Hallo' });
+      const fremd = await legeSitzungAn(db, { nutzer: FREMD, name: 'x', avatar: null, server: [] });
+      mock.mitglieder.delete(`${SERVER}/${FREMD}`);
+      for (let i = 0; i < 5; i++) assert.equal((await teste(fremd)).status, 403);
+      const kennung = await sitzung();
+      const vorher = mock.nachrichten.length;
+      for (let i = 0; i < 3; i++) assert.equal((await teste(kennung)).status, 200);
+      const antwort = await teste(kennung);
+      assert.equal(antwort.status, 429);
+      assert.deepEqual(await antwort.json(), { code: 'zu_viele' });
+      assert.equal(antwort.headers.get('retry-after'), '60');
+      assert.equal(mock.nachrichten.length, vorher + 3);
     });
   });
 

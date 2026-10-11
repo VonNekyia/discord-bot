@@ -46,7 +46,10 @@ Interaktionen ersetzt `interaktion` durch ein Objekt mit nur dem, was
 `bot/src/api.test.ts` startet die API mit `erstelleApi` auf einem freien
 Port und spricht sie mit `fetch` an, ohne Weiterleitungen zu folgen.
 `bot/src/senden.test.ts` ruft `begruesse` mit Mitgliedern auf, wie
-discord.js sie bei Beitritt und Abschied bringt. Beide nutzen
+discord.js sie bei Beitritt und Abschied bringt. Dort gibt die Bremse nur
+200 ms Ruhe statt 30 s (`erstelleBremse`); mit falschen Uhren hängen
+REST von discord.js und `fetch`. Die Zeiten selbst prüfen die Tests der
+Bremse ohne Netz, mit `t.mock.timers`. Beide nutzen
 `bot/src/testhilfe.ts`:
 
 - `mockDiscord`: ein `node:http`-Server für OAuth2 (`/oauth2/token`,
@@ -124,6 +127,12 @@ zurückrollt, weil die Dateien gleichzeitig laufen. Alle IDs sind erfunden
 | ein JPEG mit GPS wird gedreht … | WebP mit 1100 × 440, ohne `Exif`, ohne Beschreibung; Drehung 6 an den Farben; danach `bild: true`, `banner_ohne_recht` |
 | Vorschau: 404 ohne Bild, sonst ein PNG … | `kein_bild`, PNG mit 1100 × 440, Avatar vom CDN; `DELETE` löscht Bild und `banner` |
 | Bild und Vorschau zusammen höchstens 20 je Minute … | die 21. Anfrage `429` ohne Aufruf an Discord; `kanaele` geht weiter |
+| die Regeln der Testnachricht gelten in ihrer Reihenfolge | `test_ohne_kanal`, `kanal_unbekannt`, `test_ohne_inhalt` mit Leerzeichen, ohne Bild und im Kanal ohne „Dateien anhängen“; keine Nachricht |
+| die Testnachricht geht auch, wenn an aus ist … | `200` `{ banner: false }`, Zeile `-# Testnachricht aus dem Dashboard` vorn, `allowed_mentions` leer trotz `{nutzer}` |
+| würde die Nachricht mit der Zeile länger als 2000 Zeichen … | bei 1990 Zeichen Text geht nur der Text |
+| mit Banner antwortet sie banner: true … | Datei `beitritt.png`, nur die Zeile als Text; im Kanal ohne Dateien `{ banner: false }` |
+| ist der Text leer und scheitert das Banner … | `503`, keine Nachricht |
+| die Grenze je Server zählt erst nach den Rechten … | fünfmal `403` für eine fremde Sitzung, danach dreimal `200` und `429` mit `Retry-After: 60` |
 | kein Code, Token, Cookie, state und keine ID im Log | Anmeldung mit Erfolg und drei Fehlern, eine Route mit `503`; keine Zeile enthält einen der Werte |
 | Beitritt: Platzhalter im Text maskiert, nur das neue Mitglied pingt | Text mit Spitzname und Servername maskiert, `{anzahl}`, `allowed_mentions` |
 | Abschied eines Mitglieds ausserhalb des Caches … | Partial mit globalem Anzeigenamen, `allowed_mentions` ohne Nutzer |
@@ -131,6 +140,13 @@ zurückrollt, weil die Dateien gleichzeitig laufen. Alle IDs sind erfunden
 | mit Banner hängt der Bot beitritt.png … | Datei mit 1100 × 440, Avatar vom CDN |
 | scheitert das Banner oder fehlt „Dateien anhängen“ … | beide Male nur der Text, je eine Logzeile ohne ID |
 | leerer Text ohne Banner schickt nichts … | auch eine ausgeschaltete Art; kein Log |
+| Plaetze lässt höchstens zwei zugleich laufen … | fünf Aufgaben: nie mehr als zwei, Reihenfolge wie gekommen |
+| die Bremse greift beim 6. Ereignis in 10 s … | mit falschen Uhren: 5 einzeln, `an`, `gezaehlt`; ein Ereignis nach 20 s setzt die Ruhe neu; nach 29 999 ms nichts, nach 30 000 ms `loese` mit 3; danach wieder einzeln |
+| die Bremse zählt im Fenster von 10 s … | acht Ereignisse im Abstand von 2,1 s gehen einzeln |
+| die Zusammenfassung sagt eins oder mehrere | Singular und Plural für beide Arten |
+| beim Raid gehen 5 einzeln, dann zählt die Bremse … | gegen den Mock: 5 Nachrichten mit Banner, dann die Zusammenfassung „Willkommen an die 2 neuen Mitglieder!“ ohne Ping und Banner; Logzeilen „Bremse an“ und „Bremse aus“; danach wieder einzeln |
+| ein gezählter Abschied gibt die Zusammenfassung im Singular | „1 Mitglied hat den Server verlassen.“ |
+| bei ausgeschalteter Art zählt die Bremse nicht | zehn Ereignisse bei `an: false`, danach eingeschaltet geht das nächste einzeln |
 
 ## Tests gegen PostgreSQL
 

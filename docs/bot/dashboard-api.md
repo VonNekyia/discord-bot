@@ -26,7 +26,7 @@ Bilder und Banner zeichnet `@napi-rs/canvas`, siehe Entscheidung
 | `bot/src/anmeldung.ts` | OAuth2 mit `fetch`, Sitzungen in PostgreSQL, Cookies |
 | `bot/src/begruessung.ts` | Standardwerte, `pruefe` mit den Regeln beim Speichern, Platzhalter, Lesen, Speichern und Löschen von Einstellungen und Bildern |
 | `bot/src/banner.ts` | `masse`, `bereiteVor` für ein hochgeladenes Bild, `zeichne` für das Banner |
-| `bot/src/senden.ts` | `banner` für Vorschau und Senden; `begruesse`, siehe [Begrüssung senden](begruessung-senden.md) |
+| `bot/src/senden.ts` | `banner` für Vorschau und Senden, `sendeTest` für die Testnachricht; `begruesse` und die Bremse, siehe [Begrüssung senden](begruessung-senden.md) |
 
 ## Start und Ende
 
@@ -58,6 +58,9 @@ Jede Anfrage durchläuft diese Schritte; sie hört beim ersten Fehler auf:
 | Body | `PUT …/bild` | `415` `bildtyp`, `413` `bild_zu_gross` |
 | Regeln | `PUT …/begruessung/{art}` | `400` mit Code und Feld |
 | Bild | `PUT …/bild` | siehe „Bilder“ |
+| Regeln | `POST …/test` | `400` `test_ohne_kanal`, `kanal_unbekannt`, `test_ohne_inhalt` |
+| Grenze je Server | `POST …/test` | `429` `zu_viele`; erst hier, nach Rechten und Regeln |
+| Senden | `POST …/test` | `503` `nicht_erreichbar`, siehe [Begrüssung senden](begruessung-senden.md), „Testnachricht“ |
 
 Bei den Rechten werden Unknown Member (10007) und Unknown User (10013) von
 Discord zu `403` `kein_recht`. Der Cache von discord.js hält ohnehin keine
@@ -74,7 +77,8 @@ es“.
 | Was | Wert | Wie |
 |---|---|---|
 | Anfragen mit `{id}` je Sitzung | 60 je Minute | `Grenze`: gleitendes Fenster im Speicher, Schlüssel ist der Hash der Sitzung |
-| Bild und Vorschau je Sitzung | 20 je Minute | eine zweite `Grenze`, zusätzlich zur ersten |
+| Bild, Vorschau und Testnachricht je Sitzung | 20 je Minute | eine zweite `Grenze`, zusätzlich zur ersten |
+| Testnachricht je Server | 3 je Minute | eine dritte `Grenze`, Schlüssel ist der Server; sie zählt erst nach Rechten und Regeln, sonst sperrte eine fremde Sitzung |
 | JSON-Body | 16 KiB | zuerst `Content-Length`; sonst zählt das Lesen mit und hört an der Grenze auf |
 | Bild | 4 MiB | wie beim JSON-Body |
 | Header einer Anfrage | 10 s | `headersTimeout` |
@@ -82,6 +86,8 @@ es“.
 | ein Aufruf an Discord für OAuth2 | 10 s | `AbortSignal.timeout` |
 | ein Avatar vom CDN | 5 s | `AbortSignal.timeout` in `holeAvatar` |
 
+- Ihre Uhr ist `uhr` aus `ApiOptionen`, ohne Angabe `Date.now()`; Tests
+  setzen eine eigene, um eine Minute vorzurücken.
 - Die Grenzen leben im Speicher des Prozesses. Ein Neustart setzt sie
   zurück; eine zweite Instanz hätte ihre eigenen.
 - Liegt bei der Antwort noch ungelesener Body an, schliesst die Verbindung
