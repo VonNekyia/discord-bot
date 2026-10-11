@@ -15,11 +15,11 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 
 - [Einrichtung und Betrieb](benutzung/einrichtung.md): Bot im Developer Portal, `DISCORD_BOT_TOKEN` lokal und als GitHub-Secret, bauen, starten, einladen, Dienst.
 - [Befehle](benutzung/befehle.md): jeder Slash-Befehl mit Antwort, Sichtbarkeit, Rechten und Intents.
-- [Begrüssung bei Beitritt und Abschied](benutzung/begruessung.md): Platzhalter, Banner aus einem eigenen Bild, Standardwerte, Rechte, der Intent `GuildMembers`.
+- [Begrüssung bei Beitritt und Abschied](benutzung/begruessung.md): Platzhalter, Banner aus einem eigenen Bild, Standardwerte, Rechte, der Intent `GuildMembers`, die Bremse bei vielen Beitritten.
 
 ## Schnittstelle
 
-- [API des Dashboards](schnittstelle/api.md): jede Route unter `/api/`, Typen, Grenzen, Fehlercodes, die Weiterleitung von `serve.mjs`.
+- [API des Dashboards](schnittstelle/api.md): jede Route unter `/api/`, Typen, Testnachricht, Grenzen, Fehlercodes, die Weiterleitung von `serve.mjs`.
 - [Anmeldung am Dashboard](schnittstelle/anmeldung.md): Discord-Login mit OAuth2, Sitzung und Cookie, Rechte, Origin, Umgebungsvariablen.
 
 ## Bot

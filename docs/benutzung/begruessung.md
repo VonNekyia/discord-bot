@@ -1,6 +1,6 @@
 ---
 title: Begrüssung bei Beitritt und Abschied
-description: Was der Bot schickt, wenn jemand einem Server beitritt oder ihn verlässt; Platzhalter, Banner aus einem eigenen Bild, Standardwerte, Rechte und Intent.
+description: Was der Bot schickt, wenn jemand einem Server beitritt oder ihn verlässt; Platzhalter, Banner aus einem eigenen Bild, Standardwerte, Rechte und Intent, die Bremse bei vielen Beitritten.
 code:
   - bot/src/index.ts
   - bot/src/begruessung.ts
@@ -98,6 +98,34 @@ Kanal braucht der Bot diese Rechte:
 
 Beleg: [Permissions](https://docs.discord.com/developers/topics/permissions).
 
+## Bremse
+
+Treten in kurzer Zeit viele bei, etwa bei einem Raid, schickt der Bot
+nicht jede Begrüssung einzeln. Sonst flutete er den Kanal, zeichnete
+Hunderte Banner und liefe in die Rate-Limits von Discord. Je Server und
+Art zählt er die Ereignisse der letzten 10 s:
+
+1. Bis 5 Ereignisse in 10 s geht jede Begrüssung wie eingestellt.
+2. Ab dem 6. Ereignis in 10 s greift die Bremse. Dann gehen keine einzelnen
+   Nachrichten und keine Banner mehr; der Bot zählt nur noch.
+3. Kommt 30 s lang kein Ereignis dieser Art, löst sich die Bremse. Der Bot
+   schickt dann eine zusammenfassende Nachricht, ohne Ping und ohne Banner,
+   in den eingestellten Kanal, wenn die Art noch an ist und er dort darf.
+
+| Art | eins | mehrere |
+|---|---|---|
+| Beitritt | `Willkommen an das neue Mitglied!` | `Willkommen an die {zahl} neuen Mitglieder!` |
+| Abschied | `1 Mitglied hat den Server verlassen.` | `{zahl} Mitglieder haben den Server verlassen.` |
+
+- `{zahl}` zählt die Ereignisse, die nicht einzeln begrüsst wurden, also
+  ab dem 6. Ereignis.
+- Die Bremse lebt im Speicher des Prozesses. Ein Neustart setzt sie
+  zurück, und eine Zusammenfassung, die noch aussteht, fällt dann weg.
+- Ins Log kommen „Bremse an“ und „Bremse aus“ mit der Zahl, ohne IDs und
+  Namen.
+- Testnachrichten aus dem Dashboard zählen nicht, siehe
+  [API des Dashboards](../schnittstelle/api.md), „Testnachricht“.
+
 ## Wenn etwas fehlt
 
 - Ist die Begrüssung aus, schickt er nichts, ohne Logzeile.
@@ -115,4 +143,5 @@ Beleg: [Permissions](https://docs.discord.com/developers/topics/permissions).
 
 ## Was noch fehlt
 
-- Eine Bremse, wenn in kurzer Zeit viele beitreten.
+- Eigene Schwellen und ein eigener Text für die Bremse, je Server im
+  Dashboard.
