@@ -40,7 +40,7 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 
 - [Design der Oberfläche](frontend/design.md): harte Regeln, Tokens, Schrift, Breakpoints, welches Element des Guides wofür steht, Herkunft der Regeln, Bewegung.
 - [Auslieferung der Oberfläche](frontend/auslieferung.md): statisch mit `tsc`, `serve.mjs` mit Weiterleitung von `/api/`, Header und CSP.
-- [Dashboard](frontend/dashboard.md): Zustände, Anmelden, Abmelden, Bild, Speichern, Testnachricht, Vorschau, Prüfen vor dem Senden, Meldungen.
+- [Dashboard](frontend/dashboard.md): Zustände, Anmelden, Abmelden, Bild, Speichern, Testnachricht, Vorschau, der Tab Sprachräume, Prüfen vor dem Senden, Meldungen.
 
 ## Entwicklung
 

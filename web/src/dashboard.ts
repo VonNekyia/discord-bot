@@ -3,6 +3,7 @@
 // Siehe docs/frontend/dashboard.md, „Zustände“.
 import { api, ApiFehler, type Ich, type Server } from './api.js';
 import { Begruessung } from './begruessung.js';
+import { SprachraeumeFormular } from './sprachraeume.js';
 import { meldung, satz, type Satz } from './texte.js';
 
 const element = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -115,12 +116,19 @@ async function route(): Promise<void> {
   serverMeldung.hidden = true;
   zeigen('laden');
   try {
-    const [kanaele, einstellungen] = await Promise.all([api.kanaele(server.id), api.begruessung(server.id)]);
+    const [kanaele, einstellungen, sprachDaten, sprachraeume] = await Promise.all([
+      api.kanaele(server.id),
+      api.begruessung(server.id),
+      api.sprachkanaele(server.id),
+      api.sprachraeume(server.id),
+    ]);
     if (gezeigt !== server.id) return;
     element('server-name').textContent = server.name;
+    const abgelaufen = () => abgemeldet(satz('abgelaufen'), 'warn');
     for (const art of ['beitritt', 'abschied'] as const) {
-      new Begruessung(element(`panel-${art}`), server.id, art, kanaele, einstellungen[art], () => abgemeldet(satz('abgelaufen'), 'warn'));
+      new Begruessung(element(`panel-${art}`), server.id, art, kanaele, einstellungen[art], abgelaufen);
     }
+    new SprachraeumeFormular(element('panel-sprachraeume'), server.id, sprachDaten, sprachraeume, abgelaufen);
     zeigen('begruessung');
   } catch (fehler) {
     if (gezeigt !== server.id) return;
