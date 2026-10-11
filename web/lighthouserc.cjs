@@ -4,7 +4,8 @@ const baseUrl = (process.env.LHCI_BASE_URL || 'http://127.0.0.1:4173').replace(/
 module.exports = {
   ci: {
     collect: {
-      url: [`${baseUrl}/`],
+      // Das Dashboard abgemeldet; in der CI antwortet ein Stub auf /api/ mit 401.
+      url: [`${baseUrl}/`, `${baseUrl}/dashboard/`],
       numberOfRuns: 3,
       settings: {
         chromeFlags: '--headless=new --no-sandbox --disable-dev-shm-usage',

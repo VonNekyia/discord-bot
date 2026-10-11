@@ -1,6 +1,7 @@
 /* Die Oberfläche des Bots. Jede Regel ist wörtlich aus dem Design-Guide
-   (docs/frontend/design.css) übernommen, ausser den beiden Regeln am Ende von
-   der Website. Siehe docs/frontend/design.md, „Herkunft der Regeln“. */
+   (docs/frontend/design.css) übernommen, ausser den beiden Regeln von der
+   Website und den Regeln, die der Orchestrator festgelegt hat, beide am Ende.
+   Siehe docs/frontend/design.md, „Herkunft der Regeln“. */
 
 :root {
   /* Grounds */
@@ -310,6 +311,354 @@ td:first-child {
   font-weight: 500;
 }
 
+/* ---------- Dashboard ---------- */
+
+h4 {
+  margin: 12px 0 0;
+  font-family: var(--serif);
+  font-size: 1.4rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.grid {
+  display: grid;
+  gap: 18px;
+  margin: 32px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.grid-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+
+.button-small {
+  min-height: 42px;
+  padding: 9px 16px;
+  font-size: 0.8rem;
+}
+
+.button-quiet {
+  color: #fff;
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.button-quiet:hover {
+  color: var(--gold-light);
+  border-color: var(--gold-light);
+}
+
+.button[aria-disabled="true"],
+.button:disabled {
+  color: rgba(16, 24, 19, 0.45);
+  background: #e6e0cf;
+  border-color: #e6e0cf;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.card {
+  padding: 30px;
+  background: #fff;
+  border: 1px solid rgba(16, 24, 19, 0.08);
+  border-radius: 18px;
+  transition: transform var(--fast) ease, box-shadow var(--fast) ease;
+}
+
+.card p {
+  color: var(--muted);
+}
+
+.kicker {
+  margin: 0;
+  color: var(--umber);
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+  width: min(100%, 340px);
+}
+
+.field label {
+  color: var(--on-dark);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.form {
+  display: grid;
+  gap: 16px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.form .field label {
+  color: var(--ink);
+}
+
+.form .field input,
+.form textarea,
+.form select {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  color: var(--ink);
+  font: inherit;
+  background: #fff;
+  border: 1px solid rgba(16, 24, 19, 0.25);
+  border-radius: 8px;
+}
+
+.form textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.form .field input:focus,
+.form textarea:focus,
+.form select:focus {
+  border-color: var(--umber);
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+}
+
+.help {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.field-error input {
+  border-color: #9b3a2e !important;
+}
+
+.error {
+  color: #9b3a2e;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.94rem;
+}
+
+.choice input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--umber);
+}
+
+/* Header bar */
+.header-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+  padding: 12px 16px;
+  color: #fff;
+  background: rgba(16, 24, 19, 0.94);
+  border-radius: 14px;
+}
+
+.wordmark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  text-decoration: none;
+}
+
+.wordmark i {
+  width: 34px;
+  height: 34px;
+  background:
+    linear-gradient(135deg, var(--gold-light), var(--umber));
+  border-radius: 9px;
+}
+
+.wordmark span {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.wordmark strong {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.wordmark small {
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.64);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.tabs {
+  width: 100%;
+}
+
+.tab-list {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line);
+}
+
+.tab-list label {
+  flex: none;
+}
+
+.tab-list label {
+  padding: 10px 16px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.tab-panel {
+  display: none;
+  padding: 16px 2px 0;
+  color: var(--muted);
+}
+
+#tab-1:checked ~ .tab-list [for="tab-1"],
+#tab-2:checked ~ .tab-list [for="tab-2"],
+#tab-3:checked ~ .tab-list [for="tab-3"] {
+  color: var(--ink);
+  border-bottom-color: var(--gold);
+}
+
+#tab-1:checked ~ .tab-p1,
+#tab-2:checked ~ .tab-p2,
+#tab-3:checked ~ .tab-p3 {
+  display: block;
+}
+
+.tabs input:focus-visible ~ .tab-list {
+  outline: 2px solid var(--gold);
+  outline-offset: 4px;
+}
+
+.message {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  max-width: 460px;
+  padding: 14px 18px;
+  font-size: 0.92rem;
+  border-radius: 12px;
+}
+
+.message strong {
+  display: block;
+}
+
+.message-ok {
+  background: #d9efcb;
+}
+
+.message-warn {
+  background: #f6ecd5;
+  border: 1px solid rgba(138, 101, 43, 0.35);
+}
+
+.message-error {
+  color: #fff;
+  background: #7d2f25;
+}
+
+.message-info {
+  color: #fff;
+  background: var(--forest-light);
+}
+
+.skeleton {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  max-width: 320px;
+  padding: 22px;
+  background: #fff;
+  border: 1px solid rgba(16, 24, 19, 0.08);
+  border-radius: 18px;
+}
+
+.skeleton i {
+  display: block;
+  height: 12px;
+  background: linear-gradient(90deg, var(--card) 0%, #f6f2e8 50%, var(--card) 100%);
+  background-size: 200% 100%;
+  border-radius: 6px;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+.skeleton i:first-child { width: 40%; height: 18px; }
+.skeleton i:last-child { width: 70%; }
+
+@keyframes shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 28px;
+  text-align: center;
+  border: 1px dashed rgba(138, 101, 43, 0.45);
+  border-radius: 18px;
+}
+
+.empty p {
+  max-width: 320px;
+  color: var(--muted);
+}
+
+.figure-card {
+  margin: 0;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid rgba(16, 24, 19, 0.08);
+  border-radius: 18px;
+}
+
+.figure-card .picture {
+  border-radius: 0;
+}
+
+.figure-card figcaption {
+  padding: 12px 16px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+@media (max-width: 960px) {
+  .grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 760px) {
   .section {
     padding-inline: 20px;
@@ -317,6 +666,11 @@ td:first-child {
 
   .hero-inner {
     padding-inline: 20px;
+  }
+
+  .grid-2,
+  .grid-3 {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -349,4 +703,133 @@ td:first-child {
 .js .reveal.is-visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* ---------- Vom Orchestrator festgelegt ----------
+   Was der Guide nicht zeigt, nur mit Werten aus design.css.
+   Siehe docs/frontend/design.md, „Vom Orchestrator festgelegt“. */
+
+/* Sonst schlägt display von .button, .grid usw. das Attribut hidden. */
+[hidden] {
+  display: none !important;
+}
+
+/* Header bar über dem Hero; .hero-inner lässt oben Platz für sie. */
+.hero > .header-bar {
+  position: absolute;
+  top: 18px;
+  left: var(--gutter);
+  right: var(--gutter);
+  width: auto;
+}
+
+.wordmark img {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+}
+
+.person {
+  margin-left: auto;
+}
+
+/* Namen von Discord, auch ohne Leerzeichen bis 320 px. */
+.name {
+  overflow-wrap: anywhere;
+}
+
+a.card {
+  display: block;
+  text-decoration: none;
+}
+
+a.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow);
+}
+
+.card-icon {
+  display: block;
+  width: 56px;
+  height: 56px;
+  margin: 0 0 18px;
+  border-radius: 50%;
+}
+
+i.card-icon {
+  background:
+    linear-gradient(135deg, var(--gold-light), var(--umber));
+}
+
+/* Nur die Radios der Tabs; die Formulare in den Panels bleiben sichtbar. */
+.tabs > input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Ohne das zeigt overflow-x: auto einen senkrechten Rollbalken, weil der
+   Strich des aktiven Tabs 1 px über die Liste ragt. */
+.tab-list {
+  overflow-y: hidden;
+}
+
+/* In der Spalte von .form bleibt der Knopf so breit wie sein Text. */
+.form .button {
+  justify-self: start;
+}
+
+.section-heading + .tabs {
+  margin-top: 32px;
+}
+
+/* Zweite Aktion auf hellem Grund: sieht aus wie ein Link im Text. */
+.link-button {
+  justify-self: start;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgba(138, 101, 43, 0.45);
+  text-underline-offset: 4px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.field-error textarea,
+.field-error select {
+  border-color: #9b3a2e !important;
+}
+
+.form .field input::file-selector-button {
+  color: var(--ink);
+  font-family: var(--sans);
+  background: var(--cream);
+  border: 0;
+}
+
+/* Picture with caption mit img: Seitenverhältnis des Banners, ohne min-height. */
+.picture {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, transparent 58%, #3f6b3a 58%, #2e5230 76%, #26402a 100%),
+    radial-gradient(circle at 72% 34%, #fff1c9 0 7%, transparent 8%),
+    linear-gradient(180deg, #e9a85d 0%, #f6d79b 45%, #9fc4c8 58%);
+}
+
+.picture img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1100 / 440;
+}
+
+@media (max-width: 760px) {
+  .hero > .header-bar {
+    position: static;
+    margin: 18px 20px 0;
+  }
 }

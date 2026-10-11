@@ -94,11 +94,18 @@ Die Schwellen sind die der Website.
 | Build | `npm run build` | `tsc` einen Fehler findet |
 | Sicherheitslücken | `npm audit --omit=dev --audit-level=high` | eine Laufzeit-Abhängigkeit eine Lücke ab „high“ hat |
 | Lizenzen | wie beim Backend | siehe unten |
+| API-Stub starten | ein Einzeiler mit `node -e` auf `127.0.0.1:4174` | er nicht startet |
 | Header | `curl -I` auf `/` | ein Header aus [Auslieferung](../frontend/auslieferung.md), „Header“, fehlt oder die CSP `unsafe-inline` erlaubt |
 | Lighthouse | `npm run lighthouse` | eine Schwelle unten verfehlt ist |
 
-Lighthouse läuft dreimal gegen `web/serve.mjs` und nimmt den Median
-(`web/lighthouserc.cjs`):
+Lighthouse misst auch `/dashboard/`, und zwar im abgemeldeten Zustand. In
+der CI läuft kein Bot; ohne ihn gäbe `serve.mjs` auf `/api/` `502`, und
+Lighthouse sähe „nicht erreichbar“. Darum antwortet der API-Stub auf jede
+Anfrage mit `401` und `{"code":"nicht_angemeldet"}`, wie der Bot ohne
+Sitzung, siehe [API des Dashboards](../schnittstelle/api.md), „Fehler“.
+
+Lighthouse läuft je Seite dreimal gegen `web/serve.mjs` und nimmt den
+Median (`web/lighthouserc.cjs`):
 
 | Prüfung | Schwelle | bei Verfehlen |
 |---|---|---|
@@ -112,8 +119,16 @@ Lighthouse läuft dreimal gegen `web/serve.mjs` und nimmt den Median
 | Largest Contentful Paint | bis 4000 ms | Warnung |
 
 Die Berichte liegen als Artefakt `lighthouse` 14 Tage am Lauf. Stand
-2026-10-10 misst die Startseite lokal 1,0 in allen vier Kategorien,
-CLS 0, TBT 0 ms, LCP rund 900 ms.
+2026-10-11, lokal gemessen:
+
+| Seite | Performance | Accessibility | Best Practices | SEO | CLS | TBT | LCP |
+|---|---|---|---|---|---|---|---|
+| `/` | 1,0 | 1,0 | 1,0 | 1,0 | 0 | 0 ms | rund 900 ms |
+| `/dashboard/`, abgemeldet | 1,0 | 1,0 | 0,96 | 1,0 | 0,03 | 0 ms | rund 1500 ms |
+
+Beim Dashboard fehlt bei Best Practices nur „errors-in-console“: Der
+Browser meldet die `401` von `GET /api/ich` in der Konsole. So sagt die API,
+dass niemand angemeldet ist.
 
 ## Lizenzen
 
