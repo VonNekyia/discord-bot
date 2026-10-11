@@ -107,7 +107,7 @@ Backend prüft in dieser Reihenfolge und antwortet beim ersten Fehler mit
 
 | Feld | Regel | Code |
 |---|---|---|
-| alle | jedes Feld ausser `bild` da, mit dem richtigen Typ | `ungueltig` |
+| alle | jedes Feld ausser `bild` da, mit dem richtigen Typ; `text` und `bannerText` ohne NUL (`\0`), weil PostgreSQL es in Text nicht speichert | `ungueltig` |
 | `kanal` | `null` oder ein Kanal aus `GET …/kanaele` | `kanal_unbekannt` |
 | `text` | höchstens 2000 Zeichen, wenn jeder Platzhalter seinen längsten Wert im Text hat | `text_zu_lang` |
 | `bannerText` | höchstens 100 Zeichen, wenn jeder Platzhalter seinen längsten Wert im Banner hat | `bannertext_zu_lang` |
