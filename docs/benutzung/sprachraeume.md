@@ -36,8 +36,14 @@ Jedes Mitglied besitzt höchstens einen Raum je Server. Darum ist das Ziel
 in Schritt 2 immer eindeutig, und „Besitz übergeben“ und „Übernehmen“
 gehen nicht an jemanden, der schon einen Raum hat.
 
-Die Rechte eines neuen Raums kommen von seiner Kategorie. Dazu bekommen
-der Besitzer und der Bot das Recht, den Raum zu sehen und zu betreten,
+Ein neuer Raum bekommt die Rechte-Einträge (Overwrites) seiner Kategorie:
+Der Bot kopiert sie beim Anlegen selbst in den Raum, im selben Aufruf wie
+die Einträge für Besitzer und Bot. Gibt es für dieselbe Rolle oder Person
+schon einen Eintrag, führt er die Rechte zusammen. Von selbst erbt ein
+neuer Kanal die Einträge nicht, wenn man eigene mitgibt
+([Create Guild Channel](https://docs.discord.com/developers/resources/guild#create-guild-channel)).
+Steht der Raum in keiner Kategorie, hat er nur die Einträge von Besitzer
+und Bot. Dazu bekommen der Besitzer und der Bot das Recht, den Raum zu sehen und zu betreten,
 damit Sperren und Verstecken sie nicht aussperren. Der Besitzer bekommt
 ausserdem „Nachrichtenverlauf anzeigen“: Ohne dieses Recht sieht man im
 Chat nur Nachrichten, die ankommen, während man ihn offen hat, und das
@@ -137,6 +143,10 @@ Alle Rechte unten braucht der Bot auf dem ganzen Server, nicht nur in den
 Kategorien der Räume, auch die, die er nur an andere weitergibt. Beim
 Anlegen eines Kanals darf er nur Rechte setzen, die er auf dem Server hat
 ([Create Guild Channel](https://docs.discord.com/developers/resources/guild#create-guild-channel)).
+Das gilt auch für die Einträge, die er aus der Kategorie kopiert: Eine
+Kategorie darf darin nur Rechte erlauben oder verbieten, die der Bot auf
+dem Server hat, sonst scheitert das Anlegen (Fehler 50013). Hat der Bot
+„Administrator“, gilt alles.
 
 | Was | Wofür |
 |---|---|

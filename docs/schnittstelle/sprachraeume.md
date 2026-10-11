@@ -53,8 +53,11 @@ type Sprachraeume = {
 - `ohneKategorie.bereit`: Der Bot hat auf dem ganzen Server alle Rechte aus
   [Sprachräume](../benutzung/sprachraeume.md), „Rechte und Intent“. Ohne
   sie kann er nirgends Räume anlegen.
-- `Kategorie.bereit`: `ohneKategorie.bereit`, und die Kategorie nimmt dem
-  Bot keins dieser Rechte. Nur dann kann er dort Räume anlegen. Ist
+- `Kategorie.bereit`: `ohneKategorie.bereit`, die Kategorie nimmt dem Bot
+  keins dieser Rechte, und jedes Recht, das ein Rechte-Eintrag der
+  Kategorie erlaubt oder verbietet, hat der Bot auf dem Server. Nur dann
+  kann er dort Räume anlegen, denn er kopiert diese Einträge in jeden Raum,
+  siehe [Sprachräume](../benutzung/sprachraeume.md), „Ablauf“. Ist
   `kategorie` `null` und steht der Erzeuger in keiner Kategorie, gilt
   `ohneKategorie.bereit`. So kann die Oberfläche `kategorie_ohne_recht`
   vor dem Speichern erkennen.
