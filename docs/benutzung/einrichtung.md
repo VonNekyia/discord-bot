@@ -24,8 +24,8 @@ fasst kein Agent an.
    eine Application anlegen.
 2. Unter „Bot“ den Token erzeugen. Er wird nur einmal gezeigt. Wer ihn
    zurücksetzt, macht das Secret in GitHub ungültig.
-3. Keinen privilegierten Intent einschalten, siehe
-   [Intents](../bot/intents.md).
+3. Unter „Privileged Gateway Intents“ nur „Server Members Intent“
+   einschalten, siehe [Intents](../bot/intents.md).
 
 ## Einstellungen im Developer Portal
 
@@ -38,14 +38,15 @@ Stand 2026-10-10, Anwendung „kitty“:
 | Bot | Benutzername | `kitty` |
 | Bot | Öffentlicher Bot | aus: Nur das Team kann den Bot auf einen Server holen |
 | Bot | OAuth2-Code-Erlaubnis benötigt | aus |
-| Bot | Presence, Server Members, Message Content | aus |
+| Bot | Server Members Intent | an, Stand 2026-10-11 |
+| Bot | Presence, Message Content | aus |
 | Installation | Installationskontexte | nur Gildeninstallation |
 | Installation | Installations-Link | „Keine“ |
 
 Discord lässt einen privaten Bot nur ohne Installations-Link speichern.
 Soll der Bot öffentlich werden, kommen „Öffentlicher Bot“ an und als Link
 „Von Discord bereitgestellter Link“ mit den Scopes `bot` und
-`applications.commands`, ohne Rechte.
+`applications.commands` und den Rechten aus „Einladen“.
 
 Für das Dashboard fehlen noch zwei Einstellungen. Der Maintainer trägt sie
 ein, kein Agent; danach stehen sie mit Datum in der Tabelle oben. Bis dahin
@@ -111,10 +112,13 @@ da sind, siehe [API im Bot](../bot/dashboard-api.md), „Start und Ende“.
 ## Einladen
 
 Einladungslink aus dem Developer Portal, „OAuth2“, „URL-Generator“, mit
-den Scopes `bot` und `applications.commands`, ohne Rechte. Rechte auf dem
-Server braucht der Bot für die heutigen Befehle keine, siehe
-[Befehle](befehle.md). Solange der Bot privat ist, geht der Link nur für
-das Team.
+den Scopes `bot` und `applications.commands` und den Rechten „Kanäle
+ansehen“, „Nachrichten senden“ und „Dateien anhängen“, zusammen der Wert
+`35840`. Die braucht nur die Begrüssung, siehe
+[Begrüssung bei Beitritt und Abschied](begruessung.md), „Rechte und
+Intent“; die Befehle brauchen keine, siehe [Befehle](befehle.md). Ein Team
+kann die Rechte auch nur in dem Kanal geben, in dem begrüsst wird. Solange
+der Bot privat ist, geht der Link nur für das Team.
 
 ## Betrieb
 

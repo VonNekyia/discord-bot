@@ -4,9 +4,11 @@ import { Events } from 'discord.js';
 import { raeumeAuf } from './anmeldung.js';
 import { apiUmgebung, erstelleApi, type ApiUmgebung } from './api.js';
 import { beantworte, registriere, text } from './befehle.js';
-import { behalteNur, vergiss } from './begruessung.js';
+import { behalteNur, lese, vergiss } from './begruessung.js';
+import { ladeCache } from './cache.js';
 import { erstelleClient } from './client.js';
 import { migriere, oeffne, verbindung } from './datenbank.js';
+import { begruesse } from './senden.js';
 
 const token = process.env.DISCORD_BOT_TOKEN;
 if (!token) {
@@ -35,6 +37,9 @@ const neu = await migriere(ziel, fileURLToPath(new URL('../migrationen', import.
 });
 if (neu.length > 0) console.log(`Migriert: ${neu.join(', ')}.`);
 const db = oeffne(ziel);
+// Die Einstellungen liest jeder Beitritt und Abschied; wer sie ändert, löscht
+// den Server hier. Siehe docs/bot/cache.md, „Wann cachen“.
+const einstellungen = ladeCache((server: string) => lese(db, server));
 
 const client = erstelleClient();
 let api: Server | undefined;
@@ -55,7 +60,7 @@ client.once(Events.ClientReady, async (bereit) => {
   // Nur auf 127.0.0.1; von aussen kommt man über serve.mjs oder den Reverse Proxy.
   // Siehe docs/schnittstelle/api.md, „Lokal“.
   const { port, ...rest } = umgebung;
-  api = erstelleApi({ client: bereit, db, anwendung: bereit.application.id, ...rest });
+  api = erstelleApi({ client: bereit, db, anwendung: bereit.application.id, einstellungen, ...rest });
   api.once('error', (e) => console.error(`API nicht gestartet: ${text(e)}`));
   api.listen(port, '127.0.0.1', () => console.log(`API auf 127.0.0.1:${port}.`));
   // Abgelaufene Sitzungen löschen. Siehe docs/schnittstelle/anmeldung.md, „Sitzung“.
@@ -65,8 +70,13 @@ client.once(Events.ClientReady, async (bereit) => {
 });
 
 client.on(Events.GuildDelete, (guild) => {
+  einstellungen.delete(guild.id);
   void vergiss(db, guild.id).catch((e: unknown) => console.error(`Server verlassen: ${text(e)}`));
 });
+
+// Siehe docs/benutzung/begruessung.md.
+client.on(Events.GuildMemberAdd, (mitglied) => void begruesse(mitglied, 'beitritt', { db, einstellungen }));
+client.on(Events.GuildMemberRemove, (mitglied) => void begruesse(mitglied, 'abschied', { db, einstellungen }));
 
 client.on(Events.InteractionCreate, (interaction) => {
   if (interaction.isChatInputCommand()) void beantworte(interaction, { db });

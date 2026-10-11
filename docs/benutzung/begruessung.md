@@ -4,6 +4,8 @@ description: Was der Bot schickt, wenn jemand einem Server beitritt oder ihn ver
 code:
   - bot/src/index.ts
   - bot/src/begruessung.ts
+  - bot/src/senden.ts
+  - bot/src/banner.ts
 ---
 
 # Begrüssung bei Beitritt und Abschied
@@ -58,7 +60,8 @@ neu zeichnet:
   dekodieren.
 - Darüber ein dunkler Schleier, damit die Schrift lesbar bleibt.
 - In der Mitte der Avatar des Mitglieds, rund, 200 px, mit hellem Rand.
-  Lädt er nicht, der Standard-Avatar von Discord.
+  Hat das Mitglied keinen, der Standard-Avatar von Discord; antwortet das
+  CDN nicht, ein leerer Kreis.
 - Darunter `bannerText` mit Platzhaltern, in einer Zeile. Die Schrift wird
   von 64 px bis 32 px kleiner, bis der Text passt; sonst endet er mit „…“.
 - Dateiname `beitritt.png` oder `abschied.png`.
@@ -66,7 +69,8 @@ neu zeichnet:
 Die Schrift liegt als Datei im Repository, weil auf einem Server oft keine
 Schrift installiert ist. Sie steht unter der SIL Open Font License 1.1, ihr
 Lizenztext liegt daneben; das hat der Maintainer so entschieden (Regel 27).
-Welche es wird, legt das Backend mit dem Banner fest.
+Es ist Inter SemiBold, siehe Entscheidung
+[0009](../entscheidungen/0009-banner-mit-napi-rs-canvas.md).
 
 ## Standardwerte
 
@@ -96,9 +100,11 @@ Beleg: [Permissions](https://docs.discord.com/developers/topics/permissions).
 
 ## Wenn etwas fehlt
 
-- Ist die Begrüssung aus, fehlt der Kanal oder fehlen dem Bot dort Rechte,
-  schickt er nichts. Ins Log kommt eine Zeile ohne IDs und Namen.
-- Scheitert das Banner, geht nur der Text. Ist der Text leer, geht nichts.
+- Ist die Begrüssung aus, schickt er nichts, ohne Logzeile.
+- Fehlt der Kanal oder darf der Bot dort nicht sehen oder senden, schickt
+  er nichts. Ins Log kommt eine Zeile ohne IDs und Namen.
+- Scheitert das Banner oder fehlt im Kanal „Dateien anhängen“, geht nur der
+  Text, mit einer Logzeile. Ist der Text dann leer, geht nichts.
 - Verlässt der Bot einen Server, löscht er dessen Einstellungen und Bilder
   (`guildDelete`).
 - Beim Start löscht er Einstellungen und Bilder der Server, die nicht in

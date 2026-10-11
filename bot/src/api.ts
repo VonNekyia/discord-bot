@@ -6,6 +6,7 @@ import {
   RESTJSONErrorCodes,
   type Client,
   type Guild,
+  type GuildMember,
   type NewsChannel,
   type TextChannel,
 } from 'discord.js';
@@ -27,8 +28,10 @@ import {
   type OAuth,
   type Sitzung,
 } from './anmeldung.js';
+import { BildFehler, bereiteVor } from './banner.js';
 import { text } from './befehle.js';
-import { lese, pruefe, speichere, type Art } from './begruessung.js';
+import { lese, loescheBild, pruefe, speichere, speichereBild, type Art } from './begruessung.js';
+import { banner } from './senden.js';
 
 export interface ApiUmgebung {
   geheimnis: string;
@@ -59,6 +62,11 @@ export interface ApiOptionen {
   dashboard: string;
   // Basis der REST-API von Discord für OAuth2; in Tests die gemockte.
   discord?: string;
+  // Der Cache der Einstellungen; wer schreibt, löscht dort den Server.
+  // Siehe docs/bot/cache.md, „So geht es“.
+  einstellungen?: { delete(server: string): unknown };
+  // Lädt Avatare für die Vorschau; in Tests ein Ersatz.
+  avatar?: (url: string) => Promise<Buffer | undefined>;
 }
 
 export type Kanal = { id: string; name: string; banner: boolean; kategorie: { id: string; name: string } | null };
@@ -134,7 +142,7 @@ export function kanaele(guild: Guild): Kanal[] {
 
 // Der Bot ist auf dem Server, und die Person darf ihn jetzt verwalten.
 // Siehe docs/schnittstelle/anmeldung.md, „Rechte“.
-async function pruefeRechte(client: Client, id: string, nutzer: string): Promise<Guild> {
+async function pruefeRechte(client: Client, id: string, nutzer: string): Promise<{ guild: Guild; mitglied: GuildMember }> {
   const guild = client.guilds.cache.get(id);
   if (!guild) throw new ApiFehler(404, 'nicht_gefunden');
   if (!guild.available) throw new ApiFehler(503, 'nicht_erreichbar');
@@ -146,12 +154,13 @@ async function pruefeRechte(client: Client, id: string, nutzer: string): Promise
     throw fehler;
   });
   if (!mitglied.permissions.has(PermissionFlagsBits.ManageGuild)) throw new ApiFehler(403, 'kein_recht');
-  return guild;
+  return { guild, mitglied };
 }
 
-// Liest den Body bis `grenze` Byte. Wird er grösser, hört es auf zu lesen.
-function liesBody(req: IncomingMessage, grenze: number): Promise<Buffer> {
-  if (Number(req.headers['content-length'] ?? 0) > grenze) return Promise.reject(new ApiFehler(413, 'zu_gross'));
+// Liest den Body bis `grenze` Byte. Wird er grösser, hört es auf zu lesen
+// und meldet 413 mit `code`.
+function liesBody(req: IncomingMessage, grenze: number, code = 'zu_gross'): Promise<Buffer> {
+  if (Number(req.headers['content-length'] ?? 0) > grenze) return Promise.reject(new ApiFehler(413, code));
   return new Promise((fertig, scheitern) => {
     const teile: Buffer[] = [];
     let groesse = 0;
@@ -159,7 +168,7 @@ function liesBody(req: IncomingMessage, grenze: number): Promise<Buffer> {
       groesse += teil.length;
       if (groesse <= grenze) return void teile.push(teil);
       req.off('data', daten).off('end', ende).pause();
-      scheitern(new ApiFehler(413, 'zu_gross'));
+      scheitern(new ApiFehler(413, code));
     };
     const ende = () => fertig(Buffer.concat(teile));
     req.on('data', daten).once('end', ende).once('error', scheitern);
@@ -185,6 +194,7 @@ interface Anfrage {
   teile: string[];
   sitzung?: Sitzung;
   server?: Guild;
+  mitglied?: GuildMember;
 }
 
 interface Route {
@@ -195,12 +205,14 @@ interface Route {
   sitzung: boolean;
   // Mit {id}: Grenze und Rechte vorher.
   server: boolean;
+  // Zählt auch zur Grenze für Bilder und Vorschau.
+  bild?: boolean;
   tue(a: Anfrage): Promise<void>;
 }
 
 // Jede Antwort trägt diese Header. Liegt noch ungelesener Body an, schliesst
 // die Verbindung danach, statt ihn zu lesen.
-function sende(a: Anfrage, status: number, kopf: OutgoingHttpHeaders, body?: string): void {
+function sende(a: Anfrage, status: number, kopf: OutgoingHttpHeaders, body?: string | Buffer): void {
   if (a.res.headersSent) return void a.res.destroy();
   a.res.writeHead(status, {
     'cache-control': 'no-store',
@@ -228,6 +240,8 @@ export function erstelleApi(o: ApiOptionen): Server {
     zurueck: `${o.dashboard}/api/anmelden/zurueck`,
   };
   const grenze = new Grenze(60);
+  const grenzeBild = new Grenze(20);
+  const bildtypen = new Set(['image/png', 'image/jpeg', 'image/webp']);
   const sortierer = new Intl.Collator('de');
   const anmeldungWeg = cookie('anmeldung', '', '/api/anmelden', 0, sicher);
 
@@ -338,10 +352,61 @@ export function erstelleApi(o: ApiOptionen): Server {
       async tue(a) {
         const eingabe = await liesJson(a.req);
         const karte = new Map(kanaele(a.server!).map((kanal) => [kanal.id, kanal]));
-        const ergebnis = pruefe(eingabe, karte, false);
+        const art = a.teile[2] as Art;
+        const { bild } = (await lese(o.db, a.server!.id))[art];
+        const ergebnis = pruefe(eingabe, karte, bild);
         if ('code' in ergebnis) throw new ApiFehler(400, ergebnis.code, ergebnis.feld);
-        await speichere(o.db, a.server!.id, a.teile[2] as Art, ergebnis.einstellung);
+        await speichere(o.db, a.server!.id, art, ergebnis.einstellung);
+        o.einstellungen?.delete(a.server!.id);
         json(a, 200, ergebnis.einstellung);
+      },
+    },
+    {
+      methode: 'PUT',
+      muster: /^\/api\/server\/(\d{1,20})\/begruessung\/(beitritt|abschied)\/bild$/,
+      name: 'bild speichern',
+      sitzung: true,
+      server: true,
+      bild: true,
+      // Siehe docs/schnittstelle/api.md, „Bild“.
+      async tue(a) {
+        const typ = (a.req.headers['content-type'] ?? '').split(';')[0]?.trim().toLowerCase() ?? '';
+        if (!bildtypen.has(typ)) throw new ApiFehler(415, 'bildtyp');
+        const daten = await liesBody(a.req, 4 * 1024 * 1024, 'bild_zu_gross');
+        const bild = await bereiteVor(daten).catch((fehler: unknown) => {
+          throw fehler instanceof BildFehler ? new ApiFehler(fehler.status, fehler.code) : fehler;
+        });
+        await speichereBild(o.db, a.server!.id, a.teile[2] as Art, bild);
+        o.einstellungen?.delete(a.server!.id);
+        sende(a, 204, {});
+      },
+    },
+    {
+      methode: 'DELETE',
+      muster: /^\/api\/server\/(\d{1,20})\/begruessung\/(beitritt|abschied)\/bild$/,
+      name: 'bild loeschen',
+      sitzung: true,
+      server: true,
+      async tue(a) {
+        await loescheBild(o.db, a.server!.id, a.teile[2] as Art);
+        o.einstellungen?.delete(a.server!.id);
+        sende(a, 204, {});
+      },
+    },
+    {
+      methode: 'GET',
+      muster: /^\/api\/server\/(\d{1,20})\/begruessung\/(beitritt|abschied)\/vorschau$/,
+      name: 'vorschau',
+      sitzung: true,
+      server: true,
+      bild: true,
+      // Das Banner mit der angemeldeten Person als Mitglied. Siehe docs/schnittstelle/api.md, „Bild“.
+      async tue(a) {
+        const art = a.teile[2] as Art;
+        const { bannerText } = (await lese(o.db, a.server!.id))[art];
+        const png = await banner(a.mitglied!, art, bannerText, { db: o.db, avatar: o.avatar });
+        if (!png) throw new ApiFehler(404, 'kein_bild');
+        sende(a, 200, { 'content-type': 'image/png', 'content-length': png.length }, png);
       },
     },
   ];
@@ -370,7 +435,9 @@ export function erstelleApi(o: ApiOptionen): Server {
         // Die Grenze vor den Rechten: Eine abgelehnte Anfrage kostet Discord nichts.
         const warten = grenze.pruefe(a.sitzung!.kennung.toString('hex'));
         if (warten > 0) throw new ApiFehler(429, 'zu_viele', undefined, { 'retry-after': String(warten) });
-        a.server = await pruefeRechte(o.client, a.teile[1]!, a.sitzung!.nutzer);
+        const wartenBild = route.bild ? grenzeBild.pruefe(a.sitzung!.kennung.toString('hex')) : 0;
+        if (wartenBild > 0) throw new ApiFehler(429, 'zu_viele', undefined, { 'retry-after': String(wartenBild) });
+        ({ guild: a.server, mitglied: a.mitglied } = await pruefeRechte(o.client, a.teile[1]!, a.sitzung!.nutzer));
       }
       await route.tue(a);
     } catch (fehler) {
@@ -385,7 +452,10 @@ export function erstelleApi(o: ApiOptionen): Server {
   const server = createServer((req, res) => void bearbeite(req, res));
   server.requestTimeout = 30_000;
   server.headersTimeout = 10_000;
-  const uhr = setInterval(() => grenze.raeume(), 60_000).unref();
+  const uhr = setInterval(() => {
+    grenze.raeume();
+    grenzeBild.raeume();
+  }, 60_000).unref();
   server.on('close', () => clearInterval(uhr));
   return server;
 }

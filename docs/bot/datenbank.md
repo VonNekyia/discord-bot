@@ -8,6 +8,7 @@ code:
   - bot/migrationen/
   - bot/migrationen/0001-sitzungen.sql
   - bot/migrationen/0002-begruessungen.sql
+  - bot/migrationen/0003-bilder.sql
 ---
 
 # Datenbank
@@ -108,6 +109,7 @@ stehen ihre Spalten.
 | `migrationen` | `migriere` selbst | Name und Zeit jeder angewendeten Datei | „Migrationen“ oben |
 | `sitzungen` | `0001-sitzungen.sql` | Sitzungen des Dashboards; Schlüssel ist der SHA-256 der Kennung | [Anmeldung am Dashboard](../schnittstelle/anmeldung.md), „Sitzung“ |
 | `begruessungen` | `0002-begruessungen.sql` | eine Einstellung je Server und Art | [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md) |
+| `bilder` | `0003-bilder.sql` | Hintergrund des Banners je Server und Art, 1100 × 440 px als WebP | [API im Bot](dashboard-api.md), „Bilder“ |
 
 Was davon personenbezogen ist und wie lange es bleibt, steht in
 [Datenschutz](datenschutz.md), „Was der Bot speichert“.
