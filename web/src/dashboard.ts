@@ -124,16 +124,14 @@ async function route(): Promise<void> {
     zeigen('begruessung');
   } catch (fehler) {
     if (gezeigt !== server.id) return;
-    if (fehler instanceof ApiFehler && [403, 404, 429].includes(fehler.status)) {
-      // Zurück zur Liste, die Meldung steht über ihr.
-      meldung(serverMeldung, 'error', satz(fehler));
-      serverMeldung.hidden = false;
-      history.replaceState(null, '', location.pathname);
-      gezeigt = null;
-      zeigen('server');
-    } else {
-      fehlerBehandeln(fehler);
-    }
+    if (fehler instanceof ApiFehler && fehler.status === 401) return abgemeldet(satz('abgelaufen'), 'warn');
+    // Jeder andere Fehler betrifft nur diesen Server: zurück zur Liste, die
+    // Meldung steht über ihr. Siehe docs/frontend/dashboard.md, „Zustände“.
+    meldung(serverMeldung, 'error', satz(fehler));
+    serverMeldung.hidden = false;
+    history.replaceState(null, '', location.pathname);
+    gezeigt = null;
+    zeigen('server');
   }
 }
 
