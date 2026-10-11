@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dashboard · kitty</title>
+    <meta name="description" content="Stell ein, was kitty auf deinem Discord-Server schreibt, wenn jemand beitritt oder geht." />
+    <link rel="icon" href="../favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="../logo192.png" />
+    <link rel="stylesheet" href="../site.css" />
+    <script type="module" src="../dist/dashboard.js"></script>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="header-bar">
+        <a class="wordmark" href="../"><img src="../logo192.png" width="34" height="34" alt="" /><span><strong>kitty</strong><small>Dashboard</small></span></a>
+        <span id="person" class="wordmark person" hidden><img id="avatar" width="34" height="34" alt="" hidden /><i id="avatar-ersatz" hidden></i><span><strong id="person-name" class="name"></strong><small>Angemeldet</small></span></span>
+        <form id="abmelden" method="post" action="/api/abmelden" hidden><button class="button button-small button-quiet" type="submit">Abmelden</button></form>
+      </div>
+      <div class="hero-inner">
+        <p class="eyebrow">Dashboard</p>
+        <h1>Begrüssung <em>einstellen.</em></h1>
+        <p class="hero-copy">Wähl einen Server und stell ein, was kitty schreibt, wenn jemand beitritt oder den Server verlässt.</p>
+        <div id="kopf-aktion" class="hero-actions" hidden>
+          <a id="anmelden" class="button" href="/api/anmelden" hidden><span>Anmelden</span><strong>mit Discord</strong></a>
+          <div id="kopf-meldung" role="alert"></div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <noscript>
+        <section class="section">
+          <div class="message message-warn"><div><strong>Das Dashboard braucht JavaScript.</strong>Schalte es für diese Seite ein und lade sie neu.</div></div>
+        </section>
+      </noscript>
+
+      <section id="laden" class="section" aria-busy="true" hidden>
+        <div class="grid grid-3" aria-hidden="true">
+          <div class="skeleton"><i></i><i></i><i></i></div>
+          <div class="skeleton"><i></i><i></i><i></i></div>
+          <div class="skeleton"><i></i><i></i><i></i></div>
+        </div>
+      </section>
+
+      <section id="server" class="section" hidden>
+        <div class="section-heading">
+          <p class="eyebrow eyebrow-dark">Server</p>
+          <h2>Wähl einen <em>Server.</em></h2>
+          <p class="lead">Hier stehen die Server, auf denen kitty ist und du „Server verwalten“ hast.</p>
+        </div>
+        <div id="server-meldung" class="grid" role="alert" hidden></div>
+        <div id="server-liste" class="grid grid-3"></div>
+        <div id="server-leer" class="empty" hidden>
+          <h4>Kein Server da.</h4>
+          <p>kitty ist auf keinem Server, den du verwalten darfst. Lade kitty ein und <a href="/api/anmelden">melde dich neu an</a>.</p>
+        </div>
+      </section>
+
+      <section id="begruessung" class="section ground-cream" hidden>
+        <div class="section-heading">
+          <p id="server-name" class="eyebrow eyebrow-dark name"></p>
+          <h2>Beitritt und <em>Abschied.</em></h2>
+          <p class="lead">Für beides wählst du Kanal, Text und Banner getrennt. <a href="#">Anderen Server wählen</a></p>
+        </div>
+        <div class="tabs">
+          <input type="radio" name="tabs" id="tab-1" checked /><input type="radio" name="tabs" id="tab-2" />
+          <div class="tab-list"><label for="tab-1">Beitritt</label><label for="tab-2">Abschied</label></div>
+          <div id="panel-beitritt" class="tab-panel tab-p1"></div>
+          <div id="panel-abschied" class="tab-panel tab-p2"></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <strong>kitty</strong> · Discord-Bot. Quelltext unter Apache-2.0 auf <a href="https://github.com/VonNekyia/discord-bot">GitHub</a>.
+    </footer>
+
+    <template id="vorlage-begruessung">
+      <div class="grid grid-2">
+        <form class="form" novalidate>
+          <label class="choice"><input type="checkbox" name="an" /> Aktiv</label>
+          <div class="field" data-feld="kanal">
+            <label data-fuer="kanal">Kanal</label>
+            <select data-id="kanal" name="kanal"><option value="">Kein Kanal</option></select>
+            <span class="error" hidden></span>
+          </div>
+          <div class="field" data-feld="text">
+            <label data-fuer="text">Text</label>
+            <textarea data-id="text" name="text"></textarea>
+            <span class="help">Platzhalter: <code>{nutzer}</code> erwähnt das Mitglied, <code>{name}</code> ist sein Name, <code>{server}</code> der Name des Servers, <code>{anzahl}</code> die Zahl der Mitglieder. <span data-rest></span></span>
+            <span class="error" hidden></span>
+          </div>
+          <label class="choice"><input type="checkbox" name="banner" data-id="banner" /> Banner</label>
+          <span class="help" data-banner-hinweis hidden></span>
+          <div class="field" data-feld="bild">
+            <label data-fuer="bild">Bild</label>
+            <input data-id="bild" type="file" name="bild" accept="image/png,image/jpeg,image/webp" />
+            <span class="help">PNG, JPEG oder WebP, bis 4 MiB, am besten 1100 × 440 px.</span>
+            <span class="error" hidden></span>
+          </div>
+          <button class="link-button" type="button" data-bild-entfernen hidden>Bild entfernen</button>
+          <div class="field" data-feld="bannerText">
+            <label data-fuer="bannerText">Text auf dem Banner</label>
+            <input data-id="bannerText" type="text" name="bannerText" />
+            <span class="help">Dieselben Platzhalter, in einer Zeile. <span data-rest></span></span>
+            <span class="error" hidden></span>
+          </div>
+          <button class="button" type="submit"><span>Speichern</span><strong data-art-name></strong></button>
+          <div data-meldung role="status"></div>
+        </form>
+        <div>
+          <figure class="figure-card" data-vorschau hidden>
+            <div class="picture"><img width="1100" height="440" alt="Vorschau des Banners" /></div>
+            <figcaption>So schickt kitty das Banner, mit dir als Mitglied. Die Vorschau zeigt den gespeicherten Stand.</figcaption>
+          </figure>
+          <div class="empty" data-kein-bild>
+            <h4>Noch kein Bild.</h4>
+            <p>Lade ein Bild hoch, dann siehst du hier das Banner.</p>
+          </div>
+        </div>
+      </div>
+    </template>
+  </body>
+</html>
