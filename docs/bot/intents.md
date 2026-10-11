@@ -18,6 +18,7 @@ und eine Zeile hier (`AGENTS.md`, Regel 24).
 |---|---|---|
 | `Guilds` | ja | discord.js braucht ihn für den Cache von Servern und Kanälen |
 | `GuildMembers` | ja | privilegiert; Discord schickt `GUILD_MEMBER_ADD` und `GUILD_MEMBER_REMOVE` nur mit ihm, und die [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md) braucht genau diese Ereignisse |
+| `GuildVoiceStates` | nein, kommt mit den Sprachräumen | nicht privilegiert; Discord meldet Betreten und Verlassen von Sprachkanälen nur mit ihm, und die [Sprachräume](../benutzung/sprachraeume.md) brauchen genau das |
 | `GuildPresences` | nein | privilegiert; nichts braucht den Status |
 | `MessageContent` | nein | privilegiert; Befehle kommen als Interaktion, nicht als Nachricht |
 

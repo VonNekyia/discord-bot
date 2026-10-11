@@ -47,6 +47,9 @@ in [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md).
 | `DELETE /api/server/{id}/begruessung/{art}/bild` | `204` |
 | `GET /api/server/{id}/begruessung/{art}/vorschau` | `200` `image/png` |
 | `POST /api/server/{id}/begruessung/{art}/test` | `200` `{ banner: boolean }`; die Testnachricht ist gesendet |
+| `GET /api/server/{id}/sprachkanaele` | siehe [API der Sprachräume](sprachraeume.md) |
+| `GET /api/server/{id}/sprachraeume` | ebenda |
+| `PUT /api/server/{id}/sprachraeume` | ebenda |
 
 `{art}` ist `beitritt` oder `abschied`, sonst `404`. Jede Route mit `{id}`
 prüft zuerst die Rechte, siehe [Anmeldung am Dashboard](anmeldung.md),
@@ -223,7 +226,7 @@ entscheidet das Frontend. `feld` steht nur bei `400`.
 
 | Status | Code | Wann |
 |---|---|---|
-| `400` | siehe „Einstellung speichern“ und „Testnachricht“ oben, dazu `bild_zu_klein` | Eingabe ungültig, oder für eine Testnachricht fehlt etwas |
+| `400` | siehe „Einstellung speichern“ und „Testnachricht“ oben und [API der Sprachräume](sprachraeume.md), dazu `bild_zu_klein` | Eingabe ungültig, oder für eine Testnachricht fehlt etwas |
 | `401` | `nicht_angemeldet` | keine oder abgelaufene Sitzung; die Oberfläche zeigt die Anmeldung |
 | `403` | `kein_recht` | kein „Server verwalten“ auf diesem Server |
 | `403` | `origin_falsch` | `Origin` fehlt oder passt nicht |

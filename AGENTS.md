@@ -175,9 +175,9 @@ Vor dem Arbeitsschritt die `SKILL.md` ganz lesen und ihr folgen.
 | Pfad | Inhalt |
 |---|---|
 | `docs/index.md` | Wegweiser: jede Seite mit einer Zeile |
-| `docs/benutzung/` | Einrichtung, Secrets, Betrieb, Befehle, Begrüssung |
+| `docs/benutzung/` | Einrichtung, Secrets, Betrieb, Befehle, Begrüssung, Sprachräume |
 | `docs/bot/` | wie der Bot arbeitet: Intents, Rate-Limits, Wiederanlauf, Datenschutz, Datenbank, Cache |
-| `docs/schnittstelle/` | der Vertrag zwischen Bot und Dashboard: Routen der API, Anmeldung, Sitzung, Rechte |
+| `docs/schnittstelle/` | der Vertrag zwischen Bot und Dashboard: Routen der API, Anmeldung, Sitzung, Rechte, Sprachräume |
 | `docs/frontend/` | Design der Oberfläche, der Design-Guide (`design.html`, `design.css`, MIT), Auslieferung und Header |
 | `docs/entwicklung/` | CI, Ablauf einer PR, Tests |
 | `docs/entscheidungen/` | `NNNN-titel.md`, eine Datei je Entscheidung |
