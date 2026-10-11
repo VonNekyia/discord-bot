@@ -1,6 +1,11 @@
+import type { Server } from 'node:http';
 import { fileURLToPath } from 'node:url';
-import { Client, Events, GatewayIntentBits } from 'discord.js';
+import { Events } from 'discord.js';
+import { raeumeAuf } from './anmeldung.js';
+import { apiUmgebung, erstelleApi, type ApiUmgebung } from './api.js';
 import { beantworte, registriere, text } from './befehle.js';
+import { behalteNur, vergiss } from './begruessung.js';
+import { erstelleClient } from './client.js';
 import { migriere, oeffne, verbindung } from './datenbank.js';
 
 const token = process.env.DISCORD_BOT_TOKEN;
@@ -14,6 +19,16 @@ if (!ziel) {
   console.error('DB_HOST, DB_NAME, DB_USER oder DB_PASSWORD fehlt. Siehe bot/.env.example.');
   process.exit(1);
 }
+
+let umgebung: ApiUmgebung | undefined;
+try {
+  umgebung = apiUmgebung();
+} catch (e) {
+  console.error(text(e));
+  process.exit(1);
+}
+if (!umgebung) console.log('DISCORD_CLIENT_SECRET oder DASHBOARD_URL fehlt: der Bot startet ohne API.');
+
 const neu = await migriere(ziel, fileURLToPath(new URL('../migrationen', import.meta.url))).catch((e: unknown) => {
   console.error(`Migration fehlgeschlagen: ${text(e)}`);
   process.exit(1);
@@ -21,14 +36,36 @@ const neu = await migriere(ziel, fileURLToPath(new URL('../migrationen', import.
 if (neu.length > 0) console.log(`Migriert: ${neu.join(', ')}.`);
 const db = oeffne(ziel);
 
-// Slash-Befehle brauchen nur Guilds. Siehe docs/bot/intents.md.
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const client = erstelleClient();
+let api: Server | undefined;
 
 client.once(Events.ClientReady, async (bereit) => {
   console.log('Verbunden.');
   await registriere(bereit.rest, bereit.application.id).catch((e: unknown) =>
     console.error(`Befehle nicht registriert: ${text(e)}`),
   );
+  // Server, die den Bot entfernt haben, während er aus war.
+  // Siehe docs/benutzung/begruessung.md, „Wenn etwas fehlt“.
+  const shards = bereit.shard && { ids: bereit.shard.ids, count: bereit.shard.count };
+  await behalteNur(db, [...bereit.guilds.cache.keys()], shards ?? undefined).then(
+    (n) => n > 0 && console.log(`Einstellungen von ${n} verlassenen Servern gelöscht.`),
+    (e: unknown) => console.error(`Abgleich der Server fehlgeschlagen: ${text(e)}`),
+  );
+  if (!umgebung) return;
+  // Nur auf 127.0.0.1; von aussen kommt man über serve.mjs oder den Reverse Proxy.
+  // Siehe docs/schnittstelle/api.md, „Lokal“.
+  const { port, ...rest } = umgebung;
+  api = erstelleApi({ client: bereit, db, anwendung: bereit.application.id, ...rest });
+  api.once('error', (e) => console.error(`API nicht gestartet: ${text(e)}`));
+  api.listen(port, '127.0.0.1', () => console.log(`API auf 127.0.0.1:${port}.`));
+  // Abgelaufene Sitzungen löschen. Siehe docs/schnittstelle/anmeldung.md, „Sitzung“.
+  const aufraeumen = () => void raeumeAuf(db).catch((e: unknown) => console.error(`Sitzungen nicht aufgeräumt: ${text(e)}`));
+  aufraeumen();
+  setInterval(aufraeumen, 60 * 60 * 1000).unref();
+});
+
+client.on(Events.GuildDelete, (guild) => {
+  void vergiss(db, guild.id).catch((e: unknown) => console.error(`Server verlassen: ${text(e)}`));
 });
 
 client.on(Events.InteractionCreate, (interaction) => {
@@ -45,10 +82,15 @@ client.on(Events.ShardDisconnect, (ereignis, shard) => {
 });
 client.on(Events.Error, (e) => console.error(`Fehler: ${text(e)}`));
 
-// Beim Beenden erst Discord, dann den Pool schliessen. Siehe docs/bot/datenbank.md, „Pool“.
+// Beim Beenden erst die API, dann Discord, dann den Pool schliessen.
+// Siehe docs/bot/datenbank.md, „Pool“.
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {
-    void client.destroy().then(() => db.end()).finally(() => process.exit(0));
+    const apiZu = new Promise<void>((fertig) => (api?.listening ? api.close(() => fertig()) : fertig()));
+    void apiZu
+      .then(() => client.destroy())
+      .then(() => db.end())
+      .finally(() => process.exit(0));
   });
 }
 

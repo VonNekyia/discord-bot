@@ -3,6 +3,7 @@ title: Begrüssung bei Beitritt und Abschied
 description: Was der Bot schickt, wenn jemand einem Server beitritt oder ihn verlässt; Platzhalter, Banner aus einem eigenen Bild, Standardwerte, Rechte und Intent.
 code:
   - bot/src/index.ts
+  - bot/src/begruessung.ts
 ---
 
 # Begrüssung bei Beitritt und Abschied

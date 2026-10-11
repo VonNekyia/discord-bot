@@ -6,6 +6,9 @@ code:
   - bot/src/index.ts
   - bot/src/cache.ts
   - bot/src/datenbank.ts
+  - bot/src/client.ts
+  - bot/src/api.ts
+  - bot/src/anmeldung.ts
 ---
 
 # Datenschutz
@@ -20,8 +23,8 @@ aber noch nicht gebaut.
 
 | Daten | Wozu | Wie lange | Stand |
 |---|---|---|---|
-| Sitzung: SHA-256 der Kennung, Discord-ID, Name, Avatar-Hash, IDs der Server mit „Server verwalten“, Ablaufdatum | Anmeldung am Dashboard, Liste der Server | 7 Tage ab Anmeldung; Abmelden löscht sofort, abgelaufene löscht der Bot spätestens nach einem Tag | kommt mit dem Dashboard |
-| Begrüssung je Server und Art: Server-ID, Kanal-ID, Schalter, Texte | Nachricht bei Beitritt und Abschied | bis das Team sie ändert oder der Bot den Server verlässt | kommt mit dem Dashboard |
+| Sitzung: SHA-256 der Kennung, Discord-ID, Name, Avatar-Hash, IDs der Server mit „Server verwalten“, Ablaufdatum | Anmeldung am Dashboard, Liste der Server | 7 Tage ab Anmeldung; Abmelden löscht sofort, abgelaufene löscht der Bot spätestens nach einem Tag | gebaut |
+| Begrüssung je Server und Art: Server-ID, Kanal-ID, Schalter, Texte | Nachricht bei Beitritt und Abschied | bis das Team sie ändert oder der Bot den Server verlässt | gebaut |
 | Bild je Server und Art, beim Hochladen auf 1100 × 440 px zugeschnitten und neu kodiert, ohne Metadaten wie EXIF oder GPS; es kann Personen zeigen | Hintergrund des Banners | bis es ersetzt oder gelöscht wird oder der Bot den Server verlässt | kommt mit dem Dashboard |
 
 „Der Bot verlässt den Server“ heisst auch: Er wurde entfernt, während er
@@ -37,18 +40,19 @@ Nicht gespeichert werden:
 - Name und Avatar eines Mitglieds, das beitritt oder geht. Sie kommen in
   keine Tabelle; im Speicher hält sie nur der begrenzte Cache unten.
 
-Die Datenbank hält heute nur die Tabelle `migrationen` mit den Namen der
-angewendeten Dateien. Der Cache von discord.js und der eigene Cache
+Welche Tabelle was hält, steht in [Datenbank](datenbank.md), „Tabellen“.
+Der Cache von discord.js und der eigene Cache
 (`bot/src/cache.ts`) liegen nur im Speicher und enden mit dem Prozess.
 
-Mit dem Intent `GuildMembers` legt discord.js jedes Mitglied, das es sieht,
-mit Spitzname und Rollen im Cache der Mitglieder ab und dessen Nutzer mit
-Name und Avatar im Cache der Nutzer (`GuildMember#_patch`). Ohne Grenze
-blieben sie bis zum Ende des Prozesses. Darum begrenzt das Backend in
-`makeCache` beide, `GuildMemberManager` und `UserManager`; der Bot selbst
-bleibt immer (`keepOverLimit`). Die Zahl legt der Auftrag mit Beitritt und
-Abschied fest und trägt sie hier ein. Die Rechte prüft der Bot ohnehin an
-der REST-API, nicht im Cache, siehe
+discord.js legt jedes Mitglied, das es sieht, mit Spitzname und Rollen im
+Cache der Mitglieder ab und dessen Nutzer mit Name und Avatar im Cache der
+Nutzer (`GuildMember#_patch`): bei jeder Interaktion, bei jeder Prüfung der
+Rechte und mit dem Intent `GuildMembers` bei jedem Beitritt. Ohne Grenze
+blieben sie bis zum Ende des Prozesses. Darum hält `erstelleClient` in
+`bot/src/client.ts` in beiden Caches, `GuildMemberManager` und
+`UserManager`, nur den Bot selbst (`maxSize` 0, `keepOverLimit`). Der Test
+„der Cache hält Mitglieder und Nutzer nur für den Bot selbst“ prüft das.
+Die Rechte prüft der Bot ohnehin an der REST-API, nicht im Cache, siehe
 [Anmeldung am Dashboard](../schnittstelle/anmeldung.md), „Rechte“.
 
 ## Was ins Log geht
@@ -58,6 +62,12 @@ Nur der Name des Befehls und der Text eines Fehlers (`text` in
 `url` den Token der Interaktion. Nie IDs, Namen, Nachrichteninhalte,
 Tokens, Cookies oder der Code der Anmeldung. Der Test „ein unbekannter
 Befehl bekommt eine Meldung, das Log keine Nutzerdaten“ prüft die Zeile.
+
+Die API loggt nur den Schritt der Anmeldung oder den Namen der Route
+und den Text des Fehlers: `Anmeldung: <Schritt>: <Fehler>` und
+`API <Route>: <Fehler>`. Der Name der Route ist fest, etwa `kanaele`, nie
+der Pfad; der trägt die ID des Servers. Der Test „kein Code, Token, Cookie,
+state und keine ID im Log“ prüft das.
 
 Fehler der Datenbank gehen ebenso nur mit ihrer Meldung ins Log, auch
 `Datenbank: <Meldung>` aus dem Pool, siehe [Datenbank](datenbank.md),

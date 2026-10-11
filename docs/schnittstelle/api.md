@@ -3,6 +3,8 @@ title: API des Dashboards
 description: Jede Route unter /api/, die der Bot dem Dashboard anbietet; Typen, Grenzen, Fehler und Statuscodes, die Weiterleitung von serve.mjs.
 code:
   - bot/src/index.ts
+  - bot/src/api.ts
+  - bot/src/begruessung.ts
   - web/serve.mjs
 ---
 
@@ -112,8 +114,10 @@ Backend prüft in dieser Reihenfolge und antwortet beim ersten Fehler mit
 | `banner` | `true` nur mit hochgeladenem Bild | `banner_ohne_bild` |
 | `banner` | `true` nur mit einem Kanal mit `banner: true` | `banner_ohne_recht` |
 | `an` | `true` nur mit `kanal` | `an_ohne_kanal` |
-| `an` | `true` nur mit nicht leerem `text` oder `banner: true` | `an_ohne_inhalt` |
+| `an` | `true` nur mit nicht leerem `text` oder `banner: true`; Leerzeichen allein zählen als leer | `an_ohne_inhalt` |
 
+- Ist der Body kein JSON-Objekt, fehlt jedes Feld: `ungueltig` mit
+  `feld` `an`.
 - Ein Zeichen ist eine UTF-16-Einheit, also `String.length` in
   JavaScript. Ein Emoji zählt so oft zwei. Das ist nie weniger, als Discord
   zählt; ein Text, der hier passt, passt auch bei Discord.

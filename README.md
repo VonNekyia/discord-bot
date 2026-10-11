@@ -13,10 +13,10 @@ eine Weboberfläche in TypeScript im Design der Website von Terranova.
 
 ## Stand
 
-Grundgerüst. Der Bot meldet sich an, nutzt PostgreSQL und kennt `/ping`. Die Oberfläche
+Grundgerüst. Der Bot meldet sich an, nutzt PostgreSQL, kennt `/ping` und
+bietet dem Dashboard eine API mit Anmeldung über Discord. Die Oberfläche
 hat eine Startseite im Design der Website und ein Dashboard für Beitritt
-und Abschied, siehe [Dashboard](docs/frontend/dashboard.md); es braucht die
-API im Bot.
+und Abschied, siehe [Dashboard](docs/frontend/dashboard.md).
 
 ## Schnellstart
 

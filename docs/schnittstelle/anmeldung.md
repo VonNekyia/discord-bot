@@ -3,6 +3,8 @@ title: Anmeldung am Dashboard
 description: Discord-Login mit OAuth2, die Sitzung in PostgreSQL und ihr Cookie, die Prüfung von Rechten und Origin, die Umgebungsvariablen der API.
 code:
   - bot/.env.example
+  - bot/src/anmeldung.ts
+  - bot/src/api.ts
   - web/serve.mjs
 ---
 
@@ -19,7 +21,7 @@ Routen stehen in [API des Dashboards](api.md).
 
 1. `GET /api/anmelden` setzt das Cookie `anmeldung` mit einem zufälligen
    `state` aus 32 Byte (10 min, `HttpOnly`, `SameSite=Lax`, Pfad
-   `/api/anmelden`) und leitet weiter zu
+   `/api/anmelden`, `Secure` wie bei `sitzung`) und leitet weiter zu
    `https://discord.com/oauth2/authorize` mit `response_type=code`,
    `client_id`, `scope=identify guilds`, `redirect_uri` und `state`.
 2. Discord leitet zurück auf `/api/anmelden/zurueck` mit `code` und
