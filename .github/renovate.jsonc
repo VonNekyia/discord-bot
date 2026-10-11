@@ -1,0 +1,27 @@
+// Renovate hält Actions, das Image der CI und die npm-Pakete aktuell.
+// Siehe docs/entwicklung/renovate.md.
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
+    "security:minimumReleaseAgeNpm",
+    "schedule:weekly"
+  ],
+  // „Basis aktuell“ verlangt den neuesten Stand von main.
+  "rebaseWhen": "behind-base-branch",
+  // Siehe docs/entwicklung/renovate.md, „Hauptversionen“.
+  "major": {
+    "dependencyDashboardApproval": true
+  },
+  "packageRules": [
+    {
+      // Siehe docs/entscheidungen/0009-banner-mit-napi-rs-canvas.md, „Folgen“.
+      "matchPackageNames": ["@napi-rs/canvas"],
+      "dependencyDashboardApproval": true,
+      "prBodyNotes": [
+        "Vor dem Merge: SBOM lesen, `NOTICE` und Entscheidung 0009 nachziehen."
+      ]
+    }
+  ]
+}

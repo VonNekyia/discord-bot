@@ -65,3 +65,5 @@ gh pr merge <nr> --merge --match-head-commit <kopf>
       erfundenen Werte.
 - [ ] Keine Secrets, keine IDs, keine Interna, Regeln 20 und 21.
 - [ ] Keine Quelle für Ideen genannt, Regel 26.
+- [ ] PR von Renovate: zusätzlich
+      [Updates mit Renovate](../../docs/entwicklung/renovate.md), „Eine PR von Renovate prüfen“.
