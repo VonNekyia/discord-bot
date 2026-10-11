@@ -33,9 +33,10 @@ baut jedes Element so, wie der Guide es zeigt, mit den Tokens des Guides.
 Fehlt ein Element im Guide, fragt er den Orchestrator, statt eins zu
 erfinden.
 
-Eine Schnittstelle zwischen Bot und Weboberfläche gibt es noch nicht. Wer
-eine einführt, beschreibt sie in `docs/` und spricht sie vorher mit der
-anderen Seite ab.
+Die Schnittstelle zwischen Bot und Weboberfläche steht in
+[`docs/schnittstelle/`](docs/schnittstelle/api.md). Wer sie ändern will,
+ändert zuerst die Seite dort, in einer eigenen PR, und der Orchestrator
+holt vorher das Einverständnis der anderen Seite ein.
 
 ## Skills
 
@@ -174,8 +175,9 @@ Vor dem Arbeitsschritt die `SKILL.md` ganz lesen und ihr folgen.
 | Pfad | Inhalt |
 |---|---|
 | `docs/index.md` | Wegweiser: jede Seite mit einer Zeile |
-| `docs/benutzung/` | Einrichtung, Secrets, Betrieb, Befehle |
+| `docs/benutzung/` | Einrichtung, Secrets, Betrieb, Befehle, Begrüssung |
 | `docs/bot/` | wie der Bot arbeitet: Intents, Rate-Limits, Wiederanlauf, Datenschutz, Datenbank, Cache |
+| `docs/schnittstelle/` | der Vertrag zwischen Bot und Dashboard: Routen der API, Anmeldung, Sitzung, Rechte |
 | `docs/frontend/` | Design der Oberfläche, der Design-Guide (`design.html`, `design.css`, MIT), Auslieferung und Header |
 | `docs/entwicklung/` | CI, Ablauf einer PR, Tests |
 | `docs/entscheidungen/` | `NNNN-titel.md`, eine Datei je Entscheidung |
