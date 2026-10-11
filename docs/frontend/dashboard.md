@@ -1,6 +1,6 @@
 ---
 title: Dashboard
-description: Die Seite /dashboard/ in web/; ihre Zustände von abgemeldet bis Formular, wie Anmelden, Abmelden, Hochladen, Speichern und Vorschau ablaufen, was sie vor dem Senden prüft und welche Meldung sie wann zeigt.
+description: Die Seite /dashboard/ in web/; ihre Zustände von abgemeldet bis Formular, wie Anmelden, Abmelden, Hochladen, Speichern, Testnachricht und Vorschau ablaufen, was sie vor dem Senden prüft und welche Meldung sie wann zeigt.
 code:
   - web/dashboard/index.html
   - web/src/dashboard.ts
@@ -59,6 +59,13 @@ bleiben wählbar, und derselbe lässt sich später noch einmal öffnen.
 - **Speichern:** prüft zuerst selbst, dann `PUT …/begruessung/{art}` mit
   allen Feldern ausser `bild`. Danach steht die Meldung unter dem Knopf, und
   die Vorschau lädt neu.
+- **Testnachricht:** „Testnachricht senden“ schickt `POST …/test` ohne
+  Body. Der Bot nimmt den gespeicherten Stand, nicht das Formular. Weicht
+  das Formular davon ab, sagt die Hilfe unter dem Knopf das; gesperrt wird
+  er dafür nicht. Während die Anfrage läuft, ist der Knopf gesperrt und
+  heisst „Wird gesendet …“. Auf `200` steht unter ihm „Gesendet.“ mit dem
+  gespeicherten Kanal. War ein Banner gespeichert und kommt `banner: false`
+  zurück, heisst es „Gesendet, ohne Banner.“; warum, sagt die API nicht.
 - **Vorschau:** ein `img` auf `GET …/vorschau` mit einer neuen Query bei
   jedem Laden, damit der Browser nicht das alte Bild zeigt. Sie zeigt den
   gespeicherten Stand. Ohne Bild steht dort der leere Zustand; scheitert
@@ -79,6 +86,7 @@ Je Art (`beitritt`, `abschied`) ein Formular, `web/src/begruessung.ts`:
 | Bild entfernen | Link-Knopf | nur sichtbar mit Bild |
 | Text auf dem Banner | Textfeld | wie Text, mit der Grenze des Banners |
 | Speichern | Primary button | „Speichern \| Beitritt“ oder „Speichern \| Abschied“; gesperrt, solange die Anfrage läuft |
+| Testnachricht senden | Link-Knopf unter den Meldungen zu „Speichern“, darunter eine Hilfe und eigene Meldungen | siehe „Abläufe“; kein zweiter Primary button |
 
 ## Prüfen vor dem Senden
 
@@ -102,6 +110,7 @@ sagt, was passiert ist, der zweite, was zu tun ist.
 |---|---|
 | am Feld (`.field-error`, `.error`) | Fehler mit `feld` `kanal`, `text` oder `bannerText`; jeder Fehler beim Bild |
 | unter „Speichern“ | Erfolg und jeder andere Fehler beim Speichern |
+| unter „Testnachricht senden“ | Erfolg und jeder Fehler der Testnachricht ohne `feld`, etwa `429` oder `503`; `test_ohne_kanal` und `kanal_unbekannt` stehen am Kanal, `test_ohne_inhalt` am Text, mit Sätzen, die vom gespeicherten Stand sprechen |
 | über der Serverliste | jeder Fehler beim Öffnen eines Servers ausser `401` |
 | im Hero | Anmeldung gescheitert, abgelaufen, nicht erreichbar, Abmelden gescheitert |
 
@@ -114,5 +123,3 @@ immer einen String.
 ## Was noch fehlt
 
 - Ein Hinweis auf ungespeicherte Änderungen, bevor man den Server wechselt.
-- Eine Testnachricht, sobald die API sie hat, siehe
-  [API des Dashboards](../schnittstelle/api.md), „Was noch fehlt“.

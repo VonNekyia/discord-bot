@@ -48,6 +48,9 @@ export class Begruessung {
   private readonly vorschau: HTMLElement;
   private readonly vorschauBild: HTMLImageElement;
   private readonly keinBild: HTMLElement;
+  private readonly testKnopf: HTMLButtonElement;
+  private readonly testMeldungen: HTMLElement;
+  private readonly ungespeichert: HTMLElement;
   private einstellung: Einstellung;
 
   constructor(
@@ -84,8 +87,14 @@ export class Begruessung {
     this.vorschau = finde('[data-vorschau]');
     this.vorschauBild = finde('[data-vorschau] img');
     this.keinBild = finde('[data-kein-bild]');
+    this.testKnopf = finde('[data-test]');
+    this.testMeldungen = finde('[data-test-meldung]');
+    this.ungespeichert = finde('[data-ungespeichert]');
     this.bannerHinweis.id = `${art}-banner-hinweis`;
     this.banner.setAttribute('aria-describedby', this.bannerHinweis.id);
+    const testHilfe = finde<HTMLElement>('[data-test-hilfe]');
+    testHilfe.id = `${art}-test-hilfe`;
+    this.testKnopf.setAttribute('aria-describedby', testHilfe.id);
     finde<HTMLElement>('[data-art-name]').textContent = artName[art];
     panel.replaceChildren(inhalt);
 
@@ -121,6 +130,32 @@ export class Begruessung {
       void this.speichern();
     });
     this.vorschauBild.addEventListener('error', () => this.keinBildZeigen('Keine Vorschau.', 'Die Vorschau liess sich nicht laden. Speicher noch einmal, dann versucht kitty es neu.'));
+    this.testKnopf.addEventListener('click', () => void this.testSenden());
+    this.form.addEventListener('input', () => this.ungespeichertZeigen());
+    this.form.addEventListener('change', () => this.ungespeichertZeigen());
+  }
+
+  // Die Felder, wie sie gespeichert würden.
+  private daten(): Omit<Einstellung, 'bild'> {
+    return {
+      an: this.an.checked,
+      kanal: this.kanal.value || null,
+      text: this.text.value,
+      banner: this.banner.checked,
+      bannerText: this.bannerText.value,
+    };
+  }
+
+  // Die Testnachricht nimmt den gespeicherten Stand; weicht das Formular ab, sagt die Hilfe das.
+  // Siehe docs/frontend/dashboard.md, „Abläufe“.
+  private ungespeichertZeigen(): void {
+    const jetzt = this.daten();
+    const e = this.einstellung;
+    // Was das Formular beim Laden selbst anpasst, zählt nicht: ein Kanal, den es nicht mehr gibt, und ein gesperrtes Banner.
+    const kanal = this.kanaele.some((k) => k.id === e.kanal) ? e.kanal : null;
+    const banner = this.banner.disabled ? false : e.banner;
+    const anders = jetzt.an !== e.an || jetzt.kanal !== kanal || jetzt.text !== e.text || jetzt.banner !== banner || jetzt.bannerText !== e.bannerText;
+    this.ungespeichert.textContent = anders ? 'Du hast ungespeicherte Änderungen; die Testnachricht nimmt den gespeicherten Stand.' : '';
   }
 
   // Setzt die Felder auf den gespeicherten Stand.
@@ -138,6 +173,7 @@ export class Begruessung {
     this.restZeigen();
     this.bannerPruefen();
     this.vorschauZeigen();
+    this.ungespeichertZeigen();
   }
 
   private restZeigen(): void {
@@ -190,15 +226,15 @@ export class Begruessung {
     fehler.hidden = inhalt === null;
   }
 
-  // Zeigt einen Fehler am Feld, sonst unter dem Knopf; bei 401 zeigt die Seite die Anmeldung.
-  private fehlerZeigen(fehler: unknown, feld: Feld | null): void {
+  // Zeigt einen Fehler am Feld, sonst unter dem Knopf, der ihn ausgelöst hat; bei 401 zeigt die Seite die Anmeldung.
+  private fehlerZeigen(fehler: unknown, feld: Feld | null, meldeOrt = this.meldungen): void {
     if (fehler instanceof ApiFehler && fehler.status === 401) return this.abgemeldet();
     const ziel = fehler instanceof ApiFehler && ['kanal', 'text', 'bannerText'].includes(fehler.feld ?? '') ? (fehler.feld as Feld) : feld;
     // Die Oberfläche schickt immer Strings; ungueltig an einem Textfeld heisst darum NUL.
     const nul = fehler instanceof ApiFehler && fehler.code === 'ungueltig' && (ziel === 'text' || ziel === 'bannerText');
     const inhalt = satz(nul ? 'steuerzeichen' : fehler);
     if (ziel) this.feldFehler(ziel, inhalt);
-    else meldung(this.meldungen, 'error', inhalt);
+    else meldung(meldeOrt, 'error', inhalt);
   }
 
   private async hochladen(): Promise<void> {
@@ -213,6 +249,7 @@ export class Begruessung {
       this.einstellung.bild = true;
       this.bannerPruefen();
       this.vorschauZeigen();
+      this.ungespeichertZeigen();
     } catch (fehler) {
       this.fehlerZeigen(fehler, 'bild');
     } finally {
@@ -231,6 +268,7 @@ export class Begruessung {
       this.einstellung.banner = false;
       this.bannerPruefen();
       this.vorschauZeigen();
+      this.ungespeichertZeigen();
     } catch (fehler) {
       this.fehlerZeigen(fehler, 'bild');
     } finally {
@@ -269,13 +307,7 @@ export class Begruessung {
     for (const feld of ['text', 'bannerText'] as const) this.feldFehler(feld, null);
     if (this.kanal.value !== '') this.feldFehler('kanal', null);
     this.meldungen.replaceChildren();
-    const daten = {
-      an: this.an.checked,
-      kanal: this.kanal.value || null,
-      text: this.text.value,
-      banner: this.banner.checked,
-      bannerText: this.bannerText.value,
-    };
+    const daten = this.daten();
     if (!this.pruefen(daten)) return;
     this.speichernKnopf.disabled = true;
     try {
@@ -287,10 +319,33 @@ export class Begruessung {
         text: this.einstellung.an && kanal ? `kitty schreibt ab jetzt in #${kanal.name}.` : 'Solange „Aktiv“ aus ist, schickt kitty nichts.',
       });
       this.vorschauZeigen();
+      this.ungespeichertZeigen();
     } catch (fehler) {
       this.fehlerZeigen(fehler, null);
     } finally {
       this.speichernKnopf.disabled = false;
+    }
+  }
+
+  // Schickt die Testnachricht mit dem gespeicherten Stand. Fehler mit Feld stehen am Feld,
+  // alle anderen unter dem Knopf. Siehe docs/schnittstelle/api.md, „Testnachricht“.
+  private async testSenden(): Promise<void> {
+    this.testMeldungen.replaceChildren();
+    for (const feld of ['kanal', 'text'] as const) this.feldFehler(feld, null);
+    this.testKnopf.disabled = true;
+    this.testKnopf.textContent = 'Wird gesendet …';
+    try {
+      const { banner } = await api.testSenden(this.serverId, this.art);
+      const kanal = this.kanaele.find((k) => k.id === this.einstellung.kanal);
+      meldung(this.testMeldungen, 'ok', {
+        titel: this.einstellung.banner && !banner ? 'Gesendet, ohne Banner.' : 'Gesendet.',
+        text: kanal ? `Die Testnachricht steht in #${kanal.name}.` : 'Die Testnachricht ist unterwegs.',
+      });
+    } catch (fehler) {
+      this.fehlerZeigen(fehler, null, this.testMeldungen);
+    } finally {
+      this.testKnopf.disabled = false;
+      this.testKnopf.textContent = 'Testnachricht senden';
     }
   }
 }

@@ -62,6 +62,8 @@ export const api = {
   bildLoeschen: async (id: string, art: Art) => {
     await senden('DELETE', `${begruessung(id)}/${art}/bild`);
   },
+  // Ohne Body; die Testnachricht nimmt den gespeicherten Stand. `banner` sagt, ob das Banner mitging.
+  testSenden: async (id: string, art: Art) => json<{ banner: boolean }>(await senden('POST', `${begruessung(id)}/${art}/test`)),
   // Die Query ändert sich bei jedem Aufruf, damit der Browser neu lädt; die API ignoriert sie.
   vorschau: (id: string, art: Art) => `${begruessung(id)}/${art}/vorschau?v=${Date.now()}`,
 };
