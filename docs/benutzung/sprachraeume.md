@@ -42,9 +42,10 @@ damit Sperren und Verstecken sie nicht aussperren.
 - Standard: `{name}s Raum`.
 - Ein Kanalname hat 1 bis 100 Zeichen
   ([Channel Object](https://docs.discord.com/developers/resources/channel)).
-  Wird der Name nach dem Ersetzen länger, kürzt ihn der Bot auf 100.
-  Zeichen zählen wie in [API des Dashboards](../schnittstelle/api.md),
-  „Einstellung speichern“.
+  Das Dashboard nimmt nur Vorlagen an, die mit dem längsten Anzeigenamen
+  höchstens 100 Zeichen ergeben, siehe
+  [API der Sprachräume](../schnittstelle/sprachraeume.md), „Sprachräume
+  einstellen“. Länger wird ein Name also nie.
 - Andere Wörter in geschweiften Klammern bleiben, wie sie sind.
 
 ## Menü

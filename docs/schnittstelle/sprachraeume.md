@@ -18,7 +18,7 @@ und Grenzen je Sitzung gelten wie in [API des Dashboards](api.md).
 
 | Methode und Pfad | Antwort |
 |---|---|
-| `GET /api/server/{id}/sprachkanaele` | `200` `{ sprachkanaele: Sprachkanal[], kategorien: Kategorie[] }` |
+| `GET /api/server/{id}/sprachkanaele` | `200` `{ sprachkanaele: Sprachkanal[], kategorien: Kategorie[], ohneKategorie: { bereit: boolean } }` |
 | `GET /api/server/{id}/sprachraeume` | `200` `Sprachraeume` |
 | `PUT /api/server/{id}/sprachraeume` | `200` `Sprachraeume`, so wie gespeichert |
 | `POST /api/server/{id}/sprachraeume/menue` | `204`; das Menü ist gesendet |
@@ -54,13 +54,17 @@ type Sprachraeume = {
   und Mitglieder verschieben. Nur dann taugt er als Erzeuger.
 - `Kategorie.bereit`: Der Bot darf dort Kanäle verwalten, Rollen verwalten,
   sich verbinden und Mitglieder verschieben. Nur dann kann er dort Räume
-  anlegen. Das Recht auf der obersten Ebene, ohne Kategorie, steht in
-  keiner Zeile; es zählt, wenn `kategorie` `null` ist und der Erzeuger
-  selbst in keiner Kategorie steht.
+  anlegen.
+- `ohneKategorie.bereit`: dieselben Rechte auf der obersten Ebene, ohne
+  Kategorie. Sie zählen, wenn `kategorie` `null` ist und der Erzeuger
+  selbst in keiner Kategorie steht. So kann die Oberfläche
+  `kategorie_ohne_recht` vor dem Speichern erkennen.
 - `menue` ist ein Kanal aus `GET …/kanaele`.
-- `menueGesendet` ist `true`, wenn im gespeicherten Menü-Kanal ein Menü des
-  Bots steht. Nach einem Wechsel des Kanals ist es `false`, bis das Menü
-  neu gesendet ist.
+- `menueGesendet` ist `true`, wenn im gespeicherten Menü-Kanal das Menü des
+  Bots jetzt steht. Der Bot fragt dafür bei jedem `GET …/sprachraeume` bei
+  Discord nach der gemerkten Nachricht. Hat sie jemand von Hand gelöscht
+  oder wurde der Kanal gewechselt, ist der Wert `false`, bis das Menü neu
+  gesendet ist.
 - Ohne gespeicherte Zeile liefert `GET …/sprachraeume`
   `{ an: false, menue: null, erzeuger: [], menueGesendet: false }`.
 - Gespeicherte IDs kommen, wie sie sind, auch wenn es den Kanal nicht mehr
@@ -75,7 +79,7 @@ Feld seine Stelle in der Liste, etwa `erzeuger.0.kanal`.
 
 | Feld | Regel | Code |
 |---|---|---|
-| alle | jedes Feld ausser `menueGesendet` da, mit dem richtigen Typ; `erzeuger` ist eine Liste | `ungueltig` |
+| alle | jedes Feld ausser `menueGesendet` da, mit dem richtigen Typ; `erzeuger` ist eine Liste; kein NUL (`\0`) in `name` | `ungueltig` |
 | `erzeuger` | höchstens 10 Einträge | `zu_viele_erzeuger` |
 | `erzeuger.<i>.kanal` | ein Sprachkanal aus `GET …/sprachkanaele` | `erzeuger_unbekannt` |
 | `erzeuger.<i>.kanal` | mit `bereit: true` | `erzeuger_ohne_recht` |
@@ -89,6 +93,10 @@ Feld seine Stelle in der Liste, etwa `erzeuger.0.kanal`.
 | `an` | `true` nur mit mindestens einem Erzeuger | `an_ohne_erzeuger` |
 | `an` | `true` nur mit `menue` | `an_ohne_menue` |
 
+- Bei `ungueltig` nennt `feld` den ersten falschen Pfad, etwa
+  `erzeuger.1.limit` oder `erzeuger.0.name` bei NUL. Ist `erzeuger` keine
+  Liste, heisst das Feld `erzeuger`; ist der Body kein Objekt, `an`, wie
+  bei der Begrüssung.
 - Zeichen zählen wie in [API des Dashboards](api.md), „Einstellung
   speichern“. 32 ist die längste Länge eines Anzeigenamens, siehe
   [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md),
