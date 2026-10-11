@@ -29,6 +29,12 @@ nicht gebaut.
 | Sprachräume je Server: Server-ID, Schalter, Erzeuger mit Kanal-ID, Kategorie-ID, Namensvorlage und Limit, Kanal-ID und Nachricht-ID des Menüs | Räume anlegen, Menü finden | bis das Team sie ändert oder der Bot den Server verlässt | kommt mit den Sprachräumen |
 | Raum: Server-ID, Kanal-ID, Discord-ID des Besitzers, Zeit der Anlage | wissen, welche Kanäle Räume sind und wem sie gehören, auch nach einem Neustart | bis der Raum gelöscht ist, der Besitz wechselt oder der Bot den Server verlässt; beim Start vergisst der Bot Räume, die es nicht mehr gibt | kommt mit den Sprachräumen |
 
+Mit den Sprachräumen hält discord.js zudem für jedes Mitglied, das einen
+Sprachkanal betreten hat, einen Voice State mit Discord-ID, Kanal und
+Session im Speicher. Verlässt es den Sprachkanal, bliebe der Eintrag bis
+zum Ende des Prozesses. Darum entfernt ein Sweeper alle 10 Minuten jeden
+Voice State ohne Kanal. Das kommt mit den Sprachräumen.
+
 „Der Bot verlässt den Server“ heisst auch: Er wurde entfernt, während er
 aus war. Beim Start gleicht er ab und löscht dann, siehe
 [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md),

@@ -25,9 +25,14 @@ Warum es so gebaut ist, steht in Entscheidung
    eingestellten Limit, und verschiebt ihn hinein. Er ist der Besitzer.
 3. Verlässt er den Erzeuger, bevor das Verschieben klappt, löscht der Bot
    den neuen Raum sofort wieder.
-4. Wird ein Raum leer, löscht der Bot ihn.
+4. Wird ein Raum leer, wartet der Bot 2 s und löscht ihn, wenn er dann noch
+   leer ist. So überholt das Löschen kein Verschieben, das gerade läuft.
 5. Verlässt der Besitzer den Raum, während andere drin bleiben, bleibt er
    Besitzer, bis jemand im Raum „Übernehmen“ drückt.
+
+Jedes Mitglied besitzt höchstens einen Raum je Server. Darum ist das Ziel
+in Schritt 2 immer eindeutig, und „Besitz übergeben“ und „Übernehmen“
+gehen nicht an jemanden, der schon einen Raum hat.
 
 Die Rechte eines neuen Raums kommen von seiner Kategorie. Dazu bekommen
 der Besitzer und der Bot das Recht, den Raum zu sehen und zu betreten,
@@ -54,25 +59,29 @@ Der Bot postet in den eingestellten Textkanal eine Nachricht mit der
 Überschrift „Dein Sprachraum“, einem kurzen Text und den Knöpfen unten.
 Ein Knopf wirkt immer auf den Raum, in dem man gerade ist. Jede Antwort
 des Bots sieht nur, wer gedrückt hat. Umbenennen und Limit öffnen ein
-Formular, Rauswerfen, Bannen, Entbannen und Besitz übergeben eine Auswahl
-von Mitgliedern
+Formular, Rauswerfen, Bannen, Entbannen und Besitz übergeben die
+Nutzerauswahl von Discord
 ([Component Reference](https://docs.discord.com/developers/components/reference)).
+Das Menü wirkt auch nach einem Neustart des Bots weiter.
 
 | Knopf | Wer darf | Was passiert |
 |---|---|---|
-| Sperren | Besitzer | Niemand Neues kann beitreten. Wer drin ist, bleibt. |
-| Entsperren | Besitzer | Wieder offen. |
-| Verstecken | Besitzer | Andere sehen den Raum nicht mehr. Wer drin ist, sieht ihn weiter. |
-| Zeigen | Besitzer | Wieder sichtbar. |
+| Sperren | Besitzer | Niemand Neues kann beitreten. Wer gerade drin ist, bekommt ein eigenes Recht, den Raum zu betreten, und kommt auch nach dem Gehen wieder hinein. |
+| Entsperren | Besitzer | Wieder offen für alle, die die Kategorie betreten dürfen. |
+| Verstecken | Besitzer | Andere sehen den Raum nicht mehr. Wer gerade drin ist, bekommt ein eigenes Recht, ihn zu sehen und zu betreten, und bleibt. |
+| Zeigen | Besitzer | Wieder sichtbar für alle, die die Kategorie sehen. |
 | Umbenennen | Besitzer | Formular mit dem neuen Namen, 1 bis 100 Zeichen, ohne Platzhalter. |
 | Limit | Besitzer | Formular mit einer Zahl von 0 bis 99; 0 heisst unbegrenzt ([Channel Object](https://docs.discord.com/developers/resources/channel)). |
-| Rauswerfen | Besitzer | Auswahl eines Mitglieds im Raum. Es wird getrennt und darf wieder beitreten. |
+| Rauswerfen | Besitzer | Auswahl eines Mitglieds. Ist es im Raum, wird es getrennt und darf wieder beitreten. |
 | Bannen | Besitzer | Auswahl eines Mitglieds. Es kann den Raum weder sehen noch betreten; ist es drin, wird es getrennt. |
-| Entbannen | Besitzer | Auswahl eines gebannten Mitglieds. Der Bann ist aufgehoben. |
-| Besitz übergeben | Besitzer | Auswahl eines Mitglieds im Raum. Es wird Besitzer. |
-| Übernehmen | jedes Mitglied im Raum, wenn der Besitzer nicht drin ist | Es wird Besitzer. |
+| Entbannen | Besitzer | Auswahl eines Mitglieds. Ist es gebannt, ist der Bann aufgehoben. |
+| Besitz übergeben | Besitzer | Auswahl eines Mitglieds im Raum, das keinen eigenen Raum hat. Es wird Besitzer. |
+| Übernehmen | jedes Mitglied im Raum ohne eigenen Raum, wenn der Besitzer nicht drin ist | Es wird Besitzer. |
 | Info | jedes Mitglied im Raum | Besitzer, Limit, ob gesperrt oder versteckt, Zahl der Gebannten. |
 
+- Die Nutzerauswahl von Discord zeigt alle Mitglieder des Servers. Ob das
+  gewählte Mitglied im Raum ist oder gebannt, prüft der Bot danach und sagt
+  es, wenn nicht.
 - Wer in keinem Raum ist, bekommt den Hinweis, zuerst einen Erzeuger zu
   betreten.
 - Wer nicht Besitzer ist, bekommt den Hinweis, dass nur der Besitzer das
@@ -82,28 +91,45 @@ von Mitgliedern
 - Ob ein Raum gesperrt oder versteckt ist und wer gebannt ist, steht in den
   Rechten des Kanals bei Discord, nicht in der Datenbank. Ändert jemand die
   Rechte von Hand, gilt das.
-- Antwortet Discord beim Umbenennen mit 429, nennt der Bot die Wartezeit.
+- Einen Kanal lässt Discord nur wenige Male in kurzer Zeit umbenennen;
+  `@discordjs/rest` rechnet mit 2 Umbenennungen je 10 Minuten und Kanal
+  (`hasSublimit` für `PATCH /channels/:id` mit `name`). Ist die Grenze
+  erreicht, wartet der Bot nicht, sondern nennt die Wartezeit, siehe
+  [Rate-Limits](../bot/rate-limits.md).
 
 ## Grenzen
 
+- Jedes Mitglied besitzt höchstens einen Raum je Server, siehe „Ablauf“.
 - Ein Mitglied bekommt höchstens einen neuen Raum je 30 s. Betritt es
   früher wieder einen Erzeuger, bleibt es dort, und der Bot legt nichts
-  an. So kostet Hin- und Herspringen Discord nichts.
+  an. So kostet Hin- und Herspringen Discord nichts. Diese Grenze lebt im
+  Speicher; ein Neustart setzt sie zurück.
 - Ein Server hat höchstens 10 Erzeuger.
 - Ist die Kategorie voll (höchstens 50 Kanäle,
-  [Channel Object](https://docs.discord.com/developers/resources/channel)),
-  legt der Bot keinen Raum an.
+  [Channel Object](https://docs.discord.com/developers/resources/channel))
+  oder der Server (Fehler 30013), legt der Bot keinen Raum an. Hat ein Raum
+  so viele Rechte-Einträge, dass Discord keinen weiteren nimmt (Fehler
+  30060), geht kein weiterer Bann
+  ([JSON Error Codes](https://docs.discord.com/developers/topics/opcodes-and-status-codes#json-json-error-codes)).
 
 ## Rechte und Intent
+
+Die Rechte braucht der Bot auf dem ganzen Server, nicht nur in den
+Kategorien der Räume. Beim Anlegen eines Kanals darf er nur Rechte setzen,
+die er auf dem Server hat
+([Create Guild Channel](https://docs.discord.com/developers/resources/guild#create-guild-channel)).
 
 | Was | Wofür |
 |---|---|
 | Intent `GuildVoiceStates` | Discord meldet Betreten und Verlassen von Sprachkanälen nur damit; er ist nicht privilegiert, siehe [Intents](../bot/intents.md) |
 | „Kanäle verwalten“ | Räume anlegen, umbenennen, Limit setzen, löschen |
-| „Rollen verwalten“ | Rechte eines Raums setzen: Sperren, Verstecken, Bannen. Discord verlangt dafür dieses Recht, und der Bot kann nur Rechte vergeben, die er selbst hat ([Edit Channel Permissions](https://docs.discord.com/developers/resources/channel#edit-channel-permissions)) |
-| „Mitglieder verschieben“ | in den neuen Raum verschieben, rauswerfen ([Modify Guild Member](https://docs.discord.com/developers/resources/guild#modify-guild-member)) |
+| „Rollen verwalten“ | Rechte eines Raums setzen: Sperren, Verstecken, Bannen, Besitzer und Bot beim Anlegen. Discord verlangt dafür dieses Recht, und der Bot kann nur Rechte vergeben, die er selbst hat ([Edit Channel Permissions](https://docs.discord.com/developers/resources/channel#edit-channel-permissions)) |
+| „Mitglieder verschieben“ | in den neuen Raum verschieben, zurück in den eigenen Raum, rauswerfen ([Modify Guild Member](https://docs.discord.com/developers/resources/guild#modify-guild-member)) |
 | „Kanal ansehen“, „Verbinden“ | in Erzeugern und Räumen; verschieben darf der Bot nur in einen Kanal, den er selbst betreten darf (ebenda) |
-| „Nachrichten senden“ | das Menü im Menü-Kanal |
+| „Kanal ansehen“, „Nachrichten senden“, „Nachrichtenverlauf anzeigen“ im Menü-Kanal | das Menü senden, und das gemerkte Menü wiederfinden und löschen ([Get Channel Message](https://docs.discord.com/developers/resources/message#get-channel-message)) |
+
+Ins Audit-Log von Discord schreibt der Bot als Grund nur feste Texte, ohne
+IDs und Namen.
 
 ## Wenn etwas fehlt
 
@@ -116,7 +142,8 @@ von Mitgliedern
 - Gibt es einen Erzeuger nicht mehr, wirkt er nicht; das Dashboard zeigt
   ihn als unbekannt.
 - Verlässt der Bot einen Server, löscht er dessen Einstellungen und vergisst
-  dessen Räume. Die Räume selbst bleiben dann bei Discord stehen.
+  dessen Räume. Die Räume selbst bleiben dann bei Discord stehen; das ist
+  so gewollt, der Bot hat dort keine Rechte mehr.
 
 ## Was noch fehlt
 

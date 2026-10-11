@@ -52,14 +52,18 @@ type Sprachraeume = {
   „Typen“. Bühnen gehören nicht dazu.
 - `Sprachkanal.bereit`: Der Bot darf dort den Kanal sehen, sich verbinden
   und Mitglieder verschieben. Nur dann taugt er als Erzeuger.
-- `Kategorie.bereit`: Der Bot darf dort Kanäle verwalten, Rollen verwalten,
-  sich verbinden und Mitglieder verschieben. Nur dann kann er dort Räume
-  anlegen.
-- `ohneKategorie.bereit`: dieselben Rechte auf der obersten Ebene, ohne
-  Kategorie. Sie zählen, wenn `kategorie` `null` ist und der Erzeuger
-  selbst in keiner Kategorie steht. So kann die Oberfläche
-  `kategorie_ohne_recht` vor dem Speichern erkennen.
-- `menue` ist ein Kanal aus `GET …/kanaele`.
+- `ohneKategorie.bereit`: Der Bot hat auf dem ganzen Server „Kanäle
+  verwalten“, „Rollen verwalten“, „Mitglieder verschieben“, „Verbinden“ und
+  „Kanal ansehen“. Ohne diese Rechte auf dem Server kann er nirgends Räume
+  anlegen, siehe [Sprachräume](../benutzung/sprachraeume.md), „Rechte und
+  Intent“.
+- `Kategorie.bereit`: `ohneKategorie.bereit`, und die Kategorie nimmt dem
+  Bot keins dieser Rechte. Nur dann kann er dort Räume anlegen. Ist
+  `kategorie` `null` und steht der Erzeuger in keiner Kategorie, gilt
+  `ohneKategorie.bereit`. So kann die Oberfläche `kategorie_ohne_recht`
+  vor dem Speichern erkennen.
+- `menue` ist ein Kanal aus `GET …/kanaele` mit `verlauf: true`, siehe
+  [API des Dashboards](api.md), „Typen“.
 - `menueGesendet` ist `true`, wenn im gespeicherten Menü-Kanal das Menü des
   Bots jetzt steht. Der Bot fragt dafür bei jedem `GET …/sprachraeume` bei
   Discord nach der gemerkten Nachricht. Hat sie jemand von Hand gelöscht
@@ -90,6 +94,7 @@ Feld seine Stelle in der Liste, etwa `erzeuger.0.kanal`.
 | `erzeuger.<i>.name` | höchstens 100 Zeichen, wenn `{name}` 32 Zeichen hat | `name_zu_lang` |
 | `erzeuger.<i>.limit` | ganze Zahl von 0 bis 99 | `limit_ungueltig` |
 | `menue` | `null` oder ein Kanal aus `GET …/kanaele` | `kanal_unbekannt` |
+| `menue` | mit `verlauf: true` | `menue_ohne_recht` |
 | `an` | `true` nur mit mindestens einem Erzeuger | `an_ohne_erzeuger` |
 | `an` | `true` nur mit `menue` | `an_ohne_menue` |
 
@@ -103,6 +108,9 @@ Feld seine Stelle in der Liste, etwa `erzeuger.0.kanal`.
   „Platzhalter“.
 - Neue Werte gelten für Räume, die danach entstehen. Bestehende Räume
   bleiben, wie sie sind.
+- Wechselt `menue` auf einen anderen Kanal, löscht der Bot das Menü im
+  alten Kanal, wenn er es noch findet. Im neuen steht es erst nach
+  `POST …/sprachraeume/menue`.
 - Ist `an` aus, legt der Bot keine neuen Räume an. Bestehende bleiben, bis
   sie leer sind, und das Menü wirkt für sie weiter.
 
@@ -118,6 +126,7 @@ Body und prüft keinen `Content-Type`, wie die Testnachricht.
 |---|---|---|
 | ein Menü-Kanal ist gespeichert | `menue_ohne_kanal` | `menue` |
 | der gespeicherte Kanal steht in `GET …/kanaele` | `kanal_unbekannt` | `menue` |
+| dort mit `verlauf: true` | `menue_ohne_recht` | `menue` |
 
 Scheitert das Senden bei Discord, `503` `nicht_erreichbar`. Das Menü geht
 auch, wenn `an` aus ist. Die Grenze steht in [API des Dashboards](api.md),

@@ -66,6 +66,7 @@ type Kanal = {
   id: string;
   name: string;
   banner: boolean;
+  verlauf: boolean;
   kategorie: { id: string; name: string } | null;
 };
 type Einstellung = {
@@ -90,7 +91,9 @@ type Einstellung = {
   leeren Zustand.
 - `GET …/kanaele` liefert Text- und Ankündigungskanäle, in denen der Bot
   den Kanal sehen und Nachrichten senden darf. `banner` ist `true`, wenn er
-  dort auch Dateien anhängen darf. `kategorie` ist die Kategorie, in der
+  dort auch Dateien anhängen darf, `verlauf`, wenn er den
+  Nachrichtenverlauf anzeigen darf (kommt mit den Sprachräumen); das braucht das Menü der
+  [Sprachräume](sprachraeume.md). `kategorie` ist die Kategorie, in der
   der Kanal steht, oder `null`; die Oberfläche kann danach gruppieren.
 - Die Liste ist schon sortiert wie in Discord: Kanäle ohne Kategorie zuerst,
   dann die Kategorien nach ihrer Position; innerhalb einer Gruppe nach
