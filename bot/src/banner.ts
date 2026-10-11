@@ -5,9 +5,19 @@ import { createCanvas, GlobalFonts, Image, loadImage, type Image as Bild } from 
 export const breite = 1100;
 export const hoehe = 440;
 
-// Die Schrift liegt im Repository, weil ein Server oft keine hat.
-// Siehe docs/entscheidungen/0009-banner-mit-napi-rs-canvas.md.
-GlobalFonts.registerFromPath(fileURLToPath(new URL('../schrift/Inter-SemiBold.ttf', import.meta.url)), 'Inter');
+// Die Schriften liegen im Repository, weil ein Server oft keine hat; aus
+// Systemschriften ersetzt @napi-rs/canvas nichts. Inter für Latein und mehr,
+// Noto Color Emoji für Emoji, Noto Sans CJK für Chinesisch, Japanisch und
+// Koreanisch. Siehe docs/entscheidungen/0010-ersatzschriften-im-banner.md.
+const schriften = { Inter: 'Inter-SemiBold.ttf', 'Noto Color Emoji': 'Noto-COLRv1.ttf', 'Noto Sans CJK': 'NotoSansCJKjp-Bold.otf' };
+for (const [familie, datei] of Object.entries(schriften)) {
+  GlobalFonts.registerFromPath(fileURLToPath(new URL(`../schrift/${datei}`, import.meta.url)), familie);
+}
+
+// Fehlt einer Schrift ein Zeichen, nimmt @napi-rs/canvas die nächste, Zeichen
+// für Zeichen. Die Reihenfolge zählt: Inter vor der Emoji-Schrift, damit
+// Ziffern aus Inter kommen und nicht als Emoji.
+export const schriftStapel = 'Inter, "Noto Color Emoji", "Noto Sans CJK"';
 
 // Farben aus dem Design-Guide: Schleier `--veil`, Rand `--gold-light`, Ersatz für den Avatar `--ink-soft`.
 const schleier = 'rgba(8, 15, 10, 0.55)';
@@ -116,8 +126,8 @@ export async function zeichne(hintergrund: Buffer, avatar: Buffer | undefined, t
   const zeile = text.replace(/\s+/g, ' ').trim();
   const breiteMax = breite - 2 * 60;
   let groesse = 64;
-  g.font = `${groesse}px Inter`;
-  while (groesse > 32 && g.measureText(zeile).width > breiteMax) g.font = `${(groesse -= 2)}px Inter`;
+  g.font = `${groesse}px ${schriftStapel}`;
+  while (groesse > 32 && g.measureText(zeile).width > breiteMax) g.font = `${(groesse -= 2)}px ${schriftStapel}`;
   g.fillStyle = '#ffffff';
   g.textAlign = 'center';
   g.fillText(kuerze(zeile, (s) => g.measureText(s).width <= breiteMax), x, 340 + groesse / 2);

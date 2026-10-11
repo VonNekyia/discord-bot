@@ -7,6 +7,7 @@ code:
   - bot/src/datenbank.test.ts
   - bot/src/api.test.ts
   - bot/src/begruessung.test.ts
+  - bot/src/banner.test.ts
   - bot/src/client.test.ts
   - bot/src/senden.test.ts
   - bot/src/testhilfe.ts
@@ -95,6 +96,8 @@ zurückrollt, weil die Dateien gleichzeitig laufen. Alle IDs sind erfunden
 | jede Prüfregel meldet ihren Code und ihr Feld | `pruefe`: jede Zeile der Tabelle „Einstellung speichern“ |
 | die Regeln gelten in der Reihenfolge der Tabelle | bei mehreren Fehlern der erste |
 | eine gültige Einstellung kommt so zurück … | `bild` aus dem Stand, nicht aus der Eingabe |
+| ein Name mit Emoji, Kanji und Hangul zeigt kein Kästchen | jedes Zeichen einzeln mit dem Schriftstapel gezeichnet, hat Tinte und ist nicht das Glyph für ein fehlendes Zeichen (`U+0378`); dass der Vergleich ein Kästchen erkennt, zeigt `😀` mit Inter allein |
+| ein Banner mit Emoji und CJK im Namen hat 1100 × 440 px | `zeichne` mit dem Stapel |
 | maskiere setzt vor jedes ASCII-Satzzeichen genau einen Backslash | Markdown, Erwähnung, Emoji; höchstens doppelt so lang; Umlaute, CJK und Emoji bleiben |
 | ersetze maskiert im Text, lässt das Banner roh … | `<@…>` im Text, `@Name` im Banner; unbekannte Platzhalter bleiben; ein eingesetztes `{server}` bleibt stehen |
 | apiUmgebung braucht Secret und Adresse des Dashboards | ohne eins keine API, Standardport, falsche Adresse oder Port beendet den Start |

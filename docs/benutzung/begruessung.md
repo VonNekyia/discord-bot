@@ -66,11 +66,14 @@ neu zeichnet:
   von 64 px bis 32 px kleiner, bis der Text passt; sonst endet er mit „…“.
 - Dateiname `beitritt.png` oder `abschied.png`.
 
-Die Schrift liegt als Datei im Repository, weil auf einem Server oft keine
-Schrift installiert ist. Sie steht unter der SIL Open Font License 1.1, ihr
-Lizenztext liegt daneben; das hat der Maintainer so entschieden (Regel 27).
-Es ist Inter SemiBold, siehe Entscheidung
-[0009](../entscheidungen/0009-banner-mit-napi-rs-canvas.md).
+Die Schriften liegen als Dateien im Repository, weil auf einem Server oft
+keine Schrift installiert ist. Sie stehen unter der SIL Open Font License
+1.1, ihre Lizenztexte liegen daneben; das hat der Maintainer so
+entschieden (Regel 27). Der Text steht in Inter SemiBold, siehe
+Entscheidung [0009](../entscheidungen/0009-banner-mit-napi-rs-canvas.md).
+Zeichen, die Inter nicht hat, kommen aus Noto Color Emoji, farbig, und aus
+Noto Sans CJK für Chinesisch, Japanisch und Koreanisch, siehe Entscheidung
+[0010](../entscheidungen/0010-ersatzschriften-im-banner.md).
 
 ## Standardwerte
 

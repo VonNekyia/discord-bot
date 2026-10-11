@@ -54,4 +54,5 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 - [0006: lru-cache als Cache](entscheidungen/0006-lru-cache.md): Grösse, Ablaufzeit, Laden bei Bedarf; keine eigene Map, kein Redis.
 - [0007: PostgreSQL über pg mit eingebautem Pool](entscheidungen/0007-postgres-mit-pg.md): PostgreSQL 18 als einzige Datenbank, `pg` statt `postgres` oder ORM, Migrationen je in einer Transaktion unter `pg_advisory_lock`.
 - [0008: Die API des Dashboards im Prozess des Bots](entscheidungen/0008-api-im-bot-prozess.md): `node:http` im Bot, ein Origin mit der Oberfläche, Sitzung in PostgreSQL; kein eigener Server, kein Framework, kein Token im Browser.
-- [0009: Banner mit @napi-rs/canvas und Inter](entscheidungen/0009-banner-mit-napi-rs-canvas.md): `@napi-rs/canvas` 1.0.10 gepinnt, Lizenzen aus der SBOM, WebP für Bilder, Inter als Schrift; kein sharp, kein node-canvas.
+- [0009: Banner mit @napi-rs/canvas und Inter](entscheidungen/0009-banner-mit-napi-rs-canvas.md): `@napi-rs/canvas` 1.0.10 gepinnt, Lizenzen aus der SBOM, WebP für Bilder, Inter als Schrift; kein sharp, kein node-canvas; teilweise abgelöst durch 0010.
+- [0010: Ersatzschriften im Banner für Emoji und CJK](entscheidungen/0010-ersatzschriften-im-banner.md): Noto Color Emoji als COLRv1 und Noto Sans CJK JP Bold hinter Inter, 22 MB; keine Teilmengen, keine einfarbigen Emoji.
