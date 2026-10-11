@@ -12,12 +12,48 @@ const erlaubt = new Set([
   'CC0-1.0', 'ISC', 'MIT', 'MIT-0', 'Unlicense',
 ]);
 
+// Wertet einen SPDX-Ausdruck aus: Klammern zuerst, AND bindet stärker als OR.
 // "(MIT OR GPL-3.0)" reicht eine Wahl, "MIT AND CC-BY-3.0" braucht beide.
+// WITH und alles, was sich nicht lesen lässt, ist nicht erlaubt.
+// Siehe docs/entwicklung/ci.md, „Lizenzen“.
 function permissiv(lizenz) {
-  return String(lizenz ?? '')
-    .replace(/[()]/g, '')
-    .split(/\s+OR\s+/)
-    .some((wahl) => wahl.split(/\s+AND\s+/).every((teil) => erlaubt.has(teil.trim())));
+  const teile = String(lizenz ?? '').match(/[()]|[^\s()]+/g) ?? [];
+  let i = 0;
+  const oder = () => {
+    let ok = und();
+    while (teile[i] === 'OR') {
+      i++;
+      ok = und() || ok;
+    }
+    return ok;
+  };
+  const und = () => {
+    let ok = einzeln();
+    while (teile[i] === 'AND') {
+      i++;
+      ok = einzeln() && ok;
+    }
+    return ok;
+  };
+  const einzeln = () => {
+    const teil = teile[i++];
+    if (teil === '(') {
+      const ok = oder();
+      if (teile[i++] !== ')') throw new Error('Klammer offen');
+      return ok;
+    }
+    if (teil === undefined || ['AND', 'OR', 'WITH', ')'].includes(teil)) throw new Error('Lizenz fehlt');
+    if (teile[i] === 'WITH') {
+      i += 2;
+      return false;
+    }
+    return erlaubt.has(teil);
+  };
+  try {
+    return oder() && i === teile.length;
+  } catch {
+    return false;
+  }
 }
 
 const datei = process.argv[2];

@@ -95,7 +95,7 @@ Die Schwellen sind die der Website.
 | Sicherheitslücken | `npm audit --omit=dev --audit-level=high` | eine Laufzeit-Abhängigkeit eine Lücke ab „high“ hat |
 | Lizenzen | wie beim Backend | siehe unten |
 | API-Stub starten | ein Einzeiler mit `node -e` auf `127.0.0.1:4174` | er nicht startet |
-| Header | `curl -I` auf `/` | ein Header aus [Auslieferung](../frontend/auslieferung.md), „Header“, fehlt oder die CSP `unsafe-inline` erlaubt |
+| Header | `curl -I` auf `/` | ein Header aus [Auslieferung](../frontend/auslieferung.md), „Header“, fehlt, einer ausser CSP und `Permissions-Policy` einen anderen Wert hat oder die CSP `unsafe-inline` erlaubt |
 | Lighthouse | `npm run lighthouse` | eine Schwelle unten verfehlt ist |
 
 Lighthouse misst auch `/dashboard/`, und zwar im abgemeldeten Zustand. In
@@ -135,10 +135,47 @@ dass niemand angemeldet ist.
 `.github/pruefe-lizenzen.mjs` liest ein `package-lock.json` und prüft
 jedes Paket ohne `"dev": true`, also alles, was mit ausgeht. Erlaubt sind
 `0BSD`, `Apache-2.0`, `BlueOak-1.0.0`, `BSD-2-Clause`, `BSD-3-Clause`,
-`CC0-1.0`, `ISC`, `MIT`, `MIT-0` und `Unlicense`. Bei `OR` reicht eine
-erlaubte Wahl, bei `AND` müssen alle erlaubt sein. Fehlt die Lizenz, ist
-das ein Fehler. Eine neue Lizenz kommt nur mit Frage an den User dazu
-(`AGENTS.md`, Regel 27).
+`CC0-1.0`, `ISC`, `MIT`, `MIT-0` und `Unlicense`. Eine neue Lizenz kommt
+nur mit Frage an den User dazu (`AGENTS.md`, Regel 27).
 
-Danach prüft eine Probe, dass ein Paket unter `GPL-3.0` gemeldet wird und
-eins unter `(MIT OR GPL-3.0)` nicht.
+Das Feld `license` ist ein SPDX-Ausdruck. Die Prüfung liest ihn wie die
+[SPDX-Spezifikation](https://spdx.github.io/spdx-spec/v3.0.1/annexes/spdx-license-expressions/#order-of-precedence-and-parentheses):
+Klammern zuerst, `AND` bindet stärker als `OR`.
+
+- Bei `OR` reicht eine erlaubte Wahl, bei `AND` müssen alle erlaubt sein.
+- Eine Lizenz mit Ausnahme (`WITH`) oder mit `+` ist nicht erlaubt.
+- Fehlt die Lizenz oder lässt sich der Ausdruck nicht lesen, ist das ein
+  Fehler.
+
+Danach prüft eine Probe drei Pakete: `GPL-3.0` und
+`(MIT OR GPL-3.0) AND GPL-2.0` muss sie melden, `(MIT OR GPL-3.0)` nicht.
+Werden die Klammern übergangen, fällt das zweite durch.
+
+## Actions und Images
+
+Jede Action steht mit ihrem vollen Commit-SHA im Workflow, ihr Tag als
+Kommentar dahinter. Das Image der PostgreSQL im Job „Backend“ steht mit
+seinem Digest, Tag und Fassung als Kommentar. Ein Tag lässt sich auf
+anderen Code umhängen, ein SHA nicht; siehe
+[0012](../entscheidungen/0012-actions-und-images-fest.md).
+
+`actions/checkout` läuft mit `persist-credentials: false`. So liegt das
+Token des Laufs nicht in `.git/config`, während `npm ci`, die Tests und
+Lighthouse laufen. Kein Schritt braucht es danach: Die Probe der Doku
+nutzt Git nur lokal, „Basis aktuell“ checkt nichts aus und fragt die API
+mit `GH_TOKEN`.
+
+Erneuern geht in einer eigenen PR. Den SHA zu einem Tag zeigt
+
+```bash
+git ls-remote --tags https://github.com/actions/checkout 'v4*'
+```
+
+den Digest zu einem Tag `docker pull postgres:18` in der Zeile `Digest:`.
+Ein Tag, den `ls-remote` zweimal zeigt, einmal mit `^{}`, ist annotiert;
+dann gilt der SHA der Zeile mit `^{}`.
+
+Stand 2026-10-11 meldet jeder Lauf, dass `actions/checkout` und
+`actions/setup-node` in `v4` für Node 20 gebaut sind und GitHub sie unter
+Node 24 ausführt. Der Wechsel auf eine neue Hauptversion ist eine eigene
+PR.

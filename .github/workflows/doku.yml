@@ -15,7 +15,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
-      - uses: actions/checkout@v4
+      # Actions fest an einen Commit, ohne gespeichertes Token.
+      # Siehe docs/entwicklung/ci.md, „Actions und Images“.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Verweise, Links und Frontmatter
         timeout-minutes: 5
