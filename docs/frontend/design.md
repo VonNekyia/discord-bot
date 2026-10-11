@@ -29,7 +29,10 @@ ist.
 4. **Content-Security-Policy.** Kein `style="…"`, kein Skript im HTML,
    nichts von anderen Hosts, keine Web-Fonts, siehe
    [Auslieferung](auslieferung.md).
-5. **Geht ohne Skript.** Das Skript macht es nur angenehmer.
+5. **Geht ohne Skript.** Das Skript macht es nur angenehmer. Ausnahme ist
+   das Dashboard: Es setzt Skript voraus und sagt ohne Skript in einem
+   `noscript`, dass es eins braucht, siehe Entscheidung
+   [0008](../entscheidungen/0008-api-im-bot-prozess.md).
 6. **Von 320 px an** ohne seitliches Scrollen.
 7. **Fokus sichtbar:** der goldene Ring bleibt. Links nur mit Symbol haben
    `aria-label`.
