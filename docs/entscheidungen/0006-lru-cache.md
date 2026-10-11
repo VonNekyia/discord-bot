@@ -13,8 +13,8 @@ code:
 
 ## Anlass
 
-Der Maintainer will einen Cache wie Caffeine für Java, eingesetzt, wo er
-Sinn hat.
+Der Maintainer will einen Cache mit Grösse, Ablaufzeit und Laden bei
+Bedarf, eingesetzt, wo er Sinn hat.
 
 ## Entscheidung
 

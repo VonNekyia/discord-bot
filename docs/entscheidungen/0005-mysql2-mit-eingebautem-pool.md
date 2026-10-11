@@ -16,8 +16,8 @@ Abgelöst durch [0007](0007-postgres-mit-pg.md): Der Bot nutzt PostgreSQL
 
 ## Anlass
 
-Der Maintainer will eine MariaDB als Datenbank des Bots und einen Pool wie
-HikariCP für Java.
+Der Maintainer will eine MariaDB als Datenbank des Bots und einen Pool,
+der Verbindungen wiederverwendet und eine feste Grenze hat.
 
 ## Entscheidung
 
