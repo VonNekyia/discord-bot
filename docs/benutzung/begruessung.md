@@ -49,7 +49,10 @@ neu zeichnet:
   von 64 px bis 32 px kleiner, bis der Text passt; sonst endet er mit „…“.
 - Dateiname `beitritt.png` oder `abschied.png`.
 
-Welche Schrift das Banner nutzt, steht noch nicht fest.
+Die Schrift liegt als Datei im Repository, weil auf einem Server oft keine
+Schrift installiert ist. Sie steht unter der SIL Open Font License 1.1, ihr
+Lizenztext liegt daneben; das hat der Maintainer so entschieden (Regel 27).
+Welche es wird, legt das Backend mit dem Banner fest.
 
 ## Standardwerte
 
