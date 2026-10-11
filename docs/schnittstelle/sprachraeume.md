@@ -68,7 +68,7 @@ type Sprachraeume = {
   Bots jetzt steht. Der Bot fragt dafür bei jedem `GET …/sprachraeume` bei
   Discord nach der gemerkten Nachricht. Hat sie jemand von Hand gelöscht
   oder wurde der Kanal gewechselt, ist der Wert `false`, bis das Menü neu
-  gesendet ist.
+  gesendet ist. Die Antwort auf `PUT …/sprachraeume` prüft ebenso live.
 - Ohne gespeicherte Zeile liefert `GET …/sprachraeume`
   `{ an: false, menue: null, erzeuger: [], menueGesendet: false }`.
 - Gespeicherte IDs kommen, wie sie sind, auch wenn es den Kanal nicht mehr
