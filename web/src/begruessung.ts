@@ -194,8 +194,11 @@ export class Begruessung {
   private fehlerZeigen(fehler: unknown, feld: Feld | null): void {
     if (fehler instanceof ApiFehler && fehler.status === 401) return this.abgemeldet();
     const ziel = fehler instanceof ApiFehler && ['kanal', 'text', 'bannerText'].includes(fehler.feld ?? '') ? (fehler.feld as Feld) : feld;
-    if (ziel) this.feldFehler(ziel, satz(fehler));
-    else meldung(this.meldungen, 'error', satz(fehler));
+    // Die Oberfläche schickt immer Strings; ungueltig an einem Textfeld heisst darum NUL.
+    const nul = fehler instanceof ApiFehler && fehler.code === 'ungueltig' && (ziel === 'text' || ziel === 'bannerText');
+    const inhalt = satz(nul ? 'steuerzeichen' : fehler);
+    if (ziel) this.feldFehler(ziel, inhalt);
+    else meldung(this.meldungen, 'error', inhalt);
   }
 
   private async hochladen(): Promise<void> {
@@ -239,14 +242,16 @@ export class Begruessung {
   // Siehe docs/schnittstelle/api.md, „Einstellung speichern“.
   private pruefen(daten: Omit<Einstellung, 'bild'>): boolean {
     let gut = true;
-    const laengeText = laengeImText(daten.text);
-    if (laengeText > grenzeText) {
-      this.feldFehler('text', { titel: 'Der Text ist zu lang.', text: `Kürz ihn um ${laengeText - grenzeText} Zeichen.` });
-      gut = false;
-    }
-    const laengeBanner = laengeImBanner(daten.bannerText);
-    if (laengeBanner > grenzeBanner) {
-      this.feldFehler('bannerText', { titel: 'Der Text ist zu lang.', text: `Kürz ihn um ${laengeBanner - grenzeBanner} Zeichen.` });
+    // Je Textfeld ein Fehler: erst NUL, das das Backend als ungueltig ablehnt, dann die Länge.
+    // Siehe docs/frontend/dashboard.md, „Prüfen vor dem Senden“.
+    const texte = [
+      ['text', daten.text, laengeImText(daten.text), grenzeText],
+      ['bannerText', daten.bannerText, laengeImBanner(daten.bannerText), grenzeBanner],
+    ] as const;
+    for (const [feld, wert, laenge, grenze] of texte) {
+      if (wert.includes('\0')) this.feldFehler(feld, satz('steuerzeichen'));
+      else if (laenge > grenze) this.feldFehler(feld, { titel: 'Der Text ist zu lang.', text: `Kürz ihn um ${laenge - grenze} Zeichen.` });
+      else continue;
       gut = false;
     }
     if (daten.an && daten.kanal === null) {

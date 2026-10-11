@@ -28,7 +28,7 @@ aussehen, steht in [Design der Oberfläche](design.md), „Elemente“.
 | abgemeldet | `GET /api/ich` gibt `401` | im Hero den Knopf „Anmelden \| mit Discord“, einen Link auf `/api/anmelden` |
 | Anmeldung gescheitert | abgemeldet und `?fehler=anmeldung` in der URL | wie abgemeldet, darunter eine Fehlermeldung; die Query entfernt das Skript aus der URL |
 | abgelaufen | eine spätere Anfrage gibt `401` | wie abgemeldet, darunter eine Warnung |
-| nicht erreichbar | `GET /api/ich` oder `GET /api/server` scheitert anders, etwa `502` oder `503` | im Hero nur die Fehlermeldung, ohne Knopf, weil die Anmeldung auch den Bot braucht |
+| nicht erreichbar | `GET /api/ich` oder `GET /api/server` scheitert anders, etwa `502` oder `503`; ein einzelner Server führt nie hierher, siehe unten | im Hero nur die Fehlermeldung, ohne Knopf, weil die Anmeldung auch den Bot braucht |
 | laden | Serverliste oder Server wird geholt | drei Skeletons |
 | Serverliste | angemeldet | Leiste mit Avatar, Name und „Abmelden“; je Server eine Karte mit Icon und Name |
 | keine Server | `GET /api/server` gibt `[]` | leerer Zustand mit Link zum neuen Anmelden |
@@ -36,9 +36,11 @@ aussehen, steht in [Design der Oberfläche](design.md), „Elemente“.
 
 Der Hash trägt den gewählten Server, so gehen Zurück im Browser und ein
 Lesezeichen. Ein Hash mit einem Server, der nicht in der Liste steht,
-zeigt die Liste. Gibt `GET …/kanaele` oder `GET …/begruessung` `403`,
-`404` oder `429`, geht die Seite zurück zur Liste und zeigt die Meldung
-darüber.
+zeigt die Liste. Scheitert `GET …/kanaele` oder `GET …/begruessung`, geht
+die Seite zurück zur Liste und zeigt die Meldung darüber, etwa bei `403`,
+`404`, `429` oder `503`; nur bei `401` zeigt sie die Anmeldung. Ein Server,
+der gerade nicht geht, nimmt so nicht die ganze Seite mit: Die anderen
+bleiben wählbar, und derselbe lässt sich später noch einmal öffnen.
 
 ## Abläufe
 
@@ -85,6 +87,7 @@ am Feld steht. Das Backend prüft trotzdem.
 
 | Regel | wie | Quelle |
 |---|---|---|
+| kein NUL (`\0`) in Text und Text auf dem Banner | Fehler am Feld, vor der Länge; das Backend lehnt NUL als `ungueltig` ab, weil PostgreSQL es in Text nicht nimmt | `bot/src/begruessung.ts`, `pruefe`; [API des Dashboards](../schnittstelle/api.md), „Einstellung speichern“ |
 | Länge von Text und Text auf dem Banner | jeder Platzhalter mit seinem längsten Wert, ein Zeichen ist eine UTF-16-Einheit; `web/src/platzhalter.ts` | [API des Dashboards](../schnittstelle/api.md), „Einstellung speichern“; [Begrüssung](../benutzung/begruessung.md), „Platzhalter“ |
 | Aktiv braucht einen Kanal | Fehler am Kanal | ebenda |
 | Aktiv braucht Text oder Banner | Meldung unter dem Knopf | ebenda |
@@ -99,12 +102,14 @@ sagt, was passiert ist, der zweite, was zu tun ist.
 |---|---|
 | am Feld (`.field-error`, `.error`) | Fehler mit `feld` `kanal`, `text` oder `bannerText`; jeder Fehler beim Bild |
 | unter „Speichern“ | Erfolg und jeder andere Fehler beim Speichern |
-| über der Serverliste | ein Server, den man nicht mehr einstellen darf oder kann |
+| über der Serverliste | jeder Fehler beim Öffnen eines Servers ausser `401` |
 | im Hero | Anmeldung gescheitert, abgelaufen, nicht erreichbar, Abmelden gescheitert |
 
 `429` nennt die Sekunden aus `Retry-After`. Eine Antwort ohne JSON ab
 `500` gilt als nicht erreichbar, ebenso ein `fetch`, das gar keine Antwort
-bekommt.
+bekommt. `ungueltig` mit `feld` `text` oder `bannerText` bekommt denselben
+Satz wie NUL vor dem Senden (`steuerzeichen`), denn die Seite schickt dort
+immer einen String.
 
 ## Was noch fehlt
 
