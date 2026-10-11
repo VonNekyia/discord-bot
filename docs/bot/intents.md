@@ -42,8 +42,8 @@ privilegierten Intent danach freigeben
 
 Mit `GuildMembers` kommt `Partials.GuildMember` dazu. discord.js meldet
 `guildMemberRemove` sonst nur für Mitglieder, die es im Cache hat
-(`GuildMemberRemove` in `client/actions/`), und der Cache hält Mitglieder
-nur kurz, siehe [Datenschutz](datenschutz.md), „Was der Bot speichert“.
+(`GuildMemberRemove` in `client/actions/`), und der Cache hält nur wenige
+Mitglieder, siehe [Datenschutz](datenschutz.md), „Was der Bot speichert“.
 Ohne das Partial fiele fast jeder Abschied still aus.
 
 Ein Partial-Mitglied kennt seinen Spitznamen auf dem Server nicht. Was das

@@ -22,33 +22,42 @@ aber noch nicht gebaut.
 |---|---|---|---|
 | Sitzung: SHA-256 der Kennung, Discord-ID, Name, Avatar-Hash, IDs der Server mit „Server verwalten“, Ablaufdatum | Anmeldung am Dashboard, Liste der Server | 7 Tage ab Anmeldung; Abmelden löscht sofort, abgelaufene löscht der Bot spätestens nach einem Tag | kommt mit dem Dashboard |
 | Begrüssung je Server und Art: Server-ID, Kanal-ID, Schalter, Texte | Nachricht bei Beitritt und Abschied | bis das Team sie ändert oder der Bot den Server verlässt | kommt mit dem Dashboard |
-| Bild je Server und Art, so wie hochgeladen; es kann Personen zeigen | Hintergrund des Banners | bis es ersetzt oder gelöscht wird oder der Bot den Server verlässt | kommt mit dem Dashboard |
+| Bild je Server und Art, beim Hochladen auf 1100 × 440 px zugeschnitten und neu kodiert, ohne Metadaten wie EXIF oder GPS; es kann Personen zeigen | Hintergrund des Banners | bis es ersetzt oder gelöscht wird oder der Bot den Server verlässt | kommt mit dem Dashboard |
+
+„Der Bot verlässt den Server“ heisst auch: Er wurde entfernt, während er
+aus war. Beim Start gleicht er ab und löscht dann, siehe
+[Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md),
+„Wenn etwas fehlt“.
 
 Nicht gespeichert werden:
 
 - Der Access Token von Discord. Der Bot widerruft ihn gleich nach der
   Anmeldung, siehe [Anmeldung am Dashboard](../schnittstelle/anmeldung.md),
   „Ablauf“.
-- Name und Avatar eines Mitglieds, das beitritt oder geht. Sie liegen nur
-  für die eine Nachricht im Speicher.
+- Name und Avatar eines Mitglieds, das beitritt oder geht. Sie kommen in
+  keine Tabelle; im Speicher hält sie nur der begrenzte Cache unten.
 
 Die Datenbank hält heute nur die Tabelle `migrationen` mit den Namen der
 angewendeten Dateien. Der Cache von discord.js und der eigene Cache
-(`bot/src/cache.ts`) liegen nur im Speicher und enden mit dem Prozess. Mit
-dem Intent `GuildMembers` hält discord.js Mitglieder mit Name, Spitzname
-und Rollen im Cache. Das Backend begrenzt diesen Cache in `makeCache` auf
-höchstens 100 Mitglieder je Server, das Mitglied des Bots selbst immer;
-das älteste fällt zuerst heraus. Die Rechte prüft der Bot ohnehin an der
-REST-API, nicht im Cache, siehe [Anmeldung am Dashboard](../schnittstelle/anmeldung.md),
-„Rechte“.
+(`bot/src/cache.ts`) liegen nur im Speicher und enden mit dem Prozess.
+
+Mit dem Intent `GuildMembers` legt discord.js jedes Mitglied, das es sieht,
+mit Spitzname und Rollen im Cache der Mitglieder ab und dessen Nutzer mit
+Name und Avatar im Cache der Nutzer (`GuildMember#_patch`). Ohne Grenze
+blieben sie bis zum Ende des Prozesses. Darum begrenzt das Backend in
+`makeCache` beide, `GuildMemberManager` und `UserManager`; der Bot selbst
+bleibt immer (`keepOverLimit`). Die Zahl legt der Auftrag mit Beitritt und
+Abschied fest und trägt sie hier ein. Die Rechte prüft der Bot ohnehin an
+der REST-API, nicht im Cache, siehe
+[Anmeldung am Dashboard](../schnittstelle/anmeldung.md), „Rechte“.
 
 ## Was ins Log geht
 
 Nur der Name des Befehls und der Text eines Fehlers (`text` in
 `bot/src/befehle.ts`), nie das Fehlerobjekt: Fehler der REST-API tragen in
 `url` den Token der Interaktion. Nie IDs, Namen, Nachrichteninhalte,
-Tokens, Cookies oder der Code der Anmeldung. Der Test „ein unbekannter Befehl bekommt eine Meldung, das Log
-keine Nutzerdaten“ prüft die Zeile.
+Tokens, Cookies oder der Code der Anmeldung. Der Test „ein unbekannter
+Befehl bekommt eine Meldung, das Log keine Nutzerdaten“ prüft die Zeile.
 
 Fehler der Datenbank gehen ebenso nur mit ihrer Meldung ins Log, auch
 `Datenbank: <Meldung>` aus dem Pool, siehe [Datenbank](datenbank.md),

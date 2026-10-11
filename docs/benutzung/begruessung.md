@@ -51,7 +51,10 @@ Das Banner ist ein PNG mit 1100 × 440 px, das der Bot bei jedem Ereignis
 neu zeichnet:
 
 - Hintergrund: das hochgeladene Bild, auf die Fläche skaliert und mittig
-  beschnitten.
+  beschnitten. Das geschieht einmal beim Hochladen; gespeichert wird nur das
+  Ergebnis mit 1100 × 440 px, neu kodiert und ohne Metadaten. So trägt
+  kein Bild den Ort der Aufnahme, und ein Banner muss kein grosses Bild
+  dekodieren.
 - Darüber ein dunkler Schleier, damit die Schrift lesbar bleibt.
 - In der Mitte der Avatar des Mitglieds, rund, 200 px, mit hellem Rand.
   Lädt er nicht, der Standard-Avatar von Discord.
@@ -95,7 +98,13 @@ Beleg: [Permissions](https://docs.discord.com/developers/topics/permissions).
 - Ist die Begrüssung aus, fehlt der Kanal oder fehlen dem Bot dort Rechte,
   schickt er nichts. Ins Log kommt eine Zeile ohne IDs und Namen.
 - Scheitert das Banner, geht nur der Text. Ist der Text leer, geht nichts.
-- Verlässt der Bot einen Server, löscht er dessen Einstellungen und Bilder.
+- Verlässt der Bot einen Server, löscht er dessen Einstellungen und Bilder
+  (`guildDelete`).
+- Beim Start löscht er Einstellungen und Bilder der Server, die nicht in
+  seiner Liste aus `READY` stehen. So gehen auch die Daten weg, wenn der Bot
+  entfernt wurde, während er aus war. Ein Ausfall bei Discord löscht nichts:
+  Ein nicht verfügbarer Server steht trotzdem in der Liste, und discord.js
+  meldet dann `guildUnavailable` statt `guildDelete`.
 
 ## Was noch fehlt
 
