@@ -10,15 +10,22 @@
   ],
   // „Basis aktuell“ verlangt den neuesten Stand von main.
   "rebaseWhen": "behind-base-branch",
-  // Siehe docs/entwicklung/renovate.md, „Hauptversionen“.
-  "major": {
-    "dependencyDashboardApproval": true
-  },
+  // Was nicht von selbst gemergt wird, bewertet der Orchestrator als
+  // nächste Aufgabe. Siehe docs/entwicklung/renovate.md, „Bewertung“.
+  "labels": ["abhaengigkeit", "ki-review"],
   "packageRules": [
+    {
+      // Siehe docs/entwicklung/renovate.md, „Automerge“.
+      "matchUpdateTypes": ["minor", "patch", "digest", "pin"],
+      "matchCurrentVersion": "!/^v?0\\./",
+      "automerge": true,
+      "labels": ["abhaengigkeit", "automerge"]
+    },
     {
       // Siehe docs/entscheidungen/0009-banner-mit-napi-rs-canvas.md, „Folgen“.
       "matchPackageNames": ["@napi-rs/canvas"],
-      "dependencyDashboardApproval": true,
+      "automerge": false,
+      "labels": ["abhaengigkeit", "ki-review"],
       "prBodyNotes": [
         "Vor dem Merge: SBOM lesen, `NOTICE` und Entscheidung 0009 nachziehen."
       ]

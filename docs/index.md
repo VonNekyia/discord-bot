@@ -45,7 +45,7 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 ## Entwicklung
 
 - [CI und Ablauf einer PR](entwicklung/ci.md): Ruleset von `main`, „Basis aktuell“, Rebase, die Prüfung der Doku, Backend, Frontend mit Lighthouse, Header, Lizenzen als SPDX-Ausdruck, Actions und Images fest an SHA und Digest.
-- [Updates mit Renovate](entwicklung/renovate.md): was Renovate wann aktualisiert, Hauptversionen nur nach Freigabe im Dependency Dashboard, eine PR von Renovate prüfen, Einrichten.
+- [Updates mit Renovate](entwicklung/renovate.md): was Renovate wann aktualisiert, Automerge für Minor, Patch und Digest, Bewertung durch den Orchestrator, Konflikte, Labels, Einrichten.
 - [Tests](entwicklung/tests.md): `node --test`, die gemockte Discord-API, was abgedeckt ist, Tests gegen PostgreSQL.
 
 ## Entscheidungen
@@ -62,4 +62,4 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 - [0010: Ersatzschriften im Banner für Emoji und CJK](entscheidungen/0010-ersatzschriften-im-banner.md): Noto Color Emoji als COLRv1 und Noto Sans CJK JP Bold hinter Inter, 22 MB; keine Teilmengen, keine einfarbigen Emoji.
 - [0011: Sprachräume mit Knöpfen statt Befehlen](entscheidungen/0011-sprachraeume-mit-knoepfen.md): Erzeuger, ein Menü im Textchat jedes Raums, Zustand in den Rechten des Kanals, nur der Besitzer in PostgreSQL; keine Slash-Befehle, kein gemeinsamer Menü-Kanal.
 - [0012: Actions und Images in der CI fest an Commit und Digest](entscheidungen/0012-actions-und-images-fest.md): voller Commit-SHA je Action, Digest für PostgreSQL, `persist-credentials: false`; keine Tags; teilweise abgelöst durch 0013.
-- [0013: Updates mit Renovate](entscheidungen/0013-renovate.md): Renovate als GitHub-App, wöchentlich, npm erst nach 3 Tagen, Hauptversionen und `@napi-rs/canvas` nur nach Freigabe, kein Automerge; nicht Dependabot.
+- [0013: Updates mit Renovate](entscheidungen/0013-renovate.md): Renovate als GitHub-App, wöchentlich, npm erst nach 3 Tagen; Automerge für Minor, Patch und Digest stabiler Pakete, alles andere bewertet der Orchestrator, ein Konflikt wird ein Issue für den Maintainer; nicht Dependabot, kein Automerge für Hauptversionen.

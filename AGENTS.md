@@ -20,7 +20,7 @@ Schnellstart, Stand. Ausführlich steht alles in `docs/`.
 | Rolle | Aufgabe |
 |---|---|
 | Maintainer | der User: entscheidet, was umgesetzt wird |
-| Orchestrator | ist der Reviewer: zerlegt Aufträge, gibt sie an Backend und Frontend weiter, prüft jede PR und merged |
+| Orchestrator | ist der Reviewer: zerlegt Aufträge, gibt sie an Backend und Frontend weiter, prüft jede PR und merged; kleine Updates merged Renovate selbst, siehe [Updates mit Renovate](docs/entwicklung/renovate.md) |
 | Backend-Developer | der Bot mit discord.js, `bot/` |
 | Frontend-Developer | die Weboberfläche in TypeScript, `web/`; hält sich strikt an das Design |
 
@@ -45,6 +45,7 @@ holt vorher das Einverständnis der anderen Seite ein.
 | [`doku-pflegen`](skills/doku-pflegen/SKILL.md) | jede Änderung an Verhalten, Befehlen, Rechten, Intents, gespeicherten Daten, Oberfläche oder CI; jedes Review |
 | [`entscheidung-festhalten`](skills/entscheidung-festhalten/SKILL.md) | eine Richtung wird festgelegt, eine Alternative verworfen oder eine Entscheidung abgelöst |
 | [`pr-reviewen`](skills/pr-reviewen/SKILL.md) | Orchestrator: einen Auftrag verteilen, eine PR prüfen und mergen |
+| [`renovate-pr-bewerten`](skills/renovate-pr-bewerten/SKILL.md) | Orchestrator: vor jedem neuen Auftrag; eine PR mit Label `ki-review`, eine rote oder hängende PR von Renovate, ein Konflikt |
 | [`befehl-hinzufuegen`](skills/befehl-hinzufuegen/SKILL.md) | Backend: ein Slash-Befehl, seine Optionen, Rechte oder Intents kommen dazu oder ändern sich |
 | [`design-umsetzen`](skills/design-umsetzen/SKILL.md) | Frontend: etwas Sichtbares in `web/` kommt dazu oder ändert sich; Review einer solchen PR |
 
@@ -169,6 +170,11 @@ Vor dem Arbeitsschritt die `SKILL.md` ganz lesen und ihr folgen.
     Vorgänger gemergt ist.
 30. Branches heissen nach dem Inhalt, nie `claude/…`. PR-Beschreibungen
     tragen keine Zeile „Generated with Claude Code“.
+31. Vor jedem neuen Auftrag sieht der Orchestrator nach offenen Issues mit
+    Label `konflikt` und nach PRs von Renovate mit Label `ki-review`, roten
+    Checks oder seit mehr als 7 Tagen offen. Sie sind seine nächste
+    Aufgabe, Skill `renovate-pr-bewerten`. Ein offener Konflikt steht in
+    jeder Antwort an den Maintainer zuerst, bis er entschieden ist.
 
 ## Gliederung von `docs/`
 
