@@ -19,9 +19,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
-      - uses: actions/checkout@v4
+      # Actions fest an einen Commit, ohne gespeichertes Token.
+      # Siehe docs/entwicklung/ci.md, „Actions und Images“.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: npm
@@ -56,15 +60,19 @@ jobs:
           node -e 'require("node:http").createServer((q, a) => a.writeHead(401, { "Content-Type": "application/json" }).end(JSON.stringify({ code: "nicht_angemeldet" }))).listen(4174, "127.0.0.1")' &
           until curl -s -o /dev/null http://127.0.0.1:4174/; do sleep 1; done
 
+      # Jeder Header aus web/_headers: CSP und Permissions-Policy, ob sie da
+      # sind, die anderen mit genau ihrem Wert.
+      # Siehe docs/frontend/auslieferung.md, „Header“.
       - name: Header
         timeout-minutes: 2
         run: |
           kopf=$(curl -fsSI http://127.0.0.1:4173/ | tr -d '\r')
           fehler=0
-          for soll in 'content-security-policy: ' 'permissions-policy: ' \
+          for soll in 'content-security-policy: .+' 'permissions-policy: .+' \
             'referrer-policy: strict-origin-when-cross-origin' \
-            'x-content-type-options: nosniff' 'x-frame-options: sameorigin'; do
-            grep -qix "$soll.*" <<< "$kopf" || { echo "::error::Header fehlt oder falsch: $soll"; fehler=1; }
+            'x-content-type-options: nosniff' 'x-frame-options: sameorigin' \
+            'cross-origin-opener-policy: same-origin' 'cross-origin-resource-policy: same-origin'; do
+            grep -qixE "$soll" <<< "$kopf" || { echo "::error::Header fehlt oder falsch: ${soll%.+}"; fehler=1; }
           done
           if grep -i '^content-security-policy:' <<< "$kopf" | grep -q 'unsafe-inline'; then
             echo "::error::Die CSP erlaubt unsafe-inline"
@@ -76,7 +84,7 @@ jobs:
         timeout-minutes: 10
         run: npm run lighthouse
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: lighthouse
