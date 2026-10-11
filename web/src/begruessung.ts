@@ -241,12 +241,12 @@ export class Begruessung {
     let gut = true;
     const laengeText = laengeImText(daten.text);
     if (laengeText > grenzeText) {
-      this.feldFehler('text', { titel: 'Der Text ist zu lang.', text: rest(laengeText, grenzeText) });
+      this.feldFehler('text', { titel: 'Der Text ist zu lang.', text: `Kürz ihn um ${laengeText - grenzeText} Zeichen.` });
       gut = false;
     }
     const laengeBanner = laengeImBanner(daten.bannerText);
     if (laengeBanner > grenzeBanner) {
-      this.feldFehler('bannerText', { titel: 'Der Text ist zu lang.', text: rest(laengeBanner, grenzeBanner) });
+      this.feldFehler('bannerText', { titel: 'Der Text ist zu lang.', text: `Kürz ihn um ${laengeBanner - grenzeBanner} Zeichen.` });
       gut = false;
     }
     if (daten.an && daten.kanal === null) {
