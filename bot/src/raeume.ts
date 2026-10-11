@@ -2,13 +2,14 @@ import {
   ChannelType,
   DiscordAPIError,
   OverwriteType,
-  PermissionFlagsBits as R,
   RESTJSONErrorCodes,
   type CategoryChannel,
   type Guild,
 } from 'discord.js';
 import type { Pool } from 'pg';
 import { text as fehlertext } from './befehle.js';
+import { menue } from './menue.js';
+import { besitzerRechte, botRechte, erlaube, type Eintrag } from './raumrechte.js';
 import type { Sprachraeume } from './sprachraeume.js';
 
 // Was `Raeume` braucht. `uhr` und die Zeiten sind nur für Tests anders.
@@ -50,16 +51,12 @@ export function belegung(guild: Guild, kanal: string): string[] {
 // Die Einträge der Kategorie, dazu Besitzer und Bot; für dieselbe ID
 // zusammengeführt, unsere Rechte erlaubt. Siehe docs/benutzung/sprachraeume.md, „Ablauf“.
 export function eintraege(kategorie: CategoryChannel | undefined, besitzer: string, bot: string) {
-  const liste = new Map<string, { id: string; type: OverwriteType; allow: bigint; deny: bigint }>();
+  const liste = new Map<string, Eintrag>();
   for (const e of kategorie?.permissionOverwrites.cache.values() ?? []) {
     liste.set(e.id, { id: e.id, type: e.type, allow: e.allow.bitfield, deny: e.deny.bitfield });
   }
-  const dazu = (id: string, rechte: bigint) => {
-    const alt = liste.get(id) ?? { id, type: OverwriteType.Member, allow: 0n, deny: 0n };
-    liste.set(id, { ...alt, allow: alt.allow | rechte, deny: alt.deny & ~rechte });
-  };
-  dazu(besitzer, R.ViewChannel | R.Connect | R.ReadMessageHistory);
-  dazu(bot, R.ViewChannel | R.Connect | R.SendMessages);
+  erlaube(liste, besitzer, OverwriteType.Member, besitzerRechte);
+  erlaube(liste, bot, OverwriteType.Member, botRechte);
   return [...liste.values()];
 }
 
@@ -72,6 +69,11 @@ export async function raumVon(db: Pick<Pool, 'query'>, server: string, besitzer:
 export async function raeumeVon(db: Pick<Pool, 'query'>, server: string): Promise<Set<string>> {
   const { rows } = await db.query<{ kanal: string }>('SELECT kanal FROM raeume WHERE server = $1', [server]);
   return new Set(rows.map((z) => z.kanal));
+}
+
+export async function besitzerVon(db: Pick<Pool, 'query'>, kanal: string): Promise<string | undefined> {
+  const { rows } = await db.query<{ besitzer: string }>('SELECT besitzer FROM raeume WHERE kanal = $1', [kanal]);
+  return rows[0]?.besitzer;
 }
 
 export async function istRaum(db: Pick<Pool, 'query'>, kanal: string): Promise<boolean> {
@@ -182,7 +184,13 @@ export class Raeume {
       // Das Mitglied ist schon weg, oder es hat inzwischen einen Raum: Der neue geht wieder.
       if (!erwartet(fehler)) console.error(`Sprachraum: nicht verschoben: ${fehlertext(fehler)}`);
       await this.loesche(guild, raum.id, grund.gescheitert);
+      return;
     }
+    // Das Menü im Textchat des Raums. Scheitert es, bleibt der Raum ohne Knöpfe.
+    // Siehe docs/benutzung/sprachraeume.md, „Wenn etwas fehlt“.
+    await raum.send(menue()).catch((fehler: unknown) => {
+      if (!erwartet(fehler)) console.error(`Sprachraum: Menü nicht gesendet: ${fehlertext(fehler)}`);
+    });
   }
 
   // Ist ein Raum leer, prüft der Bot nach `warten` ms noch einmal und löscht ihn dann.

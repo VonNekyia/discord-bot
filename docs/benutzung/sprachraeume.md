@@ -4,6 +4,8 @@ description: Eigene Sprachkanäle auf Zeit; wer einen Erzeuger betritt, bekommt 
 code:
   - bot/src/index.ts
   - bot/src/raeume.ts
+  - bot/src/menue.ts
+  - bot/src/knoepfe.ts
 ---
 
 # Sprachräume
@@ -116,7 +118,16 @@ mit dem Raum.
   Besitzer machen.
 - Ob ein Raum gesperrt oder versteckt ist und wer gebannt ist, steht in den
   Rechten des Kanals bei Discord, nicht in der Datenbank. Ändert jemand die
-  Rechte von Hand, gilt das.
+  Rechte von Hand, gilt das. Entsperren und Zeigen setzen „Verbinden“ und
+  „Kanal ansehen“ der Rollen aber wieder so wie in der Kategorie.
+- In einen gesperrten Raum kommt auch, wer „Administrator“ hat oder einen
+  eigenen Rechte-Eintrag mit „Verbinden“, etwa aus der Kategorie: Discord
+  wendet Einträge für Personen nach denen für Rollen an
+  ([Permission Overwrites](https://docs.discord.com/developers/topics/permissions#permission-overwrites)).
+  Ebenso sieht ein versteckter Raum, wer „Kanal ansehen“ so hat.
+- Wer den Besitz abgibt, behält sein Recht, den Raum zu sehen und zu
+  betreten. Der neue Besitzer bekommt dieselben Rechte wie der erste.
+- Die Knöpfe stehen in drei Reihen: Zugang, Raum, Mitglieder.
 - Einen Kanal lässt Discord nur wenige Male in kurzer Zeit umbenennen;
   `@discordjs/rest` rechnet mit 2 Umbenennungen je 10 Minuten und Kanal
   (`hasSublimit` für `PATCH /channels/:id` mit `name`). Ist die Grenze

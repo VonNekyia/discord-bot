@@ -9,6 +9,7 @@ import { lese } from './begruessung.js';
 import { ladeCache } from './cache.js';
 import { erstelleClient } from './client.js';
 import { migriere, oeffne, verbindung } from './datenbank.js';
+import { istMenue, Knoepfe } from './knoepfe.js';
 import { Raeume } from './raeume.js';
 import { begruesse, erstelleBremse } from './senden.js';
 import { liesSprachraeume } from './sprachraeume.js';
@@ -46,6 +47,7 @@ const einstellungen = ladeCache((server: string) => lese(db, server));
 // Ebenso die Sprachräume, gelesen bei jedem Betreten eines Sprachkanals.
 const sprachraeume = ladeCache((server: string) => liesSprachraeume(db, server));
 const raeume = new Raeume({ db, einstellungen: sprachraeume });
+const knoepfe = new Knoepfe({ db });
 
 const client = erstelleClient();
 let api: Server | undefined;
@@ -99,6 +101,8 @@ client.on(Events.ChannelDelete, (kanal) => {
 
 client.on(Events.InteractionCreate, (interaction) => {
   if (interaction.isChatInputCommand()) void beantworte(interaction, { db });
+  // Das Menü der Sprachräume, erkannt am Präfix in `custom_id`. Siehe docs/bot/sprachraeume-menue.md, „Knöpfe“.
+  else if (istMenue(interaction)) void knoepfe.bediene(interaction);
 });
 
 // discord.js verbindet sich selbst neu. Gibt es auf, endet der Prozess, und

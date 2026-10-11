@@ -12,6 +12,8 @@ code:
   - bot/src/senden.test.ts
   - bot/src/testhilfe.ts
   - bot/src/sprachraeume.test.ts
+  - bot/src/knoepfe.test.ts
+  - bot/src/raumrechte.test.ts
   - bot/package.json
   - .github/workflows/backend.yml
 ---
@@ -56,11 +58,15 @@ Bremse ohne Netz, mit `t.mock.timers`. Beide nutzen
 - `mockDiscord`: ein `node:http`-Server für OAuth2 (`/oauth2/token`,
   `/oauth2/token/revoke`, `/users/@me`, `/users/@me/guilds`), für
   `GET /guilds/{id}/members/{user}`, für `POST /channels/{id}/messages`,
-  auch mit Dateien, für das CDN der Avatare, und für Kanäle anlegen,
-  Mitglieder verschieben und Kanäle löschen. Er merkt sich jede Anfrage,
-  Nachricht, Anlage, Verschiebung und Löschung; je Test lässt sich die
-  Antwort für Person und Mitglieder ändern, und Anlegen oder Verschieben
-  können mit einem Code von Discord scheitern.
+  auch mit Dateien, für das CDN der Avatare, für Kanäle anlegen, ändern
+  (`PATCH /channels/{id}`) und löschen, für Mitglieder verschieben und für
+  die Antworten auf Interaktionen (`POST /interactions/{id}/{token}/callback`,
+  `PATCH /webhooks/{id}/{token}/messages/@original`). Er merkt sich jede
+  Anfrage, Nachricht, Anlage, Änderung mit dem Grund im Audit-Log,
+  Verschiebung, Löschung und Antwort; je Test lässt sich die Antwort für
+  Person und Mitglieder ändern, Anlegen, Ändern, Verschieben und Senden
+  können mit einem Code von Discord scheitern, und Umbenennen kann mit 429
+  und `Retry-After` antworten.
 - `bot/src/sprachraeume.test.ts` setzt Voice States über den Cache von
   discord.js, wie Discord sie meldet, und ruft dann `Raeume#aenderung`.
   Es nutzt einen eigenen Server und eine eigene Person, weil die
@@ -79,6 +85,17 @@ Einstellungen und Bilder fallen danach weg; jede Datei nutzt eigene
 Server. Wer `behalteNur` testet, tut das in einer Transaktion, die
 zurückrollt, weil die Dateien gleichzeitig laufen. Alle IDs sind erfunden
 (`AGENTS.md`, Regel 21).
+
+## Das Menü der Sprachräume
+
+`bot/src/knoepfe.test.ts` baut Interaktionen so, wie Discord sie schickt,
+und gibt sie durch die Action `InteractionCreate` von discord.js. So
+entstehen echte `ButtonInteraction`, `UserSelectMenuInteraction` und
+`ModalSubmitInteraction`, und `deferReply`, `showModal` und
+`editReply` gehen als REST an `mockDiscord`. Den Stand des Raums setzt
+der Test mit der Action `ChannelUpdate`, wer drin ist, über die Voice
+States. Die Datei nutzt einen eigenen Server und eigene Personen.
+`bot/src/raumrechte.test.ts` prüft die Rechnung der Rechte ohne Discord.
 
 ## Was abgedeckt ist
 
@@ -101,6 +118,7 @@ zurückrollt, weil die Dateien gleichzeitig laufen. Alle IDs sind erfunden
 | der Pool überlebt, wenn die Datenbank eine freie Verbindung trennt | PostgreSQL: `pg_terminate_backend`; genau eine Logzeile `Datenbank: …`, die nächste Anfrage geht |
 | misse misst eine Anfrage an die Datenbank | PostgreSQL: `SELECT 1` |
 | der Cache hält Mitglieder und Nutzer nur für den Bot selbst | `erstelleClient`: nach `GUILD_CREATE` mit drei Mitgliedern nur der Bot in beiden Caches |
+| nur PATCH /channels/:id wartet nicht auf ein Rate-Limit … | je Route zuerst 429 mit `Retry-After: 0`: `PATCH /channels/:id` wirft `RateLimitError` ohne zweiten Versuch, `POST /channels/:id/messages` und `DELETE /channels/:id` versuchen es noch einmal |
 | hoechstens rechnet jeden Platzhalter … | längste Werte im Text und im Banner, Emoji zählt zwei |
 | der Text darf mit den längsten Werten genau 2000 Zeichen haben … | Grenze genau, ein Zeichen mehr gibt den Code |
 | jede Prüfregel meldet ihren Code und ihr Feld | `pruefe`: jede Zeile der Tabelle „Einstellung speichern“ |
@@ -141,7 +159,9 @@ zurückrollt, weil die Dateien gleichzeitig laufen. Alle IDs sind erfunden
 | ist der Text leer und scheitert das Banner … | `503`, keine Nachricht |
 | die Grenze je Server zählt erst nach den Rechten … | fünfmal `403` für eine fremde Sitzung, danach dreimal `200` und `429` mit `Retry-After: 60` |
 | kein Code, Token, Cookie, state und keine ID im Log | Anmeldung mit Erfolg und drei Fehlern, eine Route mit `503`; keine Zeile enthält einen der Werte |
-| ein Erzeuger legt den Raum … in einem Aufruf an | eine private Kategorie: Name aus der Vorlage, Kategorie, Limit; die Einträge der Kategorie, @everyone ohne „Kanal ansehen“, der Besitzer zusammengeführt, der Bot; verschoben; Zeile in `raeume` |
+| ein Erzeuger legt den Raum … in einem Aufruf an | eine private Kategorie: Name aus der Vorlage, Kategorie, Limit; die Einträge der Kategorie, @everyone ohne „Kanal ansehen“, der Besitzer zusammengeführt, der Bot; verschoben mit Grund; Zeile in `raeume` |
+| nach dem Anlegen kommt das Menü in den Textchat des Raums … | eine Nachricht im Raum, „## Dein Sprachraum“, `allowed_mentions` leer, drei Reihen mit je vier Knöpfen, jede `custom_id` mit `sprachraum:`, die zwölf Namen der Tabelle |
+| scheitert das Menü, bleibt der Raum ohne Knöpfe … | Senden mit 50013: Zeile bleibt, nichts gelöscht, eine Logzeile ohne ID |
 | ohne Kategorie hat der Raum nur die Einträge von Besitzer und Bot | kein `parent_id`, zwei Einträge |
 | wer schon einen Raum hat, kommt zurück in den eigenen … | kein zweites Anlegen, Verschieben in den eigenen Raum |
 | höchstens ein neuer Raum je 30 s und Mitglied | mit der Uhr aus `RaumKontext`: nach 29 s nichts, nach 30 s neu |
@@ -157,6 +177,28 @@ zurückrollt, weil die Dateien gleichzeitig laufen. Alle IDs sind erfunden
 | sprachkanaele liefert Sprachkanäle und Kategorien mit bereit … | Sortierung, ohne Text und Bühne; ohne „Mitglieder verschieben“ nicht bereit; eine Kategorie, die „Streamen“ verbietet, das der Bot nicht hat, nicht bereit |
 | sprachraeume liefert ohne Zeile die Standardwerte … | `{ an: false, erzeuger: [] }`, Speichern mit 100 Zeichen Vorlage, fremde Felder fallen weg, Cache geleert |
 | jede Prüfregel meldet ihren Code und den Pfad des Felds | alle Zeilen der Tabelle „Sprachräume einstellen“, mit Pfaden wie `erzeuger.1.limit` |
+| Sperren: deferReply vor dem PATCH … | Callback mit Typ 5 und Flag 64 vor `PATCH /channels/{id}`; Body nur `permission_overwrites`; @everyone und Rollen ohne „Verbinden“, wer drin ist, mit eigenem; Grund im Audit-Log |
+| Sperren: wer nicht Besitzer ist, bekommt den Hinweis … | Hinweis mit dem Besitzer, `allowed_mentions` leer; gesperrt bleibt gesperrt; kein PATCH |
+| Entsperren: Verbinden wieder wie in der Kategorie … | Einträge wieder wie beim Anlegen; Hinweise für nicht gesperrt und Nicht-Besitzer |
+| Verstecken und Zeigen … | Rollen ohne „Kanal ansehen“, wer drin ist, sieht und verbindet sich; Zeigen stellt die Einträge vom Anlegen her; Hinweise |
+| Umbenennen: ein Formular mit dem Namen von jetzt … | Callback Typ 9, Label mit Textfeld `wert`, 1 bis 100 Zeichen, vorbelegt; Nicht-Besitzer Typ 4 mit Hinweis |
+| Umbenennen: das Formular setzt den Namen, ohne Platzhalter … | Body nur `name`, `{name}` bleibt, getrimmt; Cache umbenannt; leerer Name und Nicht-Besitzer ohne PATCH |
+| Umbenennen bei 429 … | `Retry-After: 300`: Antwort unter 2 s, „erst in 5 min“ |
+| Limit: ein Formular mit dem Limit von jetzt … | vorbelegt mit 4; `user_limit` 7 und 0; „zehn“ und Nicht-Besitzer ohne PATCH |
+| Rauswerfen: die Nutzerauswahl nur für den Besitzer … | Auswahl Typ 5 mit `custom_id`; `deferUpdate`, getrennt mit Grund, Auswahl weg; nicht drin, sich selbst, Bot, Nicht-Besitzer: Hinweise |
+| Bannen: Sehen und Verbinden verboten … | Eintrag mit beiden verboten, PATCH vor dem Trennen; zweimal, sich selbst, Bot: Hinweise |
+| Bannen bei 30060 … | Hinweis, niemand getrennt, kein Log |
+| Entbannen: hebt den Bann auf … | Eintrag weg; nicht gebannt und Nicht-Besitzer: Hinweise |
+| Besitz übergeben: an ein Mitglied im Raum … | Zeile in `raeume`, Rechte des Besitzers, Grund; danach Hinweis an den alten Besitzer |
+| Besitz übergeben: nicht im Raum, schon ein eigener Raum … | Hinweise; mit eigenem Raum weist `UNIQUE` ab; Besitz bleibt, kein PATCH |
+| Übernehmen: wer im Raum ist und keinen Raum hat … | `deferReply`, Zeile, Rechte, Grund |
+| Übernehmen: Hinweise … | Besitzer drin, nicht drin, schon Besitzer, eigener Raum; Besitz bleibt |
+| Info: für jeden, der den Chat sieht … | Besitzer, Limit, gesperrt, versteckt, Zahl der Gebannten; „keins“ bei 0 |
+| ein Knopf in einem Kanal, der kein Raum ist … | „kein Sprachraum mehr“, auch für einen Knopf mit Auswahl |
+| istMenue erkennt nur das Präfix … | andere `custom_id` nicht; unbekannte Aktion mit Präfix bekommt einen Hinweis |
+| fehlt dem Bot ein Recht (50013) … / ein anderer Fehler … | Hinweis oder „Das hat nicht geklappt.“, je eine Logzeile ohne ID und Token |
+| dauer: Sekunden unter einer Minute … | 50 ms, 12 s, 5 und 6 min |
+| Rechte im Raum: … | `raumrechte` ohne Discord: Sperren und Verstecken hin und zurück ergeben die Einträge vom Anlegen; ohne Kategorie; Zeigen bei gesperrtem Raum; Bann und Entbannen; Gebannte bleiben gebannt; Kategorie-Sperre ist kein Bann; Besitzer und Bot behalten ihre Rechte; neuer Besitzer |
 | Beitritt: Platzhalter im Text maskiert, nur das neue Mitglied pingt | Text mit Spitzname und Servername maskiert, `{anzahl}`, `allowed_mentions` |
 | Abschied eines Mitglieds ausserhalb des Caches … | Partial mit globalem Anzeigenamen, `allowed_mentions` ohne Nutzer |
 | darf der Bot im Kanal nicht senden … | keine Nachricht, eine Logzeile ohne ID und Namen |

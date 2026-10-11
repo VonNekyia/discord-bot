@@ -27,13 +27,14 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 ## Bot
 
 - [Intents](bot/intents.md): heute nur `Guilds`, `GuildMembers` und `Partials.GuildMember` kommen mit der Begrüssung, welche privilegierten nicht und warum, Reihenfolge bei einem neuen privilegierten Intent.
-- [Rate-Limits](bot/rate-limits.md): Befehle registrieren, 429, 5xx, Zeitlimit.
+- [Rate-Limits](bot/rate-limits.md): Befehle registrieren, 429, Kanäle ändern ohne Warten, 5xx, Zeitlimit.
 - [Wiederanlauf](bot/wiederanlauf.md): Neuverbinden durch discord.js, Codes, nach denen der Bot endet, was nicht getestet ist.
 - [Datenschutz](bot/datenschutz.md): was der Bot speichert, was ins Log geht.
 - [Datenbank](bot/datenbank.md): PostgreSQL über `pg`, Verbindung, Discord-IDs als `bigint`, Pool und seine Werte, Migrationen unter Sperre und in Transaktionen, Dev-Datenbank in Docker, was noch fehlt.
 - [API im Bot](bot/dashboard-api.md): wie das Backend die API des Dashboards baut, Module, Start und Ende, Reihenfolge der Prüfungen, Grenzen und Zeitlimits, Aufräumen.
 - [Begrüssung senden](bot/begruessung-senden.md): wie der Bot bei Beitritt und Abschied sendet, Cache, Rechte im Kanal, Platzhalter, Erwähnungen, Banner, Log.
-- [Sprachräume im Bot](bot/sprachraeume-bau.md): wie das Backend die Sprachräume baut, Belegung aus den Voice States, Anlegen in einem Aufruf, nacheinander je Mitglied, erwartete Fehler, Löschen nach 2 s, Abgleich beim Start.
+- [Sprachräume im Bot](bot/sprachraeume-bau.md): wie das Backend die Sprachräume baut, Belegung aus den Voice States, Anlegen in einem Aufruf mit dem Menü danach, nacheinander je Mitglied, erwartete Fehler, Löschen nach 2 s, Abgleich beim Start.
+- [Menü der Sprachräume im Bot](bot/sprachraeume-menue.md): Knöpfe und `custom_id`, Antworten mit `deferReply`, eins nach dem anderen je Raum, Rechte im Raum für Sperren, Verstecken und Bann, Besitzer wechseln, erwartete Fehler, Log.
 - [Cache](bot/cache.md): wann cachen und wann nicht, `ladeCache`, Standardwerte, Invalidierung, Grenzen.
 
 ## Oberfläche

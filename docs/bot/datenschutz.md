@@ -9,6 +9,7 @@ code:
   - bot/src/client.ts
   - bot/src/api.ts
   - bot/src/anmeldung.ts
+  - bot/src/knoepfe.ts
 ---
 
 # Datenschutz
@@ -83,6 +84,13 @@ und den Text des Fehlers: `Anmeldung: <Schritt>: <Fehler>` und
 `API <Route>: <Fehler>`. Der Name der Route ist fest, etwa `kanaele`, nie
 der Pfad; der trägt die ID des Servers. Der Test „kein Code, Token, Cookie,
 state und keine ID im Log“ prüft das.
+
+Die Sprachräume loggen nur einen festen Schritt und den Text des Fehlers,
+etwa `Sprachraum: nicht angelegt: <Fehler>`; das Menü nur
+`Sprachraum-Menü: <Fehler>`. Auch dort nie das Fehlerobjekt, also nie den
+Token der Interaktion. Die Tests „fehlt dem Bot ein Recht (50013), sagt er
+es …“ und „ein anderer Fehler …“ prüfen, dass keine ID und kein Token in
+der Zeile steht.
 
 Fehler der Datenbank gehen ebenso nur mit ihrer Meldung ins Log, auch
 `Datenbank: <Meldung>` aus dem Pool, siehe [Datenbank](datenbank.md),
