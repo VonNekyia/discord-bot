@@ -47,6 +47,10 @@ in [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md).
 | `DELETE /api/server/{id}/begruessung/{art}/bild` | `204` |
 | `GET /api/server/{id}/begruessung/{art}/vorschau` | `200` `image/png` |
 | `POST /api/server/{id}/begruessung/{art}/test` | `200` `{ banner: boolean }`; die Testnachricht ist gesendet |
+| `GET /api/server/{id}/sprachkanaele` | siehe [API der Sprachräume](sprachraeume.md) |
+| `GET /api/server/{id}/sprachraeume` | ebenda |
+| `PUT /api/server/{id}/sprachraeume` | ebenda |
+| `POST /api/server/{id}/sprachraeume/menue` | ebenda |
 
 `{art}` ist `beitritt` oder `abschied`, sonst `404`. Jede Route mit `{id}`
 prüft zuerst die Rechte, siehe [Anmeldung am Dashboard](anmeldung.md),
@@ -204,14 +208,15 @@ nichts zu senden, obwohl die Regeln oben es erlaubt haben.
 | alle Routen mit `{id}` zusammen | 60 je Minute und Sitzung | jede prüft die Rechte mit einem Aufruf an Discord; eine Sitzung soll nicht das Budget des Bots verbrauchen, das er für Interaktionen braucht |
 | `PUT …/bild`, `GET …/vorschau` und `POST …/test` zusammen | 20 je Minute und Sitzung | sie dekodieren oder zeichnen Bilder |
 | `POST …/test` | 3 je Minute und Server, über alle Sitzungen | jede Testnachricht landet im Kanal, den alle sehen |
+| `POST …/sprachraeume/menue` | 3 je Minute und Server, über alle Sitzungen | jedes Menü landet im Kanal, den alle sehen |
 
 Darüber `429` `zu_viele` mit `Retry-After` in Sekunden. Ein Aufruf zählt zu
 jeder Zeile, die passt.
 
 - Die beiden Grenzen je Sitzung werden vor den Rechten geprüft, damit eine
   abgelehnte Anfrage Discord nichts kostet.
-- Die Grenze je Server ist die Ausnahme. Sie zählt erst nach den Rechten
-  und den Regeln der Testnachricht, direkt vor dem Senden. Sonst könnte
+- Die Grenzen je Server sind die Ausnahme. Sie zählen erst nach den Rechten
+  und den Regeln der Route, direkt vor dem Senden. Sonst könnte
   jeder Angemeldete mit drei Anfragen auf einen fremden Server dessen
   Testnachricht sperren und bekäme dafür nur `403`.
 
@@ -223,7 +228,7 @@ entscheidet das Frontend. `feld` steht nur bei `400`.
 
 | Status | Code | Wann |
 |---|---|---|
-| `400` | siehe „Einstellung speichern“ und „Testnachricht“ oben, dazu `bild_zu_klein` | Eingabe ungültig, oder für eine Testnachricht fehlt etwas |
+| `400` | siehe „Einstellung speichern“ und „Testnachricht“ oben und [API der Sprachräume](sprachraeume.md), dazu `bild_zu_klein` | Eingabe ungültig, oder für eine Testnachricht oder das Menü fehlt etwas |
 | `401` | `nicht_angemeldet` | keine oder abgelaufene Sitzung; die Oberfläche zeigt die Anmeldung |
 | `403` | `kein_recht` | kein „Server verwalten“ auf diesem Server |
 | `403` | `origin_falsch` | `Origin` fehlt oder passt nicht |

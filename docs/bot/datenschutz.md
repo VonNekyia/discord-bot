@@ -16,8 +16,8 @@ code:
 IDs, Namen und Nachrichten von Discord sind personenbezogen. Der Bot
 speichert nur, was unten steht, und schreibt nichts davon ins Log. Wer
 etwas speichern will, trägt es vorher hier ein: was, wozu, wie lange, wie
-es gelöscht wird. Zeilen mit „kommt mit dem Dashboard“ sind beschlossen,
-aber noch nicht gebaut.
+es gelöscht wird. Zeilen mit „kommt mit …“ sind beschlossen, aber noch
+nicht gebaut.
 
 ## Was der Bot speichert
 
@@ -26,6 +26,8 @@ aber noch nicht gebaut.
 | Sitzung: SHA-256 der Kennung, Discord-ID, Name, Avatar-Hash, IDs der Server mit „Server verwalten“, Ablaufdatum | Anmeldung am Dashboard, Liste der Server | 7 Tage ab Anmeldung; Abmelden löscht sofort, abgelaufene löscht der Bot spätestens nach einem Tag | gebaut |
 | Begrüssung je Server und Art: Server-ID, Kanal-ID, Schalter, Texte | Nachricht bei Beitritt und Abschied | bis das Team sie ändert oder der Bot den Server verlässt | gebaut |
 | Bild je Server und Art, beim Hochladen auf 1100 × 440 px zugeschnitten und neu kodiert, ohne Metadaten wie EXIF oder GPS; es kann Personen zeigen | Hintergrund des Banners | bis es ersetzt oder gelöscht wird oder der Bot den Server verlässt | gebaut |
+| Sprachräume je Server: Server-ID, Schalter, Erzeuger mit Kanal-ID, Kategorie-ID, Namensvorlage und Limit, Kanal-ID und Nachricht-ID des Menüs | Räume anlegen, Menü finden | bis das Team sie ändert oder der Bot den Server verlässt | kommt mit den Sprachräumen |
+| Raum: Server-ID, Kanal-ID, Discord-ID des Besitzers, Zeit der Anlage | wissen, welche Kanäle Räume sind und wem sie gehören, auch nach einem Neustart | bis der Raum gelöscht ist, der Besitz wechselt oder der Bot den Server verlässt; beim Start vergisst der Bot Räume, die es nicht mehr gibt | kommt mit den Sprachräumen |
 
 „Der Bot verlässt den Server“ heisst auch: Er wurde entfernt, während er
 aus war. Beim Start gleicht er ab und löscht dann, siehe
