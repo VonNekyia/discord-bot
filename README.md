@@ -13,7 +13,7 @@ eine Weboberfläche in TypeScript im Design der Website von Terranova.
 
 ## Stand
 
-Grundgerüst. Der Bot meldet sich an, nutzt eine MariaDB und kennt `/ping`. Die Oberfläche
+Grundgerüst. Der Bot meldet sich an, nutzt PostgreSQL und kennt `/ping`. Die Oberfläche
 ist eine Startseite im Design der Website; was sie einmal mehr kann,
 ist offen.
 

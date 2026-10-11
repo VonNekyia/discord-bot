@@ -8,16 +8,17 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "tsc && node --test dist/*.test.js",
+    "test": "tsc && node --env-file-if-exists=.env --test dist/*.test.js",
     "start": "node --env-file=.env dist/index.js"
   },
   "dependencies": {
     "discord.js": "^14.27.0",
     "lru-cache": "^11.5.3",
-    "mysql2": "^3.24.5"
+    "pg": "^8.23.1"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
+    "@types/pg": "^8.23.1",
     "typescript": "^7.0.2"
   }
 }

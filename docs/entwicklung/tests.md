@@ -13,7 +13,7 @@ code:
 
 Die Tests laufen mit `node --test`, ohne Testframework, gegen eine
 gemockte Discord-API auf `127.0.0.1` und, wo es um SQL geht, gegen eine
-echte MariaDB. Kein Test braucht einen Token oder das Netz.
+echte PostgreSQL. Kein Test braucht einen Token oder das Netz.
 
 ```bash
 cd bot
@@ -21,7 +21,8 @@ npm test
 ```
 
 `npm test` baut mit `tsc` nach `bot/dist/` und startet
-`node --test dist/*.test.js`.
+`node --test dist/*.test.js`. Gibt es `bot/.env`, liest `npm test` sie mit
+`--env-file-if-exists`; kein Test gibt die Umgebung aus.
 
 ## Die gemockte API
 
@@ -44,20 +45,24 @@ Interaktionen ersetzt `interaktion` durch ein Objekt mit nur dem, was
 | /ping antwortet nur dem Nutzer, mit der Zeit der Datenbank | Text mit ms und Flag `Ephemeral` (64) |
 | /ping antwortet auch, wenn die Datenbank fehlt | „nicht erreichbar“, eine Logzeile nur mit dem Fehlertext |
 | /ping antwortet nach 2 s, wenn die Datenbank hängt | eine `query`, die nie zurückkommt; mit falschen Uhren: bei 1999 ms noch keine Antwort, bei 2000 ms „nicht erreichbar“ |
+| ein unbekannter Befehl … | Meldung an den Nutzer, eine Logzeile ohne Nutzerdaten |
 | gleichzeitige Anfragen laden einen Schlüssel nur einmal | `ladeCache` |
 | nach delete und nach Ablauf wird neu geladen | `ladeCache` mit `ttl` 30 ms |
 | mehr als max Schlüssel verdrängen den ältesten | `ladeCache` mit `max` 2 |
-| verbindung braucht Host, Name, Nutzer und Passwort | `verbindung`, Standardport |
-| migriere wendet jede Datei genau einmal an … | MariaDB: Reihenfolge nach Namen, zweiter Lauf leer, `BIGINT UNSIGNED` als Text |
-| misse misst eine Anfrage an die Datenbank | MariaDB: `SELECT 1` |
+| verbindung braucht Host, Name, Nutzer und Passwort | `verbindung`, Standardport 5432 |
+| migriere wendet jede Datei genau einmal an … | PostgreSQL: Reihenfolge nach Namen, zweiter Lauf leer, `bigint` über 2^53 als Text |
+| eine Migration gilt ganz oder gar nicht … | PostgreSQL: Datei und Eintrag haben dieselbe `xmin`, liefen also in einer Transaktion; ohne die Transaktion je Datei fällt der Test. Nach einem Fehler keine halbe Datei und kein Eintrag, nach der Korrektur läuft sie |
+| zwei gleichzeitige Läufe von migriere … | PostgreSQL: die erste Datei schläft 0,5 s; ein Lauf wendet beide Dateien an, der andere keine. Ohne die Sperre scheitert der zweite an `CREATE TABLE` |
+| der Pool überlebt, wenn die Datenbank eine freie Verbindung trennt | PostgreSQL: `pg_terminate_backend`; genau eine Logzeile `Datenbank: …`, die nächste Anfrage geht |
+| misse misst eine Anfrage an die Datenbank | PostgreSQL: `SELECT 1` |
 
-## Tests gegen MariaDB
+## Tests gegen PostgreSQL
 
-`bot/src/datenbank.test.ts` braucht eine MariaDB mit den Variablen aus
+`bot/src/datenbank.test.ts` braucht eine PostgreSQL mit den Variablen aus
 [Datenbank](../bot/datenbank.md), „Verbindung“. Lokal startet sie
-`docker compose up -d` in `bot/`; fehlt `DB_HOST`, werden diese Tests
-übersprungen. In der CI läuft MariaDB 11.4 als Service im Job „Backend“,
-und fehlt dort die Datenbank, scheitert der Test, statt übersprungen zu
-werden (`CI` ist gesetzt). Die Tests legen eine Tabelle `probe` an und
-räumen sie danach weg.
-| ein unbekannter Befehl … | Meldung an den Nutzer, eine Logzeile ohne Nutzerdaten |
+`docker compose up -d` in `bot/`, und `npm test` findet die Werte in
+`bot/.env`; fehlt `DB_HOST`, werden diese Tests übersprungen. In der CI
+läuft PostgreSQL 18 als Service im Job „Backend“, und fehlt dort die
+Datenbank, scheitert der Test, statt übersprungen zu werden (`CI` ist
+gesetzt). Die Tests legen die Tabellen `probe` und `probe_halb` und
+Einträge `probe-…` in `migrationen` an und räumen sie danach weg.

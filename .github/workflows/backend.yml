@@ -18,23 +18,22 @@ jobs:
     name: Backend
     runs-on: ubuntu-latest
     timeout-minutes: 120
-    # Eine Wegwerf-MariaDB nur für diesen Lauf; das Passwort ist kein Secret.
+    # Eine Wegwerf-PostgreSQL nur für diesen Lauf; das Passwort ist kein Secret.
     services:
-      mariadb:
-        image: mariadb:11.4
+      postgres:
+        image: postgres:18
         env:
-          MARIADB_DATABASE: kitty
-          MARIADB_USER: kitty
-          MARIADB_PASSWORD: ci
-          MARIADB_RANDOM_ROOT_PASSWORD: "1"
+          POSTGRES_DB: kitty
+          POSTGRES_USER: kitty
+          POSTGRES_PASSWORD: ci
         ports:
-          - 3306:3306
+          - 5432:5432
         options: >-
-          --health-cmd "healthcheck.sh --connect --innodb_initialized"
+          --health-cmd "pg_isready -h 127.0.0.1 -U kitty -d kitty"
           --health-interval 5s --health-timeout 5s --health-retries 20
     env:
       DB_HOST: 127.0.0.1
-      DB_PORT: 3306
+      DB_PORT: 5432
       DB_NAME: kitty
       DB_USER: kitty
       DB_PASSWORD: ci

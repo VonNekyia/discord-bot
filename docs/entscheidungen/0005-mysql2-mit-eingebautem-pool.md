@@ -1,7 +1,7 @@
 ---
 title: "0005: MariaDB über mysql2 mit eingebautem Pool"
 description: Warum der Bot MariaDB über mysql2 anspricht und dessen Pool nutzt, statt des Connectors von MariaDB oder einer eigenen Pool-Bibliothek.
-status: gilt
+status: abgelöst durch 0007
 date: 2026-10-10
 issues: []
 code:
@@ -10,6 +10,9 @@ code:
 ---
 
 # 0005: MariaDB über mysql2 mit eingebautem Pool
+
+Abgelöst durch [0007](0007-postgres-mit-pg.md): Der Bot nutzt PostgreSQL
+über `pg`.
 
 ## Anlass
 

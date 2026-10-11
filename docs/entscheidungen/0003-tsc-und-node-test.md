@@ -11,6 +11,9 @@ code:
 
 # 0003: Nur tsc und node:test als Werkzeuge
 
+Teilweise abgelöst durch [0007](0007-postgres-mit-pg.md): Zu den
+Dev-Abhängigkeiten kommt `@types/pg`.
+
 ## Anlass
 
 Die CI soll bauen, prüfen und testen, ohne Abhängigkeit ohne Not

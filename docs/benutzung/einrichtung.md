@@ -12,7 +12,7 @@ code:
 
 Der Bot läuft unter Node 24 aus `bot/`. Er braucht den
 `DISCORD_BOT_TOKEN`, mit dem er sich beim Gateway anmeldet, und eine
-MariaDB, siehe [Datenbank](../bot/datenbank.md). Entwickelt wird
+PostgreSQL, siehe [Datenbank](../bot/datenbank.md). Entwickelt wird
 mit einem eigenen Test-Bot auf einem Test-Server; den Bot der Produktion
 fasst kein Agent an.
 
@@ -70,7 +70,7 @@ gh secret set DISCORD_BOT_TOKEN -R VonNekyia/discord-bot
 ```
 
 Die CI braucht keins davon: Die Tests laufen gegen eine gemockte API und
-eine Wegwerf-MariaDB, siehe [Tests](../entwicklung/tests.md).
+eine Wegwerf-PostgreSQL, siehe [Tests](../entwicklung/tests.md).
 
 ## Bauen und starten
 
