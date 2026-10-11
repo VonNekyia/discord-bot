@@ -89,3 +89,18 @@ darf, steht in [Datenschutz](datenschutz.md), „Was ins Log geht“.
   bei `guildDelete` und `behalteNur` beim Start, siehe
   [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md),
   „Wenn etwas fehlt“.
+- Startet der `ShardingManager` den Bot in mehreren Prozessen, sieht jeder
+  Prozess nur die Server seiner Shards (`client.shard`). `behalteNur`
+  gleicht dann nur unter ihnen ab: Ein Server liegt auf Shard
+  `(server >> 22) % count`
+  ([Doku von Discord](https://docs.discord.com/developers/events/gateway#sharding)).
+  Ohne `ShardingManager` ist `client.shard` `null`, und der Abgleich gilt
+  für alle. Der Test „mit dem ShardingManager gleicht ein Prozess nur …“
+  prüft das.
+
+## Was noch fehlt
+
+- **Mehrere Prozesse.** Heute läuft der Bot in einem Prozess. Mit dem
+  `ShardingManager` sähe die API nur die Server ihres Prozesses, jeder
+  weitere Prozess fände `API_PORT` belegt, und jeder hätte seine eigene
+  Grenze. Dann braucht die API einen Weg zu allen Shards.

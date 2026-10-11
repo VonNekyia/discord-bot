@@ -105,8 +105,21 @@ export async function vergiss(db: Pick<Pool, 'query'>, server: string): Promise<
   await db.query('DELETE FROM begruessungen WHERE server = $1', [server]);
 }
 
-// Löscht beim Start die Einstellungen aller Server, die nicht in `server`
-// stehen, und gibt ihre Zahl zurück. Siehe docs/benutzung/begruessung.md, „Wenn etwas fehlt“.
-export async function behalteNur(db: Pick<Pool, 'query'>, server: string[]): Promise<number> {
-  return (await db.query('DELETE FROM begruessungen WHERE NOT (server = ANY($1))', [server])).rowCount ?? 0;
+// Die Shards eines Prozesses, den der ShardingManager gestartet hat.
+export interface Shards {
+  ids: number[];
+  count: number;
+}
+
+// Löscht beim Start die Einstellungen der Server, die nicht in `server`
+// stehen, und gibt ihre Zahl zurück. Mit `shards` nur unter den Servern
+// dieser Shards; die anderen sieht der Prozess nicht.
+// Siehe docs/bot/dashboard-api.md, „Aufräumen“.
+export async function behalteNur(db: Pick<Pool, 'query'>, server: string[], shards?: Shards): Promise<number> {
+  const { rowCount } = await db.query(
+    `DELETE FROM begruessungen WHERE NOT (server = ANY($1))
+       AND ($2::int IS NULL OR (server >> 22) % $2 = ANY($3::int[]))`,
+    [server, shards?.count ?? null, shards?.ids ?? []],
+  );
+  return rowCount ?? 0;
 }

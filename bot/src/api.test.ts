@@ -26,6 +26,7 @@ const SERVER = '300000000000000003';
 const OHNE_BOT = '300000000000000004';
 const EIGENER = '300000000000000005';
 const NUR_MITGLIED = '300000000000000006';
+const ANDERER_SHARD = '300000000004194307';
 const ROLLE_BOT = '400000000000000001';
 const ROLLE_TEAM = '400000000000000002';
 const K = {
@@ -220,7 +221,7 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
   after(async () => {
     if (!ziel) return;
     await db.query('DELETE FROM sitzungen WHERE nutzer = ANY($1)', [[PERSON, FREMD]]);
-    await db.query('DELETE FROM begruessungen WHERE server = ANY($1)', [[SERVER, EIGENER]]);
+    await db.query('DELETE FROM begruessungen WHERE server = ANY($1)', [[SERVER, EIGENER, ANDERER_SHARD]]);
     api.closeAllConnections();
     await new Promise((fertig) => api.close(fertig));
     mock.server.closeAllConnections();
@@ -492,6 +493,22 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
       const andere = await db.query<{ server: string }>('SELECT DISTINCT server FROM begruessungen WHERE server <> $1', [EIGENER]);
       assert.equal(await behalteNur(db, andere.rows.map((z) => z.server)), 1);
       assert.equal(await zahl(EIGENER), 0);
+    });
+
+    test('mit dem ShardingManager gleicht ein Prozess nur unter den Servern seiner Shards ab', async () => {
+      const shard = (id: string) => Number((BigInt(id) >> 22n) % 2n);
+      assert.deepEqual([shard(EIGENER), shard(ANDERER_SHARD)], [0, 1]);
+      const zahl = async (server: string) => (await db.query('SELECT 1 FROM begruessungen WHERE server = $1', [server])).rowCount;
+      await speichere(db, EIGENER, 'beitritt', standard('beitritt'));
+      await speichere(db, ANDERER_SHARD, 'beitritt', standard('beitritt'));
+      const andere = await db.query<{ server: string }>(
+        'SELECT DISTINCT server FROM begruessungen WHERE server <> ALL($1)',
+        [[EIGENER, ANDERER_SHARD]],
+      );
+      // Der Prozess mit Shard 1 von 2 kennt keinen der beiden; EIGENER liegt auf Shard 0 und bleibt.
+      assert.equal(await behalteNur(db, andere.rows.map((z) => z.server), { ids: [1], count: 2 }), 1);
+      assert.equal(await zahl(EIGENER), 1);
+      assert.equal(await zahl(ANDERER_SHARD), 0);
     });
 
     test('unbekannte Routen, Arten und die Routen für Bilder geben 404', async () => {

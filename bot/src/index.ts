@@ -46,7 +46,8 @@ client.once(Events.ClientReady, async (bereit) => {
   );
   // Server, die den Bot entfernt haben, während er aus war.
   // Siehe docs/benutzung/begruessung.md, „Wenn etwas fehlt“.
-  await behalteNur(db, [...bereit.guilds.cache.keys()]).then(
+  const shards = bereit.shard && { ids: bereit.shard.ids, count: bereit.shard.count };
+  await behalteNur(db, [...bereit.guilds.cache.keys()], shards ?? undefined).then(
     (n) => n > 0 && console.log(`Einstellungen von ${n} verlassenen Servern gelöscht.`),
     (e: unknown) => console.error(`Abgleich der Server fehlgeschlagen: ${text(e)}`),
   );
