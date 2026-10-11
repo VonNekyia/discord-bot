@@ -1,6 +1,6 @@
 ---
 title: Begrüssung senden
-description: Wie der Bot bei Beitritt und Abschied sendet; Ereignisse und Partial, Einstellungen aus dem Cache, Prüfung der Rechte im Kanal, Platzhalter, Erwähnungen, Banner, was ins Log geht.
+description: Wie der Bot bei Beitritt und Abschied sendet; Ereignisse und Partial, Einstellungen aus dem Cache, die Bremse, höchstens zwei Banner zugleich, Prüfung der Rechte im Kanal, Platzhalter, Erwähnungen, die Testnachricht, was ins Log geht.
 code:
   - bot/src/senden.ts
   - bot/src/begruessung.ts
@@ -22,17 +22,45 @@ Seite sagt, wie `begruesse` in `bot/src/senden.ts` das tut. Es läuft bei
    (`ladeCache` über `lese`), siehe [Cache](cache.md). Lassen sie sich
    nicht lesen, endet es mit einer Logzeile.
 2. Ist die Art aus oder ohne Kanal, endet es still.
-3. Der Kanal muss ein Text- oder Ankündigungskanal sein, in dem der Bot
+3. Die Bremse zählt das Ereignis, siehe „Bremse“. Greift sie, endet es.
+4. Der Kanal muss ein Text- oder Ankündigungskanal sein, in dem der Bot
    sehen und senden darf (`permissionsFor` mit dem Bot). Sonst endet es mit
    einer Logzeile.
-4. Der Text bekommt die Platzhalter (`ersetze`, siehe unten).
-5. Mit `banner` und gespeichertem Bild zeichnet `banner` das PNG. Fehlt im
+5. Der Text bekommt die Platzhalter (`ersetze`, siehe unten).
+6. Mit `banner` und gespeichertem Bild zeichnet `banner` das PNG. Fehlt im
    Kanal „Dateien anhängen“ oder scheitert das Zeichnen, geht nur der Text,
    mit einer Logzeile.
-6. Ist der Text leer, nur aus Leerzeichen, und es gibt kein Banner, geht
+7. Ist der Text leer, nur aus Leerzeichen, und es gibt kein Banner, geht
    nichts.
-7. `send` mit Text, Datei `beitritt.png` oder `abschied.png` und
+8. `send` mit Text, Datei `beitritt.png` oder `abschied.png` und
    `allowedMentions`. Scheitert es, eine Logzeile.
+
+## Bremse
+
+Was die Bremse tut, steht in
+[Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md),
+„Bremse“. Gebaut ist sie so:
+
+- `Bremse` in `bot/src/senden.ts` hält je Schlüssel `<Server>/<Art>` die
+  Zeiten der letzten Ereignisse und die Zahl der gezählten. `zaehle` gibt
+  `einzeln`, `an` (das erste gezählte) oder `gezaehlt` zurück.
+- Ab dem ersten gezählten Ereignis läuft ein Timer über 30 s; jedes weitere
+  setzt ihn neu. Läuft er ab, fällt der Schlüssel weg, und `loese` bekommt
+  die Zahl.
+- `erstelleBremse` verbindet `loese` mit `fasseZusammen`. Das liest die
+  Einstellungen neu und schickt die Zusammenfassung (`zusammenfassung`)
+  nur, wenn die Art noch an ist und der Bot im Kanal darf, mit
+  `allowedMentions: { parse: [] }` und ohne Banner.
+- `bot/src/index.ts` legt eine Bremse für alle Server an. Sie lebt im
+  Speicher; ein Neustart vergisst sie.
+
+### Höchstens zwei Banner zugleich
+
+`banner` zeichnet über `Plaetze(2)`: Laufen schon zwei, wartet jedes
+weitere, bis eins fertig ist, in der Reihenfolge, in der es kam. Das gilt
+für das Senden, die Testnachricht und die Vorschau zusammen. So kostet ein
+Raid, der unter der Schwelle der Bremse bleibt, höchstens zwei Banner
+Rechenzeit gleichzeitig.
 
 ## Platzhalter und Erwähnungen
 
@@ -47,6 +75,7 @@ längsten Werte es annehmen. Im Banner bleiben Namen roh.
 |---|---|---|
 | Beitritt | `{ parse: [], users: [<ID des Mitglieds>] }` | nur das neue Mitglied pingt |
 | Abschied | `{ parse: [] }` | niemand pingt |
+| Zusammenfassung, Testnachricht | `{ parse: [] }` | niemand pingt |
 
 Beleg: [Allowed Mentions](https://docs.discord.com/developers/resources/message#allowed-mentions-object).
 
@@ -54,8 +83,27 @@ Der Name ist `displayName` von discord.js: Spitzname, sonst globaler
 Anzeigename, sonst Nutzername. Ein Partial-Mitglied beim Abschied kennt
 keinen Spitznamen.
 
+## Testnachricht
+
+`POST …/test` ruft `sendeTest` in `bot/src/senden.ts`, nachdem die API die
+Regeln aus [API des Dashboards](../schnittstelle/api.md), „Testnachricht“,
+und die Grenze je Server geprüft hat, siehe [API im Bot](dashboard-api.md).
+`sendeTest` baut Text und Banner wie `begruesse`, mit der angemeldeten
+Person als Mitglied, und setzt die Zeile `testZeile` davor, ausser die
+Nachricht würde damit länger als 2000 Zeichen. `an` und die Bremse zählen
+nicht. Geht nichts raus, weil der Text leer ist und das Banner scheitert,
+wirft es; die API antwortet dann `503`.
+
 ## Was ins Log geht
 
-Nur die Art und der Grund, etwa `Begrüssung beitritt: Kanal fehlt oder der
-Bot darf dort nicht senden.`, bei Fehlern dazu ihr Text. Nie IDs oder
-Namen, siehe [Datenschutz](datenschutz.md), „Was ins Log geht“.
+Nur die Art und der Grund, bei Fehlern dazu ihr Text. Nie IDs oder Namen,
+siehe [Datenschutz](datenschutz.md), „Was ins Log geht“.
+
+| Zeile | Wann |
+|---|---|
+| `Begrüssung <Art>: Kanal fehlt oder der Bot darf dort nicht senden.` | Schritt 4, und beim Lösen der Bremse |
+| `Begrüssung <Art>: Banner ohne „Dateien anhängen“, nur der Text.` | Schritt 6 |
+| `Begrüssung <Art>: Banner gescheitert, nur der Text: <Fehler>` | Schritt 6 |
+| `Begrüssung <Art>: Bremse an.` | das erste gezählte Ereignis |
+| `Begrüssung <Art>: Bremse aus, <Zahl> gezählt.` | die Bremse löst sich |
+| `Testnachricht <Art>: Banner gescheitert: <Fehler>` | beim Zeichnen für die Testnachricht |

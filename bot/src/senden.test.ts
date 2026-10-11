@@ -7,7 +7,7 @@ import { bereiteVor, masse } from './banner.js';
 import { lese, speichere, speichereBild, standard, type Art, type Einstellung } from './begruessung.js';
 import { ladeCache } from './cache.js';
 import { migriere, oeffne, verbindung } from './datenbank.js';
-import { begruesse } from './senden.js';
+import { begruesse, Bremse, erstelleBremse, Plaetze, zusammenfassung } from './senden.js';
 import { ChannelType, discordClient, gilde, kanal, mitglied, mockDiscord, pngBild, R, schliesse, type MockDiscord } from './testhilfe.js';
 
 // Gegen eine gemockte Discord-API und eine echte PostgreSQL; ohne DB_HOST
@@ -19,6 +19,65 @@ if (!ziel && process.env.CI) throw new Error('In der CI muss die Datenbank da se
 const SERVER = '300000000000000007';
 const NEU = '200000000000000011';
 const K = { gruss: '500000000000000031', stumm: '500000000000000032', ohneDateien: '500000000000000033' };
+
+test('Plaetze lässt höchstens zwei zugleich laufen, die anderen der Reihe nach', async () => {
+  const plaetze = new Plaetze(2);
+  let laufend = 0;
+  let hoechstens = 0;
+  const reihenfolge: number[] = [];
+  const freigaben: (() => void)[] = [];
+  const alle = [1, 2, 3, 4, 5].map((n) =>
+    plaetze.nutze(async () => {
+      laufend++;
+      hoechstens = Math.max(hoechstens, laufend);
+      reihenfolge.push(n);
+      await new Promise<void>((frei) => freigaben.push(frei));
+      laufend--;
+    }),
+  );
+  await new Promise(setImmediate);
+  assert.deepEqual([laufend, reihenfolge], [2, [1, 2]]);
+  while (freigaben.length > 0) {
+    freigaben.shift()?.();
+    await new Promise(setImmediate);
+  }
+  await Promise.all(alle);
+  assert.deepEqual([hoechstens, reihenfolge], [2, [1, 2, 3, 4, 5]]);
+});
+
+test('die Bremse greift beim 6. Ereignis in 10 s und löst sich nach 30 s Ruhe, mit falschen Uhren', (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  const geloest: [string, number][] = [];
+  const bremse = new Bremse<string>((daten, zahl) => geloest.push([daten, zahl]));
+  const staende = Array.from({ length: 7 }, () => bremse.zaehle('a', 'Server A'));
+  assert.deepEqual(staende, ['einzeln', 'einzeln', 'einzeln', 'einzeln', 'einzeln', 'an', 'gezaehlt']);
+  t.mock.timers.tick(20_000);
+  assert.equal(bremse.zaehle('a', 'Server A'), 'gezaehlt');
+  t.mock.timers.tick(29_999);
+  assert.deepEqual(geloest, []);
+  t.mock.timers.tick(1);
+  assert.deepEqual(geloest, [['Server A', 3]]);
+  assert.equal(bremse.zaehle('a', 'Server A'), 'einzeln');
+});
+
+test('die Bremse zählt im Fenster von 10 s: verteilte Ereignisse gehen einzeln', (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  const bremse = new Bremse<string>(() => {});
+  const staende = Array.from({ length: 8 }, () => {
+    const stand = bremse.zaehle('a', 'x');
+    t.mock.timers.tick(2_100);
+    return stand;
+  });
+  assert.ok(staende.every((stand) => stand === 'einzeln'), staende.join());
+  assert.deepEqual(Array.from({ length: 6 }, () => bremse.zaehle('b', 'y')).at(-1), 'an');
+});
+
+test('die Zusammenfassung sagt eins oder mehrere', () => {
+  assert.equal(zusammenfassung('beitritt', 1), 'Willkommen an das neue Mitglied!');
+  assert.equal(zusammenfassung('beitritt', 12), 'Willkommen an die 12 neuen Mitglieder!');
+  assert.equal(zusammenfassung('abschied', 1), '1 Mitglied hat den Server verlassen.');
+  assert.equal(zusammenfassung('abschied', 3), '3 Mitglieder haben den Server verlassen.');
+});
 
 describe('Senden bei Beitritt und Abschied', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt' }, () => {
   let db: Pool;
@@ -138,5 +197,71 @@ describe('Senden bei Beitritt und Abschied', { skip: ziel ? false : 'keine Daten
     await begruesse(neu(), 'abschied', kontext());
     assert.equal(mock.nachrichten.length, 0);
     assert.equal(log.mock.callCount(), 0);
+  });
+
+  // Ein Kontext mit einer Bremse, die über den ganzen Test lebt. Ihre Ruhe
+  // ist 200 ms statt 30 s: Mit falschen Uhren hängen REST und fetch, darum
+  // laufen die Zeiten hier echt. Die Zeiten selbst prüfen die Tests der Bremse oben.
+  const mitBremse = () => {
+    const einstellungen = ladeCache((server: string) => lese(db, server));
+    return { db, einstellungen, bremse: erstelleBremse({ einstellungen }, 200) };
+  };
+  // Alle Logzeilen, aus console.log und console.error.
+  const alleZeilen = (t: TestContext) => {
+    const zeilen: string[] = [];
+    for (const art of ['log', 'error'] as const) t.mock.method(console, art, (zeile: unknown) => zeilen.push(String(zeile)));
+    return zeilen;
+  };
+  // Wartet höchstens 3 s, bis der Mock `zahl` Nachrichten hat.
+  const bisNachrichten = async (zahl: number) => {
+    for (let i = 0; i < 300 && mock.nachrichten.length < zahl; i++) await new Promise((weiter) => setTimeout(weiter, 10));
+  };
+
+  test('beim Raid gehen 5 einzeln, dann zählt die Bremse; nach der Ruhe kommt die Zusammenfassung ohne Ping und Banner', async (t) => {
+    const zeilen = alleZeilen(t);
+    await stelle('beitritt', { an: true, kanal: K.gruss, text: 'Hallo {nutzer}', banner: true });
+    await speichereBild(db, SERVER, 'beitritt', await bereiteVor(pngBild(400, 300)));
+    const k = mitBremse();
+    for (let i = 0; i < 7; i++) await begruesse(neu({ global_name: `Gast ${i}` }), 'beitritt', k);
+    assert.equal(mock.nachrichten.length, 5);
+    assert.ok(mock.nachrichten.every((n) => n.dateien.length === 1));
+
+    await bisNachrichten(6);
+    const z = mock.nachrichten[5];
+    assert.equal(z?.json.content, 'Willkommen an die 2 neuen Mitglieder!');
+    assert.deepEqual(z?.json.allowed_mentions, { parse: [] });
+    assert.deepEqual(z?.dateien, []);
+    assert.deepEqual(
+      zeilen.filter((zeile) => zeile.includes('Bremse')),
+      ['Begrüssung beitritt: Bremse an.', 'Begrüssung beitritt: Bremse aus, 2 gezählt.'],
+    );
+    // Nach dem Lösen geht die nächste wieder einzeln.
+    await begruesse(neu(), 'beitritt', k);
+    assert.equal(mock.nachrichten.length, 7);
+  });
+
+  test('ein gezählter Abschied gibt die Zusammenfassung im Singular', async (t) => {
+    alleZeilen(t);
+    await stelle('abschied', { an: true, kanal: K.gruss, text: '{name} ist weg.' });
+    const k = mitBremse();
+    for (let i = 0; i < 6; i++) await begruesse(neu(), 'abschied', k);
+    await bisNachrichten(6);
+    assert.equal(mock.nachrichten[5]?.json.content, '1 Mitglied hat den Server verlassen.');
+  });
+
+  test('bei ausgeschalteter Art zählt die Bremse nicht', async (t) => {
+    alleZeilen(t);
+    await stelle('beitritt', { an: false, kanal: K.gruss, text: 'Hallo' });
+    const k = mitBremse();
+    for (let i = 0; i < 10; i++) await begruesse(neu(), 'beitritt', k);
+    await stelle('beitritt', { an: true, kanal: K.gruss, text: 'Hallo' });
+    k.einstellungen.delete(SERVER);
+    await begruesse(neu(), 'beitritt', k);
+    assert.deepEqual(
+      mock.nachrichten.map((n) => n.json.content),
+      ['Hallo'],
+    );
+    await new Promise((weiter) => setTimeout(weiter, 400));
+    assert.equal(mock.nachrichten.length, 1);
   });
 });

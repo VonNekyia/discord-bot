@@ -31,7 +31,7 @@ import {
 import { BildFehler, bereiteVor } from './banner.js';
 import { text } from './befehle.js';
 import { lese, loescheBild, pruefe, speichere, speichereBild, type Art } from './begruessung.js';
-import { banner } from './senden.js';
+import { banner, sendeTest } from './senden.js';
 
 export interface ApiUmgebung {
   geheimnis: string;
@@ -67,6 +67,8 @@ export interface ApiOptionen {
   einstellungen?: { delete(server: string): unknown };
   // Lädt Avatare für die Vorschau; in Tests ein Ersatz.
   avatar?: (url: string) => Promise<Buffer | undefined>;
+  // Die Uhr der Grenzen, in ms; in Tests eine falsche.
+  uhr?: () => number;
 }
 
 export type Kanal = { id: string; name: string; banner: boolean; kategorie: { id: string; name: string } | null };
@@ -91,7 +93,7 @@ export class Grenze {
   constructor(
     private readonly hoechstens: number,
     private readonly fenster = 60_000,
-    private readonly uhr = Date.now,
+    private readonly uhr = () => Date.now(),
   ) {}
 
   // 0, wenn die Anfrage zählt; sonst die Sekunden, bis wieder eine geht.
@@ -239,8 +241,11 @@ export function erstelleApi(o: ApiOptionen): Server {
     geheimnis: o.geheimnis,
     zurueck: `${o.dashboard}/api/anmelden/zurueck`,
   };
-  const grenze = new Grenze(60);
-  const grenzeBild = new Grenze(20);
+  const zeit = o.uhr ?? (() => Date.now());
+  const grenze = new Grenze(60, 60_000, zeit);
+  const grenzeBild = new Grenze(20, 60_000, zeit);
+  // Je Server über alle Sitzungen. Siehe docs/schnittstelle/api.md, „Grenzen je Sitzung“.
+  const grenzeTest = new Grenze(3, 60_000, zeit);
   const bildtypen = new Set(['image/png', 'image/jpeg', 'image/webp']);
   const sortierer = new Intl.Collator('de');
   const anmeldungWeg = cookie('anmeldung', '', '/api/anmelden', 0, sicher);
@@ -409,6 +414,28 @@ export function erstelleApi(o: ApiOptionen): Server {
         sende(a, 200, { 'content-type': 'image/png', 'content-length': png.length }, png);
       },
     },
+    {
+      methode: 'POST',
+      muster: /^\/api\/server\/(\d{1,20})\/begruessung\/(beitritt|abschied)\/test$/,
+      name: 'test',
+      sitzung: true,
+      server: true,
+      bild: true,
+      // Siehe docs/schnittstelle/api.md, „Testnachricht“.
+      async tue(a) {
+        const art = a.teile[2] as Art;
+        const e = (await lese(o.db, a.server!.id))[art];
+        if (!e.kanal) throw new ApiFehler(400, 'test_ohne_kanal', 'kanal');
+        const kanal = kanaele(a.server!).find((k) => k.id === e.kanal);
+        if (!kanal) throw new ApiFehler(400, 'kanal_unbekannt', 'kanal');
+        if (e.text.trim() === '' && !(e.banner && e.bild && kanal.banner)) throw new ApiFehler(400, 'test_ohne_inhalt', 'text');
+        // Erst nach Rechten und Regeln, direkt vor dem Senden: Eine fremde
+        // Sitzung soll die Testnachricht eines Servers nicht sperren können.
+        const warten = grenzeTest.pruefe(a.server!.id);
+        if (warten > 0) throw new ApiFehler(429, 'zu_viele', undefined, { 'retry-after': String(warten) });
+        json(a, 200, await sendeTest(a.mitglied!, art, e, { db: o.db, avatar: o.avatar }));
+      },
+    },
   ];
 
   async function bearbeite(req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -455,6 +482,7 @@ export function erstelleApi(o: ApiOptionen): Server {
   const uhr = setInterval(() => {
     grenze.raeume();
     grenzeBild.raeume();
+    grenzeTest.raeume();
   }, 60_000).unref();
   server.on('close', () => clearInterval(uhr));
   return server;

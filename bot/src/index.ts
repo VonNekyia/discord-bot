@@ -8,7 +8,7 @@ import { behalteNur, lese, vergiss } from './begruessung.js';
 import { ladeCache } from './cache.js';
 import { erstelleClient } from './client.js';
 import { migriere, oeffne, verbindung } from './datenbank.js';
-import { begruesse } from './senden.js';
+import { begruesse, erstelleBremse } from './senden.js';
 
 const token = process.env.DISCORD_BOT_TOKEN;
 if (!token) {
@@ -74,9 +74,10 @@ client.on(Events.GuildDelete, (guild) => {
   void vergiss(db, guild.id).catch((e: unknown) => console.error(`Server verlassen: ${text(e)}`));
 });
 
-// Siehe docs/benutzung/begruessung.md.
-client.on(Events.GuildMemberAdd, (mitglied) => void begruesse(mitglied, 'beitritt', { db, einstellungen }));
-client.on(Events.GuildMemberRemove, (mitglied) => void begruesse(mitglied, 'abschied', { db, einstellungen }));
+// Eine Bremse für alle Server, im Speicher. Siehe docs/benutzung/begruessung.md, „Bremse“.
+const senden = { db, einstellungen, bremse: erstelleBremse({ einstellungen }) };
+client.on(Events.GuildMemberAdd, (mitglied) => void begruesse(mitglied, 'beitritt', senden));
+client.on(Events.GuildMemberRemove, (mitglied) => void begruesse(mitglied, 'abschied', senden));
 
 client.on(Events.InteractionCreate, (interaction) => {
   if (interaction.isChatInputCommand()) void beantworte(interaction, { db });
