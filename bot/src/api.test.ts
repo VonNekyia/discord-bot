@@ -10,7 +10,8 @@ import { legeSitzungAn, raeumeAuf } from './anmeldung.js';
 import { apiUmgebung, erstelleApi, Grenze } from './api.js';
 import { createCanvas, loadImage } from '@napi-rs/canvas';
 import { bereiteVor, masse } from './banner.js';
-import { behalteNur, speichere, speichereBild, standard, vergiss, type Einstellung } from './begruessung.js';
+import { behalteNur, vergiss } from './aufraeumen.js';
+import { speichere, speichereBild, standard, type Einstellung } from './begruessung.js';
 import { migriere, oeffne, verbindung } from './datenbank.js';
 import {
   ANWENDUNG,

@@ -153,34 +153,3 @@ export async function speichere(db: Pick<Pool, 'query'>, server: string, art: Ar
     [server, art, e.an, e.kanal, e.text, e.banner, e.bannerText],
   );
 }
-
-// Löscht Einstellungen und Bilder eines Servers, den der Bot verlassen hat.
-// Siehe docs/benutzung/begruessung.md, „Wenn etwas fehlt“.
-export async function vergiss(db: Pick<Pool, 'query'>, server: string): Promise<void> {
-  await db.query(
-    'WITH weg AS (DELETE FROM bilder WHERE server = $1) DELETE FROM begruessungen WHERE server = $1',
-    [server],
-  );
-}
-
-// Die Shards eines Prozesses, den der ShardingManager gestartet hat.
-export interface Shards {
-  ids: number[];
-  count: number;
-}
-
-// Löscht beim Start Einstellungen und Bilder der Server, die nicht in
-// `server` stehen, und gibt die Zahl dieser Server zurück. Mit `shards` nur
-// unter den Servern dieser Shards; die anderen sieht der Prozess nicht.
-// Siehe docs/bot/dashboard-api.md, „Aufräumen“.
-export async function behalteNur(db: Pick<Pool, 'query'>, server: string[], shards?: Shards): Promise<number> {
-  const fremd = `NOT (server = ANY($1)) AND ($2::int IS NULL OR (server >> 22) % $2 = ANY($3::int[]))`;
-  const { rows } = await db.query<{ zahl: number }>(
-    `WITH bilder_weg AS (DELETE FROM bilder WHERE ${fremd} RETURNING server),
-          einstellungen_weg AS (DELETE FROM begruessungen WHERE ${fremd} RETURNING server)
-     SELECT count(DISTINCT server)::int AS zahl
-     FROM (SELECT server FROM bilder_weg UNION ALL SELECT server FROM einstellungen_weg) AS weg`,
-    [server, shards?.count ?? null, shards?.ids ?? []],
-  );
-  return rows[0]?.zahl ?? 0;
-}

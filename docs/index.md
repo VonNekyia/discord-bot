@@ -33,6 +33,7 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 - [Datenbank](bot/datenbank.md): PostgreSQL über `pg`, Verbindung, Discord-IDs als `bigint`, Pool und seine Werte, Migrationen unter Sperre und in Transaktionen, Dev-Datenbank in Docker, was noch fehlt.
 - [API im Bot](bot/dashboard-api.md): wie das Backend die API des Dashboards baut, Module, Start und Ende, Reihenfolge der Prüfungen, Grenzen und Zeitlimits, Aufräumen.
 - [Begrüssung senden](bot/begruessung-senden.md): wie der Bot bei Beitritt und Abschied sendet, Cache, Rechte im Kanal, Platzhalter, Erwähnungen, Banner, Log.
+- [Sprachräume im Bot](bot/sprachraeume-bau.md): wie das Backend die Sprachräume baut, Belegung aus den Voice States, Anlegen in einem Aufruf, nacheinander je Mitglied, erwartete Fehler, Löschen nach 2 s, Abgleich beim Start.
 - [Cache](bot/cache.md): wann cachen und wann nicht, `ladeCache`, Standardwerte, Invalidierung, Grenzen.
 
 ## Oberfläche

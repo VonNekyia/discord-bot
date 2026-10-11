@@ -112,13 +112,18 @@ da sind, siehe [API im Bot](../bot/dashboard-api.md), „Start und Ende“.
 ## Einladen
 
 Einladungslink aus dem Developer Portal, „OAuth2“, „URL-Generator“, mit
-den Scopes `bot` und `applications.commands` und den Rechten „Kanäle
-ansehen“, „Nachrichten senden“ und „Dateien anhängen“, zusammen der Wert
-`35840`. Die braucht nur die Begrüssung, siehe
-[Begrüssung bei Beitritt und Abschied](begruessung.md), „Rechte und
-Intent“; die Befehle brauchen keine, siehe [Befehle](befehle.md). Ein Team
-kann die Rechte auch nur in dem Kanal geben, in dem begrüsst wird. Solange
-der Bot privat ist, geht der Link nur für das Team.
+den Scopes `bot` und `applications.commands` und diesen Rechten, zusammen
+der Wert `286362640`:
+
+| Recht | für |
+|---|---|
+| Kanäle ansehen, Nachrichten senden, Dateien anhängen | die Begrüssung, siehe [Begrüssung bei Beitritt und Abschied](begruessung.md), „Rechte und Intent“ |
+| Kanäle verwalten, Rollen verwalten, Mitglieder verschieben, Verbinden, Nachrichtenverlauf anzeigen | die Sprachräume, siehe [Sprachräume](sprachraeume.md), „Rechte und Intent“ |
+
+Die Befehle brauchen keine Rechte, siehe [Befehle](befehle.md). Die Rechte
+der Sprachräume braucht der Bot auf dem ganzen Server. Wer den Bot schon
+eingeladen hat, gibt sie seiner Rolle von Hand oder lädt ihn neu ein.
+Solange der Bot privat ist, geht der Link nur für das Team.
 
 ## Betrieb
 

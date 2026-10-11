@@ -11,6 +11,7 @@ code:
   - bot/src/client.test.ts
   - bot/src/senden.test.ts
   - bot/src/testhilfe.ts
+  - bot/src/sprachraeume.test.ts
   - bot/package.json
   - .github/workflows/backend.yml
 ---
@@ -55,9 +56,15 @@ Bremse ohne Netz, mit `t.mock.timers`. Beide nutzen
 - `mockDiscord`: ein `node:http`-Server für OAuth2 (`/oauth2/token`,
   `/oauth2/token/revoke`, `/users/@me`, `/users/@me/guilds`), für
   `GET /guilds/{id}/members/{user}`, für `POST /channels/{id}/messages`,
-  auch mit Dateien, und für das CDN der Avatare. Er merkt sich jede
-  Anfrage und jede Nachricht; je Test lässt sich die Antwort für Person und
-  Mitglieder ändern.
+  auch mit Dateien, für das CDN der Avatare, und für Kanäle anlegen,
+  Mitglieder verschieben und Kanäle löschen. Er merkt sich jede Anfrage,
+  Nachricht, Anlage, Verschiebung und Löschung; je Test lässt sich die
+  Antwort für Person und Mitglieder ändern, und Anlegen oder Verschieben
+  können mit einem Code von Discord scheitern.
+- `bot/src/sprachraeume.test.ts` setzt Voice States über den Cache von
+  discord.js, wie Discord sie meldet, und ruft dann `Raeume#aenderung`.
+  Es nutzt einen eigenen Server und eine eigene Person, weil die
+  Testdateien gleichzeitig laufen.
 - `discordClient`: ein Client aus `erstelleClient` ohne Gateway, dessen
   REST und CDN auf den Mock zeigen. Die Server legt er so in den Cache, wie
   `GUILD_CREATE` sie bringt, mit Rollen, Kanälen und dem Bot als Mitglied.
@@ -134,6 +141,20 @@ zurückrollt, weil die Dateien gleichzeitig laufen. Alle IDs sind erfunden
 | ist der Text leer und scheitert das Banner … | `503`, keine Nachricht |
 | die Grenze je Server zählt erst nach den Rechten … | fünfmal `403` für eine fremde Sitzung, danach dreimal `200` und `429` mit `Retry-After: 60` |
 | kein Code, Token, Cookie, state und keine ID im Log | Anmeldung mit Erfolg und drei Fehlern, eine Route mit `503`; keine Zeile enthält einen der Werte |
+| ein Erzeuger legt den Raum … in einem Aufruf an | eine private Kategorie: Name aus der Vorlage, Kategorie, Limit; die Einträge der Kategorie, @everyone ohne „Kanal ansehen“, der Besitzer zusammengeführt, der Bot; verschoben; Zeile in `raeume` |
+| ohne Kategorie hat der Raum nur die Einträge von Besitzer und Bot | kein `parent_id`, zwei Einträge |
+| wer schon einen Raum hat, kommt zurück in den eigenen … | kein zweites Anlegen, Verschieben in den eigenen Raum |
+| höchstens ein neuer Raum je 30 s und Mitglied | mit der Uhr aus `RaumKontext`: nach 29 s nichts, nach 30 s neu |
+| ein Raum je Mitglied … | zwei gleichzeitige Beitritte legen einen Raum an; `UNIQUE (server, besitzer)` weist eine zweite Zeile ab |
+| ein leerer Raum geht nach der Wartezeit … | kommt jemand in der Wartezeit, bleibt er; sonst gehen Kanal und Zeile |
+| geht das Mitglied, bevor das Verschieben klappt (40032) … | der neue Raum geht wieder, keine Zeile, kein Log |
+| fehlt dem Bot ein Recht (50013) … | nichts angelegt, nicht verschoben, eine Logzeile ohne ID |
+| ist die Art aus oder der Kanal kein Erzeuger … | nichts angelegt |
+| der Abgleich beim Start … | Zeile ohne Kanal weg, leerer Raum gelöscht, belegter bleibt |
+| channelDelete vergisst den Raum … | `geloescht`, `vergiss` und `behalteNur` für Sprachräume und Räume |
+| sprachkanaele liefert Sprachkanäle und Kategorien mit bereit … | Sortierung, ohne Text und Bühne; ohne „Mitglieder verschieben“ nicht bereit; eine Kategorie, die „Streamen“ verbietet, das der Bot nicht hat, nicht bereit |
+| sprachraeume liefert ohne Zeile die Standardwerte … | `{ an: false, erzeuger: [] }`, Speichern mit 100 Zeichen Vorlage, fremde Felder fallen weg, Cache geleert |
+| jede Prüfregel meldet ihren Code und den Pfad des Felds | alle Zeilen der Tabelle „Sprachräume einstellen“, mit Pfaden wie `erzeuger.1.limit` |
 | Beitritt: Platzhalter im Text maskiert, nur das neue Mitglied pingt | Text mit Spitzname und Servername maskiert, `{anzahl}`, `allowed_mentions` |
 | Abschied eines Mitglieds ausserhalb des Caches … | Partial mit globalem Anzeigenamen, `allowed_mentions` ohne Nutzer |
 | darf der Bot im Kanal nicht senden … | keine Nachricht, eine Logzeile ohne ID und Namen |

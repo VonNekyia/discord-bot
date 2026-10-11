@@ -4,11 +4,14 @@ import { Events } from 'discord.js';
 import { raeumeAuf } from './anmeldung.js';
 import { apiUmgebung, erstelleApi, type ApiUmgebung } from './api.js';
 import { beantworte, registriere, text } from './befehle.js';
-import { behalteNur, lese, vergiss } from './begruessung.js';
+import { behalteNur, vergiss } from './aufraeumen.js';
+import { lese } from './begruessung.js';
 import { ladeCache } from './cache.js';
 import { erstelleClient } from './client.js';
 import { migriere, oeffne, verbindung } from './datenbank.js';
+import { Raeume } from './raeume.js';
 import { begruesse, erstelleBremse } from './senden.js';
+import { liesSprachraeume } from './sprachraeume.js';
 
 const token = process.env.DISCORD_BOT_TOKEN;
 if (!token) {
@@ -40,6 +43,9 @@ const db = oeffne(ziel);
 // Die Einstellungen liest jeder Beitritt und Abschied; wer sie ändert, löscht
 // den Server hier. Siehe docs/bot/cache.md, „Wann cachen“.
 const einstellungen = ladeCache((server: string) => lese(db, server));
+// Ebenso die Sprachräume, gelesen bei jedem Betreten eines Sprachkanals.
+const sprachraeume = ladeCache((server: string) => liesSprachraeume(db, server));
+const raeume = new Raeume({ db, einstellungen: sprachraeume });
 
 const client = erstelleClient();
 let api: Server | undefined;
@@ -56,11 +62,14 @@ client.once(Events.ClientReady, async (bereit) => {
     (n) => n > 0 && console.log(`Einstellungen von ${n} verlassenen Servern gelöscht.`),
     (e: unknown) => console.error(`Abgleich der Server fehlgeschlagen: ${text(e)}`),
   );
+  // Räume, die es nicht mehr gibt, vergessen; leere löschen.
+  // Siehe docs/bot/sprachraeume-bau.md, „Abgleich beim Start“.
+  await raeume.gleicheAb(bereit.guilds.cache.values()).catch((e: unknown) => console.error(`Abgleich der Räume fehlgeschlagen: ${text(e)}`));
   if (!umgebung) return;
   // Nur auf 127.0.0.1; von aussen kommt man über serve.mjs oder den Reverse Proxy.
   // Siehe docs/schnittstelle/api.md, „Lokal“.
   const { port, ...rest } = umgebung;
-  api = erstelleApi({ client: bereit, db, anwendung: bereit.application.id, einstellungen, ...rest });
+  api = erstelleApi({ client: bereit, db, anwendung: bereit.application.id, einstellungen, sprachraeume, ...rest });
   api.once('error', (e) => console.error(`API nicht gestartet: ${text(e)}`));
   api.listen(port, '127.0.0.1', () => console.log(`API auf 127.0.0.1:${port}.`));
   // Abgelaufene Sitzungen löschen. Siehe docs/schnittstelle/anmeldung.md, „Sitzung“.
@@ -71,6 +80,7 @@ client.once(Events.ClientReady, async (bereit) => {
 
 client.on(Events.GuildDelete, (guild) => {
   einstellungen.delete(guild.id);
+  sprachraeume.delete(guild.id);
   void vergiss(db, guild.id).catch((e: unknown) => console.error(`Server verlassen: ${text(e)}`));
 });
 
@@ -78,6 +88,14 @@ client.on(Events.GuildDelete, (guild) => {
 const senden = { db, einstellungen, bremse: erstelleBremse({ einstellungen }) };
 client.on(Events.GuildMemberAdd, (mitglied) => void begruesse(mitglied, 'beitritt', senden));
 client.on(Events.GuildMemberRemove, (mitglied) => void begruesse(mitglied, 'abschied', senden));
+
+// Siehe docs/benutzung/sprachraeume.md.
+client.on(Events.VoiceStateUpdate, (vorher, nachher) => {
+  void raeume.aenderung(nachher.guild, nachher.id, vorher.channelId, nachher.channelId);
+});
+client.on(Events.ChannelDelete, (kanal) => {
+  if (!kanal.isDMBased()) void raeume.geloescht(kanal.id).catch((e: unknown) => console.error(`Sprachraum: nicht vergessen: ${text(e)}`));
+});
 
 client.on(Events.InteractionCreate, (interaction) => {
   if (interaction.isChatInputCommand()) void beantworte(interaction, { db });

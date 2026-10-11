@@ -77,6 +77,14 @@ export interface MockDiscord {
   meineServer: object[];
   nachrichten: Nachricht[];
   avatare: string[];
+  // Angelegte Kanäle (Body von POST /guilds/{id}/channels), Verschiebungen
+  // (PATCH auf ein Mitglied mit channel_id) und gelöschte Kanäle.
+  angelegt: { name: string; type: number; parent_id: string | null; user_limit: number; permission_overwrites: { id: string; type: number; allow: string; deny: string }[] }[];
+  verschoben: { nutzer: string; kanal: string | null }[];
+  geloescht: string[];
+  // Antwortet Discord mit einem Fehler: Status und Code, sonst undefined.
+  anlegenFehler?: [number, number];
+  verschiebenFehler?: [number, number];
 }
 
 // Teilt multipart/form-data in payload_json und Dateien.
@@ -100,7 +108,18 @@ const avatarPng = createCanvas(64, 64).encodeSync('png');
 
 // Gemockte Discord-API: OAuth2, Mitglieder, Nachrichten und das CDN der Avatare.
 export async function mockDiscord(): Promise<MockDiscord> {
-  const mock = { anfragen: [], mitglieder: new Map(), person: 200, meineServer: [], nachrichten: [], avatare: [] } as unknown as MockDiscord;
+  const mock = {
+    anfragen: [],
+    mitglieder: new Map(),
+    person: 200,
+    meineServer: [],
+    nachrichten: [],
+    avatare: [],
+    angelegt: [],
+    verschoben: [],
+    geloescht: [],
+  } as unknown as MockDiscord;
+  let naechsterKanal = 800000000000000001n;
   mock.server = createServer((req, res) => {
     const teile: Buffer[] = [];
     req.on('data', (teil: Buffer) => teile.push(teil));
@@ -151,7 +170,24 @@ export async function mockDiscord(): Promise<MockDiscord> {
           type: 0,
         });
       }
+      const anlegen = /^\/api\/v10\/guilds\/(\d+)\/channels$/.exec(pfad);
+      if (anlegen && req.method === 'POST') {
+        if (mock.anlegenFehler) return antworte(mock.anlegenFehler[0], { message: 'Fehler', code: mock.anlegenFehler[1] });
+        const daten = JSON.parse(body);
+        mock.angelegt.push(daten);
+        return antworte(201, { ...daten, id: String(naechsterKanal++), guild_id: anlegen[1], position: 0 });
+      }
+      const kanalWeg = /^\/api\/v10\/channels\/(\d+)$/.exec(pfad);
+      if (kanalWeg && req.method === 'DELETE') {
+        mock.geloescht.push(kanalWeg[1] ?? '');
+        return antworte(200, { id: kanalWeg[1], type: 2 });
+      }
       const treffer = /^\/api\/v10\/guilds\/(\d+)\/members\/(\d+)$/.exec(pfad);
+      if (treffer && req.method === 'PATCH') {
+        if (mock.verschiebenFehler) return antworte(mock.verschiebenFehler[0], { message: 'Fehler', code: mock.verschiebenFehler[1] });
+        mock.verschoben.push({ nutzer: treffer[2] ?? '', kanal: JSON.parse(body).channel_id ?? null });
+        return antworte(200, mitglied(treffer[2] ?? '', []));
+      }
       const eintrag = treffer && mock.mitglieder.get(`${treffer[1]}/${treffer[2]}`);
       if (typeof eintrag === 'object' && eintrag) return antworte(200, eintrag);
       if (eintrag === 500) return antworte(500, { message: 'Internal Server Error', code: 0 });

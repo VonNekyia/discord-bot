@@ -9,6 +9,8 @@ code:
   - bot/migrationen/0001-sitzungen.sql
   - bot/migrationen/0002-begruessungen.sql
   - bot/migrationen/0003-bilder.sql
+  - bot/migrationen/0004-sprachraeume.sql
+  - bot/migrationen/0005-raeume.sql
 ---
 
 # Datenbank
@@ -110,6 +112,8 @@ stehen ihre Spalten.
 | `sitzungen` | `0001-sitzungen.sql` | Sitzungen des Dashboards; Schlüssel ist der SHA-256 der Kennung | [Anmeldung am Dashboard](../schnittstelle/anmeldung.md), „Sitzung“ |
 | `begruessungen` | `0002-begruessungen.sql` | eine Einstellung je Server und Art | [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md) |
 | `bilder` | `0003-bilder.sql` | Hintergrund des Banners je Server und Art, 1100 × 440 px als WebP | [API im Bot](dashboard-api.md), „Bilder“ |
+| `sprachraeume` | `0004-sprachraeume.sql` | Einstellungen der Sprachräume je Server, die Erzeuger als `jsonb` | [API der Sprachräume](../schnittstelle/sprachraeume.md) |
+| `raeume` | `0005-raeume.sql` | jeder Raum mit Server, Besitzer und Zeit der Anlage; `UNIQUE (server, besitzer)`: höchstens ein Raum je Mitglied und Server | [Sprachräume im Bot](sprachraeume-bau.md) |
 
 Was davon personenbezogen ist und wie lange es bleibt, steht in
 [Datenschutz](datenschutz.md), „Was der Bot speichert“.
