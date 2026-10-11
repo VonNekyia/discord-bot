@@ -66,8 +66,10 @@ type Einstellung = {
 ```
 
 - `Ich.name` ist der Anzeigename bei Discord, sonst der Nutzername.
-- `avatar` und `icon` sind volle URLs unter `https://cdn.discordapp.com/`,
-  oder `null`.
+- `avatar` und `icon` sind volle URLs unter `https://cdn.discordapp.com/`
+  mit `size=128`, oder `null`. 128 px reichen für 56 px auf einem
+  Bildschirm mit doppelter Dichte. Die Oberfläche nutzt die URL, wie sie
+  kommt.
 - `GET /api/server` liefert die Server, auf denen die Person beim Anmelden
   „Server verwalten“ hatte und auf denen der Bot ist, nach Namen sortiert.
 - Ein Server, auf dem der Bot fehlt oder den die Person nicht verwalten
