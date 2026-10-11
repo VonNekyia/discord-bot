@@ -8,35 +8,41 @@ import { meldung, satz, type Satz } from './texte.js';
 const element = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
 const abschnitte = { laden: element('laden'), server: element('server'), begruessung: element('begruessung') };
-const kopfAktion = element('kopf-aktion');
 const kopfMeldung = element('kopf-meldung');
 const anmelden = element('anmelden');
 const serverMeldung = element('server-meldung');
 
 let serverListe: Server[] = [];
 let gezeigt: string | null = null;
+let aktiv = false;
 
 function zeigen(abschnitt: keyof typeof abschnitte | null): void {
   for (const [name, el] of Object.entries(abschnitte)) el.hidden = name !== abschnitt;
 }
 
-// Kopf ohne Anmeldung: der Knopf zum Anmelden, darunter eine Meldung, wenn es eine gibt.
+// Im Hero: der Knopf zum Anmelden und darunter eine Meldung, beides nach Bedarf.
+function kopf(anmeldenZeigen: boolean, inhalt: Satz | null = null, art: 'warn' | 'error' = 'error'): void {
+  anmelden.hidden = !anmeldenZeigen;
+  kopfMeldung.hidden = inhalt === null;
+  if (inhalt) meldung(kopfMeldung, art, inhalt);
+  else kopfMeldung.replaceChildren();
+}
+
 function abgemeldet(inhalt: Satz | null, art: 'warn' | 'error' = 'error'): void {
+  aktiv = false;
+  serverListe = [];
+  gezeigt = null;
+  history.replaceState(null, '', location.pathname);
   zeigen(null);
   element('person').hidden = true;
   element('abmelden').hidden = true;
-  kopfAktion.hidden = false;
-  anmelden.hidden = false;
-  if (inhalt) meldung(kopfMeldung, art, inhalt);
-  else kopfMeldung.replaceChildren();
+  kopf(true, inhalt, art);
 }
 
 // Ohne Bot geht auch die Anmeldung nicht; darum nur die Meldung.
 function nichtErreichbar(fehler: unknown): void {
   zeigen(null);
-  kopfAktion.hidden = false;
-  anmelden.hidden = true;
-  meldung(kopfMeldung, 'error', satz(fehler));
+  kopf(false, satz(fehler));
 }
 
 function fehlerBehandeln(fehler: unknown): void {
@@ -45,7 +51,8 @@ function fehlerBehandeln(fehler: unknown): void {
 }
 
 function angemeldet(ich: Ich): void {
-  kopfAktion.hidden = true;
+  aktiv = true;
+  kopf(false);
   element('person-name').textContent = ich.name;
   const avatar = element<HTMLImageElement>('avatar');
   if (ich.avatar) avatar.src = ich.avatar;
@@ -53,6 +60,18 @@ function angemeldet(ich: Ich): void {
   element('avatar-ersatz').hidden = !!ich.avatar;
   element('person').hidden = false;
   element('abmelden').hidden = false;
+}
+
+// Abmelden gibt 204; die Seite zeigt danach selbst die Anmeldung.
+// Siehe docs/schnittstelle/api.md, „Routen“.
+async function abmelden(): Promise<void> {
+  try {
+    await api.abmelden();
+    abgemeldet(null);
+  } catch (fehler) {
+    if (fehler instanceof ApiFehler && fehler.status === 401) return abgemeldet(null);
+    kopf(false, satz(fehler));
+  }
 }
 
 function karte(server: Server): HTMLAnchorElement {
@@ -83,6 +102,7 @@ function karte(server: Server): HTMLAnchorElement {
 
 // Zeigt die Liste oder den Server aus dem Hash (#server-<id>).
 async function route(): Promise<void> {
+  if (!aktiv) return;
   const id = location.hash.startsWith('#server-') ? location.hash.slice('#server-'.length) : null;
   const server = serverListe.find((s) => s.id === id);
   if (!server) {
@@ -104,7 +124,7 @@ async function route(): Promise<void> {
     zeigen('begruessung');
   } catch (fehler) {
     if (gezeigt !== server.id) return;
-    if (fehler instanceof ApiFehler && (fehler.status === 403 || fehler.status === 404)) {
+    if (fehler instanceof ApiFehler && [403, 404, 429].includes(fehler.status)) {
       // Zurück zur Liste, die Meldung steht über ihr.
       meldung(serverMeldung, 'error', satz(fehler));
       serverMeldung.hidden = false;
@@ -142,4 +162,8 @@ async function start(): Promise<void> {
   await route();
 }
 
+element('abmelden').addEventListener('submit', (ereignis) => {
+  ereignis.preventDefault();
+  void abmelden();
+});
 void start();

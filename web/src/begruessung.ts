@@ -89,7 +89,23 @@ export class Begruessung {
     finde<HTMLElement>('[data-art-name]').textContent = artName[art];
     panel.replaceChildren(inhalt);
 
-    for (const k of kanaele) this.kanal.add(new Option(`#${k.name}`, k.id));
+    // Die Liste kommt sortiert; Kanäle einer Kategorie stehen in einer optgroup.
+    // Siehe docs/schnittstelle/api.md, „Typen“.
+    let gruppe: HTMLOptGroupElement | null = null;
+    for (const k of kanaele) {
+      const option = new Option(`#${k.name}`, k.id);
+      if (!k.kategorie) {
+        this.kanal.add(option);
+        continue;
+      }
+      if (gruppe?.dataset.id !== k.kategorie.id) {
+        gruppe = document.createElement('optgroup');
+        gruppe.label = k.kategorie.name;
+        gruppe.dataset.id = k.kategorie.id;
+        this.kanal.append(gruppe);
+      }
+      gruppe.append(option);
+    }
     this.fuellen();
 
     this.kanal.addEventListener('change', () => {

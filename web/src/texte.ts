@@ -34,7 +34,7 @@ const unbekannt: Satz = { titel: 'Das hat nicht geklappt.', text: 'Lade die Seit
 // Der Satz zu einem Code oder einem Fehler; für alles Unbekannte ein allgemeiner.
 export function satz(fehler: unknown): Satz {
   if (fehler instanceof ApiFehler && fehler.code === 'zu_viele') {
-    return { titel: 'Zu viele Bilder in kurzer Zeit.', text: `Versuch es in ${fehler.warten ?? 60} Sekunden noch einmal.` };
+    return { titel: 'Zu viele Anfragen in kurzer Zeit.', text: `Versuch es in ${fehler.warten ?? 60} Sekunden noch einmal.` };
   }
   const code = fehler instanceof ApiFehler ? fehler.code : typeof fehler === 'string' ? fehler : '';
   return saetze[code] ?? unbekannt;

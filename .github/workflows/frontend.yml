@@ -48,6 +48,14 @@ jobs:
           node serve.mjs 4173 &
           until curl -fs -o /dev/null http://127.0.0.1:4173/; do sleep 1; done
 
+      # Antwortet anstelle des Bots auf /api/ mit 401, damit Lighthouse
+      # /dashboard/ abgemeldet misst. Siehe docs/entwicklung/ci.md, „Frontend“.
+      - name: API-Stub starten
+        timeout-minutes: 2
+        run: |
+          node -e 'require("node:http").createServer((q, a) => a.writeHead(401, { "Content-Type": "application/json" }).end(JSON.stringify({ code: "nicht_angemeldet" }))).listen(4174, "127.0.0.1")' &
+          until curl -s -o /dev/null http://127.0.0.1:4174/; do sleep 1; done
+
       - name: Header
         timeout-minutes: 2
         run: |

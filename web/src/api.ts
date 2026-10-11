@@ -4,7 +4,7 @@
 export type Art = 'beitritt' | 'abschied';
 export type Ich = { id: string; name: string; avatar: string | null };
 export type Server = { id: string; name: string; icon: string | null };
-export type Kanal = { id: string; name: string; banner: boolean };
+export type Kanal = { id: string; name: string; banner: boolean; kategorie: { id: string; name: string } | null };
 export type Einstellung = {
   an: boolean;
   kanal: string | null;
@@ -47,6 +47,9 @@ const begruessung = (id: string) => `/api/server/${encodeURIComponent(id)}/begru
 
 export const api = {
   ich: async () => json<Ich>(await senden('GET', '/api/ich')),
+  abmelden: async () => {
+    await senden('POST', '/api/abmelden');
+  },
   server: async () => json<Server[]>(await senden('GET', '/api/server')),
   kanaele: async (id: string) => json<Kanal[]>(await senden('GET', `/api/server/${encodeURIComponent(id)}/kanaele`)),
   begruessung: async (id: string) => json<Record<Art, Einstellung>>(await senden('GET', begruessung(id))),

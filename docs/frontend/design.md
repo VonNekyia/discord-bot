@@ -4,6 +4,7 @@ description: Die Regeln, nach denen web/ aussieht; Tokens, Schrift, Breakpoints,
 code:
   - web/site.css
   - web/index.html
+  - web/dashboard/index.html
   - web/src/main.ts
   - docs/frontend/design.html
   - docs/frontend/design.css
@@ -71,18 +72,41 @@ Gold nie als Text auf hellem Grund; dort steht `--umber`.
 ## Breakpoints
 
 460, 760, 960, 1100, 1200 und 1600 px, wie im Guide. `web/site.css`
-nutzt heute nur 760 px: Darunter haben Abschnitt und Hero 20 px Rand.
+nutzt heute 960 und 760 px:
+
+- Unter 960 px hat `.grid-3` zwei Spalten.
+- Unter 760 px haben Abschnitt und Hero 20 px Rand, `.grid-2` und
+  `.grid-3` eine Spalte, und die Header bar steht nicht mehr über dem
+  Hero, sondern im Fluss.
 
 ## Elemente
 
 | Was in `web/` | Klasse | Element im Guide |
 |---|---|---|
 | Kopf der Seite | `.hero`, `.hero-inner`, `.hero-copy` | Hero oben auf dem Guide |
-| Knopf zum Quelltext | `.button` mit `span` und `strong` | Actions, „Primary button“ |
+| Knöpfe im Hero der Startseite: Dashboard, Quelltext | `.button` mit `span` und `strong`; Quelltext mit `.button-quiet` | Actions, „Primary button“ und „Quiet and small buttons“; vom Orchestrator festgelegt |
 | Abschnitte | `.section`, `.ground-cream`, `.section-heading`, `.lead` | Grundfarben im Wechsel, „Sections“ |
 | Kleine Zeile über Überschriften | `.eyebrow`, `.eyebrow-dark` | Content, „Eyebrow“ |
 | Liste der Befehle | `.table-wrap` mit `table`, Befehl in `code` | Content, „Table, keys and code“ |
 | Fuss | `.footer` | Fuss des Guides |
+
+Im [Dashboard](dashboard.md) dazu:
+
+| Was in `web/dashboard/` | Klasse | Element im Guide |
+|---|---|---|
+| Leiste mit Wortmarke, Person und Abmelden | `.header-bar` mit `.wordmark`; Abmelden als `.button.button-small.button-quiet` | Navigation, „Header bar“; Actions, „Quiet and small buttons“; vom Orchestrator festgelegt |
+| Anmelden, Speichern | `.button` mit `span` und `strong` | Actions, „Primary button“ |
+| Bild entfernen | `button.link-button` | Actions, „Links“, „In text“; vom Orchestrator festgelegt |
+| Serverliste | `.grid.grid-3` mit `a.card`, `.card-icon`, `.kicker`, `h4` | Content, „Cards“ |
+| Laden | `.skeleton` in `.grid.grid-3` | Feedback, „Loading and empty states“ |
+| Kein Server, kein Bild | `.empty` | Feedback, „Loading and empty states“ |
+| Beitritt und Abschied | `.tabs` mit `#tab-1` und `#tab-2` | Navigation, „Tabs“ |
+| Formular | `.form`, `.field`, `.help`, `.error`, `.field-error` | Inputs, „Text fields and text area“ |
+| Kanal | `select` in `.field`, Kategorien als `optgroup` | Inputs, „Select“ |
+| Aktiv, Banner | `label.choice` mit Checkbox | Inputs, „Checkbox, radio and switch“; Checkbox statt Switch, vom Orchestrator festgelegt |
+| Bild | Datei-Feld in `.field` | fehlt im Guide; vom Orchestrator festgelegt |
+| Vorschau des Banners | `.figure-card` mit `.picture` und `img` | Media, „Picture with caption“; vom Orchestrator festgelegt |
+| Meldungen | `.message` mit `.message-ok`, `.message-warn`, `.message-error` | Feedback, „Messages“ |
 
 ## Herkunft der Regeln
 
@@ -92,10 +116,49 @@ Terranova (Stand 2026-10-10), unter MIT, siehe [`LICENSE`](LICENSE).
 eigenen PR neu, mit dem neuen Commit hier.
 
 `web/site.css` besteht aus Blöcken, die wörtlich aus `design.css` kommen:
-Tokens und Grundregeln, Hero, Abschnitte, Eyebrow, Knopf, Tabelle, Fuss,
-der Breakpoint 760 px und reduzierte Bewegung. Zwei Regeln kommen von der
-Website selbst, weil der Guide sie nur beschreibt: `.hero-actions` und
-`.js .reveal`. Eine neue Regel kommt ebenso wörtlich aus dem Guide.
+Tokens und Grundregeln, Hero, Abschnitte, Eyebrow, Knopf, Tabelle, Fuss;
+für das Dashboard `h4`, Raster, kleine und stille Knöpfe, der gesperrte
+Knopf, Karte, Formular, Header bar mit Wortmarke, Tabs, Meldungen,
+Skeleton, leerer Zustand und Bild mit Unterschrift; dazu die Breakpoints
+960 und 760 px und reduzierte Bewegung. Aus `.demo-header` wird dabei
+`.header-bar`, mit denselben Regeln. Zwei Regeln kommen von der Website
+selbst, weil der Guide sie nur beschreibt: `.hero-actions` und
+`.js .reveal`. Eine neue Regel kommt ebenso wörtlich aus dem Guide, oder
+der Orchestrator legt sie fest.
+
+## Vom Orchestrator festgelegt
+
+Was der Guide nicht zeigt, legt der Orchestrator fest. Diese Regeln stehen
+am Ende von `web/site.css` und nutzen nur Werte, die schon in `design.css`
+stehen. Stand 2026-10-11, alle für das [Dashboard](dashboard.md).
+
+| Regel | Was sie tut |
+|---|---|
+| `[hidden]` | `display: none !important`; sonst schlägt `display` von `.button`, `.grid` und anderen das Attribut `hidden` |
+| `.hero > .header-bar` | Header bar über dem Hero: `position: absolute`, oben 18 px, links und rechts `--gutter`. Unter 760 px im Fluss mit `margin: 18px 20px 0`, weil sie dort zweizeilig wird |
+| `.wordmark img` | Logo und Avatar statt des Verlaufs `i`, 34 px, Ecken 9 px wie `.wordmark i`; ohne Avatar steht `i` |
+| `.person` | die Person in der Leiste rückt nach rechts, `margin-left: auto` wie `.menu` |
+| `.name` | Namen von Discord brechen auch ohne Leerzeichen um, `overflow-wrap: anywhere` |
+| `a.card`, `a.card:hover` | Karte als Link, ohne Unterstreichung. Nur sie hebt sich beim Hover, mit den Werten von `.card:hover`; der goldene Fokusring bleibt |
+| `.card-icon` | Icon der Karte 56 px, rund, 18 px Abstand nach unten; ohne Icon ein `i.card-icon` mit dem Verlauf von `.wordmark i` |
+| `.tabs > input` | ersetzt `.tabs input` mit denselben Werten; versteckt nur die Radios der Tabs, nicht die Felder in den Panels |
+| `.tab-list` | `overflow-y: hidden`; sonst zeigt `overflow-x: auto` einen senkrechten Rollbalken, weil der Strich des aktiven Tabs 1 px übersteht |
+| `.form .button` | `justify-self: start`; der Knopf im Formular bleibt so breit wie sein Text |
+| `.section-heading + .tabs` | 32 px Abstand wie `.grid` |
+| `.link-button` | zweite Aktion auf hellem Grund: ein `button`, der aussieht wie ein Link im Text |
+| `.field-error textarea`, `.field-error select` | Fehler wie bei `.field-error input` |
+| `.form .field input::file-selector-button` | Datei-Feld: Rahmen, Höhe, Fokus und Fehler wie das Textfeld; der Knopf darin in `--sans`, `--ink` auf `--cream`, ohne Rand |
+| `.picture`, `.picture img` | `.picture` ohne `min-height`; darin ein `img` mit `width` 1100 und `height` 440 und diesem Seitenverhältnis |
+
+Ohne eigene Regel, ebenso festgelegt:
+
+- Im Tab stehen Formular und Vorschau als `.grid.grid-2` nebeneinander.
+- Eine Meldung über der Serverliste steht in einem `.grid`, für den
+  Abstand.
+- Auf der Startseite ist „Einstellen | Dashboard“ der Primary button und
+  „Ansehen | Quelltext“ ein `.button.button-quiet`.
+- Das Datei-Feld nimmt `image/png`, `image/jpeg` und `image/webp`; die
+  Hilfe sagt „PNG, JPEG oder WebP, bis 4 MiB, am besten 1100 × 440 px.“
 
 ## Bewegung
 
