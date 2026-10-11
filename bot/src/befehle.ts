@@ -1,5 +1,5 @@
 import { MessageFlags, REST, Routes, SlashCommandBuilder, type ChatInputCommandInteraction } from 'discord.js';
-import type { Pool } from 'mysql2/promise';
+import type { Pool } from 'pg';
 import { misse } from './datenbank.js';
 
 // Was ein Befehl ausser der Interaktion braucht.

@@ -75,7 +75,7 @@ sie Überschriften findet, und bricht sonst mit einer Meldung ab.
 ## Backend
 
 `.github/workflows/backend.yml`, Job „Backend“, in `bot/` mit Node 24 und
-einer Wegwerf-MariaDB 11.4 als Service. Ihr Passwort steht im Workflow;
+einer Wegwerf-PostgreSQL 18 als Service. Ihr Passwort steht im Workflow;
 es ist kein Secret, die Datenbank lebt nur für den Lauf.
 
 | Schritt | Befehl | rot, wenn |

@@ -8,7 +8,7 @@ code:
 # Cache
 
 `ladeCache` in `bot/src/cache.ts` hält Werte aus der Datenbank im
-Speicher, wie Caffeine es für Java tut: begrenzte Grösse, Ablaufzeit, und
+Speicher: begrenzte Grösse, Ablaufzeit, und
 ein fehlender Wert wird beim ersten Zugriff geladen. Darunter liegt
 `lru-cache`, siehe Entscheidung [0006](../entscheidungen/0006-lru-cache.md).
 Heute nutzt ihn noch nichts, weil noch keine Tabelle Daten hat.

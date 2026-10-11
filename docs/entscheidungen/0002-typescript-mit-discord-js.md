@@ -10,6 +10,10 @@ code:
 
 # 0002: Der Bot in TypeScript mit discord.js
 
+Teilweise abgelöst durch [0006](0006-lru-cache.md) und
+[0007](0007-postgres-mit-pg.md): Zur Laufzeit kommen `lru-cache` und `pg`
+dazu.
+
 ## Anlass
 
 Der Maintainer gibt TypeScript und discord.js vor. Offen war, was dazu

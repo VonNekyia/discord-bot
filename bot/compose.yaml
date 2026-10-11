@@ -4,19 +4,19 @@
 #
 # Siehe docs/bot/datenbank.md, „Dev-Datenbank“.
 services:
-  mariadb:
-    image: mariadb:11.4
+  postgres:
+    image: postgres:18
     environment:
-      MARIADB_DATABASE: ${DB_NAME:?DB_NAME fehlt in bot/.env}
-      MARIADB_USER: ${DB_USER:?DB_USER fehlt in bot/.env}
-      MARIADB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD fehlt in bot/.env}
-      MARIADB_RANDOM_ROOT_PASSWORD: "1"
+      POSTGRES_DB: ${DB_NAME:?DB_NAME fehlt in bot/.env}
+      POSTGRES_USER: ${DB_USER:?DB_USER fehlt in bot/.env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD fehlt in bot/.env}
     ports:
-      - "127.0.0.1:${DB_PORT:-3306}:3306"
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
-      - daten:/var/lib/mysql
+      - daten:/var/lib/postgresql
+    # Über TCP: Beim ersten Start lauscht PostgreSQL zuerst nur am Socket.
     healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 5s
       timeout: 5s
       retries: 20

@@ -1,59 +1,76 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import mysql, { type ConnectionOptions, type Pool, type RowDataPacket } from 'mysql2/promise';
+import { Client, Pool, type ClientConfig } from 'pg';
 
 // Wohin der Bot sich verbindet, aus der Umgebung; undefined, wenn etwas fehlt.
 // Siehe docs/bot/datenbank.md, „Verbindung“.
-export function verbindung(umgebung = process.env): ConnectionOptions | undefined {
+export function verbindung(umgebung = process.env): ClientConfig | undefined {
   const { DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD } = umgebung;
   if (!DB_HOST || !DB_NAME || !DB_USER || !DB_PASSWORD) return undefined;
   return {
     host: DB_HOST,
-    port: Number(DB_PORT ?? 3306),
+    port: Number(DB_PORT ?? 5432),
     database: DB_NAME,
     user: DB_USER,
     password: DB_PASSWORD,
-    charset: 'utf8mb4',
-    timezone: 'Z',
-    connectTimeout: 10_000,
-    // Discord-IDs sind grösser als 2^53 und kommen als Text zurück.
-    supportBigNumbers: true,
-    bigNumberStrings: true,
+    // Jede Sitzung spricht UTF-8 und rechnet in UTC.
+    options: '-c client_encoding=UTF8 -c TimeZone=UTC',
+    connectionTimeoutMillis: 10_000,
   };
 }
 
 // Ein Pool für den ganzen Bot. Siehe docs/bot/datenbank.md, „Pool“.
-export function oeffne(ziel: ConnectionOptions): Pool {
-  return mysql.createPool({
+export function oeffne(ziel: ClientConfig): Pool {
+  const pool = new Pool({
     ...ziel,
-    connectionLimit: 5,
-    maxIdle: 2,
-    idleTimeout: 60_000,
-    queueLimit: 100,
-    enableKeepAlive: true,
-    keepAliveInitialDelay: 10_000,
+    max: 5,
+    min: 2,
+    idleTimeoutMillis: 60_000,
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10_000,
   });
+  // Trennt die Datenbank eine freie Verbindung, wirft der Pool sie weg und
+  // meldet es hier. Ohne Zuhörer endete der Prozess.
+  pool.on('error', (fehler) => console.error(`Datenbank: ${fehler.message}`));
+  return pool;
 }
 
+// Schlüssel der Sperre, unter der migriert wird: „kitty“ in ASCII.
+const sperre = 0x6b69747479;
+
 // Wendet jede .sql-Datei in `ordner` genau einmal an, nach Namen sortiert, und
-// gibt die neuen zurück. Eigene Verbindung, weil nur Migrationen mehrere
-// Anweisungen auf einmal schicken dürfen. Siehe docs/bot/datenbank.md, „Migrationen“.
-export async function migriere(ziel: ConnectionOptions, ordner: string): Promise<string[]> {
-  const verbindung = await mysql.createConnection({ ...ziel, multipleStatements: true });
+// gibt die neuen zurück. Jede Datei läuft mit ihrem Eintrag in einer eigenen
+// Transaktion, alles unter einer Sperre für die Datenbank.
+// Siehe docs/bot/datenbank.md, „Migrationen“.
+export async function migriere(ziel: ClientConfig, ordner: string): Promise<string[]> {
+  const client = new Client(ziel);
+  // Bricht die Verbindung ab, scheitert die nächste Anfrage. Ohne Zuhörer endete der Prozess.
+  client.on('error', () => {});
+  await client.connect();
   try {
-    await verbindung.query(
-      'CREATE TABLE IF NOT EXISTS migrationen (name VARCHAR(255) PRIMARY KEY, angewendet TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP)',
+    // Die Sperre gilt für die Sitzung; `end` gibt sie frei.
+    await client.query('SELECT pg_advisory_lock($1)', [sperre]);
+    await client.query(
+      'CREATE TABLE IF NOT EXISTS migrationen (name text PRIMARY KEY, angewendet timestamptz NOT NULL DEFAULT now())',
     );
-    const [zeilen] = await verbindung.query<RowDataPacket[]>('SELECT name FROM migrationen');
-    const fertig = new Set(zeilen.map((zeile) => String(zeile.name)));
+    const { rows } = await client.query<{ name: string }>('SELECT name FROM migrationen');
+    const fertig = new Set(rows.map((zeile) => zeile.name));
     const neu = (await readdir(ordner)).filter((name) => name.endsWith('.sql') && !fertig.has(name)).sort();
     for (const name of neu) {
-      await verbindung.query(await readFile(join(ordner, name), 'utf8'));
-      await verbindung.query('INSERT INTO migrationen (name) VALUES (?)', [name]);
+      const sql = await readFile(join(ordner, name), 'utf8');
+      await client.query('BEGIN');
+      try {
+        await client.query(sql);
+        await client.query('INSERT INTO migrationen (name) VALUES ($1)', [name]);
+        await client.query('COMMIT');
+      } catch (fehler) {
+        await client.query('ROLLBACK').catch(() => {});
+        throw fehler;
+      }
     }
     return neu;
   } finally {
-    await verbindung.end();
+    await client.end();
   }
 }
 

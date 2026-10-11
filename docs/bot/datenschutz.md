@@ -5,6 +5,7 @@ code:
   - bot/src/befehle.ts
   - bot/src/index.ts
   - bot/src/cache.ts
+  - bot/src/datenbank.ts
 ---
 
 # Datenschutz
@@ -33,3 +34,11 @@ Nur der Name des Befehls und der Text eines Fehlers (`text` in
 `url` den Token der Interaktion. Nie IDs, Namen, Nachrichteninhalte oder
 Tokens. Der Test „ein unbekannter Befehl bekommt eine Meldung, das Log
 keine Nutzerdaten“ prüft die Zeile.
+
+Fehler der Datenbank gehen ebenso nur mit ihrer Meldung ins Log, auch
+`Datenbank: <Meldung>` aus dem Pool, siehe [Datenbank](datenbank.md),
+„Pool“. PostgreSQL legt die Werte einer Zeile, etwa bei einem doppelten
+Schlüssel, in `detail` ab, nicht in die Meldung; `detail` geht nie ins
+Log. Eine falsche Eingabe kann die Meldung aber nennen, etwa
+`invalid input syntax for type bigint: "…"`. Eingaben von Nutzern darum
+prüfen, bevor sie in eine Anfrage gehen.
