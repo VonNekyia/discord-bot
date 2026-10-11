@@ -119,6 +119,10 @@ Art zählt er die Ereignisse der letzten 10 s:
 
 - `{zahl}` zählt die Ereignisse, die nicht einzeln begrüsst wurden, also
   ab dem 6. Ereignis.
+- Die Bremse zählt nur, solange die Art an ist. Sonst könnte ein Raid bei
+  ausgeschalteter Begrüssung sie anwerfen; schaltet das Team danach ein,
+  begrüsste die Zusammenfassung Mitglieder, die nie begrüsst werden
+  sollten.
 - Die Bremse lebt im Speicher des Prozesses. Ein Neustart setzt sie
   zurück, und eine Zusammenfassung, die noch aussteht, fällt dann weg.
 - Ins Log kommen „Bremse an“ und „Bremse aus“ mit der Zahl, ohne IDs und

@@ -46,7 +46,7 @@ in [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md).
 | `PUT /api/server/{id}/begruessung/{art}/bild` | `204` |
 | `DELETE /api/server/{id}/begruessung/{art}/bild` | `204` |
 | `GET /api/server/{id}/begruessung/{art}/vorschau` | `200` `image/png` |
-| `POST /api/server/{id}/begruessung/{art}/test` | `204`; die Testnachricht ist gesendet |
+| `POST /api/server/{id}/begruessung/{art}/test` | `200` `{ banner: boolean }`; die Testnachricht ist gesendet |
 
 `{art}` ist `beitritt` oder `abschied`, sonst `404`. Jede Route mit `{id}`
 prüft zuerst die Rechte, siehe [Anmeldung am Dashboard](anmeldung.md),
@@ -165,8 +165,12 @@ Oberfläche zeigt nach dem Hochladen die Vorschau. Damit reicht `img-src
 `POST …/test` schickt die Begrüssung einmal in den gespeicherten Kanal, so
 wie der Bot sie bei einem Ereignis schicken würde: mit dem gespeicherten
 Stand und der angemeldeten Person als Mitglied, wie bei der Vorschau. Die
-Route hat keinen Body.
+Route liest keinen Body und prüft keinen `Content-Type`; die Oberfläche
+schickt `POST` ohne Body und ohne Header, den `Origin` setzt der Browser.
 
+- Sie antwortet `200` mit `{ "banner": true }`, wenn das Banner mitging,
+  sonst `{ "banner": false }`. So kann die Oberfläche sagen, dass nur der
+  Text ankam.
 - Sie geht auch, wenn `an` aus ist. So lässt sich vor dem Einschalten
   probieren.
 - Sie pingt niemanden, auch nicht mit `{nutzer}` beim Beitritt:
@@ -189,7 +193,9 @@ mit `400`, dem Code und dem Feld:
 | der gespeicherte Kanal steht in `GET …/kanaele` | `kanal_unbekannt` | `kanal` |
 | es gibt etwas zu senden: Text, der nicht nur aus Leerzeichen besteht, oder ein Banner, das der Bot im Kanal anhängen darf | `test_ohne_inhalt` | `text` |
 
-Scheitert das Senden bei Discord, `503` `nicht_erreichbar`.
+Scheitert das Senden bei Discord, `503` `nicht_erreichbar`. Ebenso, wenn
+der Text leer ist und das Banner beim Zeichnen scheitert: Dann gibt es
+nichts zu senden, obwohl die Regeln oben es erlaubt haben.
 
 ## Grenzen je Sitzung
 
@@ -199,9 +205,15 @@ Scheitert das Senden bei Discord, `503` `nicht_erreichbar`.
 | `PUT …/bild`, `GET …/vorschau` und `POST …/test` zusammen | 20 je Minute und Sitzung | sie dekodieren oder zeichnen Bilder |
 | `POST …/test` | 3 je Minute und Server, über alle Sitzungen | jede Testnachricht landet im Kanal, den alle sehen |
 
-Darüber `429` `zu_viele` mit `Retry-After` in Sekunden. Die Grenze wird vor
-den Rechten geprüft, damit eine abgelehnte Anfrage Discord nichts kostet.
-Ein Aufruf zählt zu jeder Zeile, die passt.
+Darüber `429` `zu_viele` mit `Retry-After` in Sekunden. Ein Aufruf zählt zu
+jeder Zeile, die passt.
+
+- Die beiden Grenzen je Sitzung werden vor den Rechten geprüft, damit eine
+  abgelehnte Anfrage Discord nichts kostet.
+- Die Grenze je Server ist die Ausnahme. Sie zählt erst nach den Rechten
+  und den Regeln der Testnachricht, direkt vor dem Senden. Sonst könnte
+  jeder Angemeldete mit drei Anfragen auf einen fremden Server dessen
+  Testnachricht sperren und bekäme dafür nur `403`.
 
 ## Fehler
 
