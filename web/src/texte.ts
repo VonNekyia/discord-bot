@@ -27,6 +27,11 @@ const saetze: Record<string, Satz> = {
   bild_zu_klein: { titel: 'Das Bild ist zu klein.', text: 'Es braucht mindestens 200 px je Seite.' },
   bild_unlesbar: { titel: 'Das Bild lässt sich nicht lesen.', text: 'Speicher es neu oder wähl ein anderes.' },
   zu_gross: { titel: 'Das ist zu viel auf einmal.', text: 'Kürz den Text und speicher noch einmal.' },
+  test_ohne_kanal: { titel: 'Im gespeicherten Stand ist kein Kanal gewählt.', text: 'Wähl einen Kanal und speicher, dann geht die Testnachricht.' },
+  test_ohne_inhalt: {
+    titel: 'Im gespeicherten Stand gibt es nichts zu senden.',
+    text: 'Schreib einen Text oder schalte das Banner ein und speicher.',
+  },
   steuerzeichen: {
     titel: 'Im Text steht ein unsichtbares Zeichen, das kitty nicht speichern kann.',
     text: 'Tipp die Stelle neu oder füg den Text als reinen Text ein.',
