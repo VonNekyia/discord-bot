@@ -31,7 +31,10 @@ import {
 import { BildFehler, bereiteVor } from './banner.js';
 import { text } from './befehle.js';
 import { lese, loescheBild, pruefe, speichere, speichereBild, type Art } from './begruessung.js';
+import { wieDiscord } from './ordnung.js';
+import { raeumeVon } from './raeume.js';
 import { banner, sendeTest } from './senden.js';
+import { liesSprachraeume, liste as sprachkanaele, pruefe as pruefeSprachraeume, speichereSprachraeume } from './sprachraeume.js';
 
 export interface ApiUmgebung {
   geheimnis: string;
@@ -69,6 +72,8 @@ export interface ApiOptionen {
   avatar?: (url: string) => Promise<Buffer | undefined>;
   // Die Uhr der Grenzen, in ms; in Tests eine falsche.
   uhr?: () => number;
+  // Der Cache der Sprachräume; wer schreibt, löscht dort den Server.
+  sprachraeume?: { delete(server: string): unknown };
 }
 
 export type Kanal = { id: string; name: string; banner: boolean; kategorie: { id: string; name: string } | null };
@@ -121,20 +126,12 @@ export class Grenze {
 export function kanaele(guild: Guild): Kanal[] {
   const ich = guild.members.me;
   if (!ich) return [];
-  const ordnung = (x: { rawPosition: number; id: string }, y: { rawPosition: number; id: string }) =>
-    x.rawPosition - y.rawPosition || (BigInt(x.id) < BigInt(y.id) ? -1 : 1);
   const liste: (TextChannel | NewsChannel)[] = [];
   for (const kanal of guild.channels.cache.values()) {
     if (kanal.type !== ChannelType.GuildText && kanal.type !== ChannelType.GuildAnnouncement) continue;
     if (kanal.permissionsFor(ich).has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) liste.push(kanal);
   }
-  liste.sort((x, y) => {
-    if (x.parent?.id === y.parent?.id) return ordnung(x, y);
-    if (!x.parent) return -1;
-    if (!y.parent) return 1;
-    return ordnung(x.parent, y.parent);
-  });
-  return liste.map((kanal) => ({
+  return wieDiscord(liste).map((kanal) => ({
     id: kanal.id,
     name: kanal.name,
     banner: kanal.permissionsFor(ich).has(PermissionFlagsBits.AttachFiles),
@@ -434,6 +431,43 @@ export function erstelleApi(o: ApiOptionen): Server {
         const warten = grenzeTest.pruefe(a.server!.id);
         if (warten > 0) throw new ApiFehler(429, 'zu_viele', undefined, { 'retry-after': String(warten) });
         json(a, 200, await sendeTest(a.mitglied!, art, e, { db: o.db, avatar: o.avatar }));
+      },
+    },
+    {
+      methode: 'GET',
+      muster: /^\/api\/server\/(\d{1,20})\/sprachkanaele$/,
+      name: 'sprachkanaele',
+      sitzung: true,
+      server: true,
+      // Siehe docs/schnittstelle/sprachraeume.md, „Typen“.
+      async tue(a) {
+        json(a, 200, sprachkanaele(a.server!, await raeumeVon(o.db, a.server!.id)));
+      },
+    },
+    {
+      methode: 'GET',
+      muster: /^\/api\/server\/(\d{1,20})\/sprachraeume$/,
+      name: 'sprachraeume',
+      sitzung: true,
+      server: true,
+      async tue(a) {
+        json(a, 200, await liesSprachraeume(o.db, a.server!.id));
+      },
+    },
+    {
+      methode: 'PUT',
+      muster: /^\/api\/server\/(\d{1,20})\/sprachraeume$/,
+      name: 'sprachraeume speichern',
+      sitzung: true,
+      server: true,
+      // Siehe docs/schnittstelle/sprachraeume.md, „Sprachräume einstellen“.
+      async tue(a) {
+        const eingabe = await liesJson(a.req);
+        const ergebnis = pruefeSprachraeume(eingabe, sprachkanaele(a.server!, await raeumeVon(o.db, a.server!.id)));
+        if ('code' in ergebnis) throw new ApiFehler(400, ergebnis.code, ergebnis.feld);
+        await speichereSprachraeume(o.db, a.server!.id, ergebnis.sprachraeume);
+        o.sprachraeume?.delete(a.server!.id);
+        json(a, 200, ergebnis.sprachraeume);
       },
     },
   ];

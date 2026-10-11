@@ -3,6 +3,8 @@ title: API der Sprachräume
 description: Die Routen, mit denen das Dashboard die Sprachräume eines Servers einstellt; Typen, Prüfregeln, Codes.
 code:
   - bot/src/index.ts
+  - bot/src/sprachraeume.ts
+  - bot/src/api.ts
   - web/serve.mjs
 ---
 
@@ -47,7 +49,8 @@ type Sprachraeume = {
 
 - `GET …/sprachkanaele` liefert die Sprachkanäle und die Kategorien des
   Servers, sortiert wie `GET …/kanaele`, siehe [API des Dashboards](api.md),
-  „Typen“. Bühnen gehören nicht dazu.
+  „Typen“. Bühnen gehören nicht dazu, die Räume selbst auch nicht; darum
+  ist ein Raum als Erzeuger `erzeuger_unbekannt`.
 - `Sprachkanal.bereit`: Der Bot darf dort den Kanal sehen, sich verbinden
   und Mitglieder verschieben. Nur dann taugt er als Erzeuger.
 - `ohneKategorie.bereit`: Der Bot hat auf dem ganzen Server alle Rechte aus

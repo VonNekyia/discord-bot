@@ -26,6 +26,7 @@ Bilder und Banner zeichnet `@napi-rs/canvas`, siehe Entscheidung
 | `bot/src/anmeldung.ts` | OAuth2 mit `fetch`, Sitzungen in PostgreSQL, Cookies |
 | `bot/src/begruessung.ts` | Standardwerte, `pruefe` mit den Regeln beim Speichern, Platzhalter, Lesen, Speichern und Löschen von Einstellungen und Bildern |
 | `bot/src/banner.ts` | `masse`, `bereiteVor` für ein hochgeladenes Bild, `zeichne` für das Banner |
+| `bot/src/sprachraeume.ts` | Routen der Sprachräume: `liste` für `GET …/sprachkanaele`, `pruefe` für `PUT …/sprachraeume`, siehe [Sprachräume im Bot](sprachraeume-bau.md) |
 | `bot/src/senden.ts` | `banner` für Vorschau und Senden, `sendeTest` für die Testnachricht; `begruesse` und die Bremse, siehe [Begrüssung senden](begruessung-senden.md) |
 
 ## Start und Ende
@@ -138,7 +139,7 @@ darf, steht in [Datenschutz](datenschutz.md), „Was ins Log geht“.
 
 - Abgelaufene Sitzungen löscht `raeumeAuf`, wenn die API öffnet, und dann
   jede Stunde.
-- Einstellungen und Bilder von Servern, die der Bot verlassen hat, löschen
+- Einstellungen, Bilder, Sprachräume und Räume von Servern, die der Bot verlassen hat, löschen
   `vergiss` bei `guildDelete` und `behalteNur` beim Start, siehe
   [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md),
   „Wenn etwas fehlt“.
