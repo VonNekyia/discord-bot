@@ -31,13 +31,15 @@ Routen stehen in [API des Dashboards](api.md).
    Server, auf denen die Person Eigentümer ist (`owner`) oder „Server
    verwalten“ oder „Administrator“ hat (`permissions`).
 5. Er widerruft den Token bei `https://discord.com/api/oauth2/token/revoke`.
-   Gespeichert wird der Token nie.
+   Gespeichert wird der Token nie. Er steht nur im Header `Authorization`
+   der Aufrufe aus Schritt 4 und im Body des Widerrufs, nie in einer URL,
+   im Log oder in einem Fehler, der geloggt wird.
 6. Er legt die Sitzung an, setzt das Cookie `sitzung`, löscht `anmeldung`
    und leitet auf `/dashboard/`.
 
 Scheitert ein Schritt, auch wenn die Person bei Discord ablehnt, leitet der
 Bot auf `/dashboard/?fehler=anmeldung`. Ins Log kommen nur der Schritt und
-der Text des Fehlers, nie Code, Token oder Antwort von Discord.
+der Text des Fehlers, nie Code, Token, Cookie oder Antwort von Discord.
 
 Belege: [Authorization Code Grant](https://docs.discord.com/developers/topics/oauth2#authorization-code-grant),
 [Get Current User Guilds](https://docs.discord.com/developers/resources/user#get-current-user-guilds),
@@ -71,9 +73,19 @@ Jede Route mit `{id}` prüft, bevor sie etwas liest oder schreibt:
 2. Die Person ist dort Mitglied und ist jetzt Eigentümer oder hat „Server
    verwalten“ oder „Administrator“, sonst `403` `kein_recht`.
 
-Das prüft der Bot über discord.js, nicht aus der Sitzung, und ohne eigenen
-Cache, siehe [Cache](../bot/cache.md), „Wann cachen“. Wer das Recht
-verliert, kann sofort nichts mehr ändern.
+Das prüft der Bot mit `guild.members.fetch({ user, force: true })` und
+`member.permissions`, nicht aus der Sitzung und nicht aus einem Cache, siehe
+[Cache](../bot/cache.md), „Wann cachen“. Ohne `force` gäbe discord.js ein
+Mitglied aus seinem Cache zurück, mit Rollen von früher. `force` holt es
+mit `GET /guilds/{id}/members/{user}` neu; das braucht keinen Intent.
+`member.permissions` gibt dem Eigentümer alle Rechte. Wer das Recht
+verliert, kann sofort nichts mehr ändern. Belege:
+[GuildMemberManager#fetch](https://discord.js.org/docs/packages/discord.js/14.27.0/GuildMemberManager:Class#fetch),
+[Get Guild Member](https://docs.discord.com/developers/resources/guild#get-guild-member).
+
+Jede solche Prüfung kostet einen Aufruf an Discord. Darum zählt jede Route
+mit `{id}` zur Grenze je Sitzung, siehe [API des Dashboards](api.md),
+„Grenzen je Sitzung“, und die Grenze wird vor den Rechten geprüft.
 
 ## Origin
 

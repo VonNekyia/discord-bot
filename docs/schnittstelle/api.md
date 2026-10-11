@@ -34,7 +34,7 @@ in [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md).
 |---|---|
 | `GET /api/anmelden` | `302` zu Discord |
 | `GET /api/anmelden/zurueck` | `302` zu `/dashboard/`, bei einem Fehler zu `/dashboard/?fehler=anmeldung` |
-| `POST /api/abmelden` | `303` zu `/dashboard/`; die Sitzung ist gelöscht |
+| `POST /api/abmelden` | `204`; die Sitzung ist gelöscht, das Cookie auch |
 | `GET /api/ich` | `200` `Ich` |
 | `GET /api/server` | `200` `Server[]` |
 | `GET /api/server/{id}/kanaele` | `200` `Kanal[]` |
@@ -54,7 +54,12 @@ prüft zuerst die Rechte, siehe [Anmeldung am Dashboard](anmeldung.md),
 ```ts
 type Ich = { id: string; name: string; avatar: string | null };
 type Server = { id: string; name: string; icon: string | null };
-type Kanal = { id: string; name: string; banner: boolean };
+type Kanal = {
+  id: string;
+  name: string;
+  banner: boolean;
+  kategorie: { id: string; name: string } | null;
+};
 type Einstellung = {
   an: boolean;
   kanal: string | null;
@@ -76,9 +81,13 @@ type Einstellung = {
   darf, steht nicht in der Liste. Ist sie leer, zeigt die Oberfläche einen
   leeren Zustand.
 - `GET …/kanaele` liefert Text- und Ankündigungskanäle, in denen der Bot
-  den Kanal sehen und Nachrichten senden darf, schon sortiert wie in
-  Discord: erst nach Kategorie, dann nach Position. `banner` ist `true`,
-  wenn er dort auch Dateien anhängen darf.
+  den Kanal sehen und Nachrichten senden darf. `banner` ist `true`, wenn er
+  dort auch Dateien anhängen darf. `kategorie` ist die Kategorie, in der
+  der Kanal steht, oder `null`; die Oberfläche kann danach gruppieren.
+- Die Liste ist schon sortiert wie in Discord: Kanäle ohne Kategorie zuerst,
+  dann die Kategorien nach ihrer Position; innerhalb einer Gruppe nach
+  Position, bei gleicher Position nach ID. Die Oberfläche sortiert nicht
+  um.
 - Ohne gespeicherte Zeile liefert `GET …/begruessung` die Standardwerte,
   siehe [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md),
   „Standardwerte“.
@@ -147,9 +156,14 @@ Oberfläche zeigt nach dem Hochladen die Vorschau. Damit reicht `img-src
 
 ## Grenzen je Sitzung
 
-`PUT …/bild` und `GET …/vorschau` zeichnen oder dekodieren Bilder. Beide
-zusammen gehen höchstens 20-mal je Minute und Sitzung, sonst `429`
-`zu_viele` mit `Retry-After` in Sekunden.
+| Was | Höchstens | Warum |
+|---|---|---|
+| alle Routen mit `{id}` zusammen | 60 je Minute und Sitzung | jede prüft die Rechte mit einem Aufruf an Discord; eine Sitzung soll nicht das Budget des Bots verbrauchen, das er für Interaktionen braucht |
+| `PUT …/bild` und `GET …/vorschau` zusammen | 20 je Minute und Sitzung | sie dekodieren oder zeichnen Bilder |
+
+Darüber `429` `zu_viele` mit `Retry-After` in Sekunden. Die Grenze wird vor
+den Rechten geprüft, damit eine abgelehnte Anfrage Discord nichts kostet.
+Ein Aufruf zählt zu beiden Zeilen, wenn beide passen.
 
 ## Fehler
 
@@ -184,6 +198,8 @@ Oberfläche behandelt das wie `503`. `API_PORT` steht in
 ## Was noch fehlt
 
 - Eine Testnachricht aus dem Dashboard heraus.
-- Grenzen für die übrigen Routen.
+- Eine Grenze je IP-Adresse, vor allem für die Anmeldung. Hinter dem
+  Reverse Proxy kommt jede Anfrage von `127.0.0.1`; die echte Adresse steht
+  erst fest, wenn klar ist, wie der Proxy sie weitergibt.
 - Server, auf denen der Bot fehlt, mit einem Link zum Einladen. Solange der
   Bot privat ist, geht der nur für das Team.

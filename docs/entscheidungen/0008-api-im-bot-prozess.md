@@ -15,7 +15,9 @@ code:
 
 Der Maintainer will ein Dashboard: mit Discord anmelden, einen Server
 wählen, Nachrichten und Banner für Beitritt und Abschied einstellen. Alles
-liegt in PostgreSQL. Dafür braucht es einen Teil auf dem Server: Den Code
+liegt in PostgreSQL, siehe Entscheidung [0007](0007-postgres-mit-pg.md);
+diese Entscheidung baut darauf auf. Dafür braucht es einen Teil auf dem
+Server: Den Code
 von Discord gegen einen Token tauschen geht nur mit dem Client-Secret, die
 Einstellungen liegen in der Datenbank, und der Bot muss eine Änderung
 sofort sehen.
@@ -59,8 +61,12 @@ und [Anmeldung am Dashboard](../schnittstelle/anmeldung.md).
   „Harte Regeln“.
 - Ein neues Secret `DISCORD_CLIENT_SECRET` und eine Redirect-URL im
   Developer Portal. Für Beitritt und Abschied fordert der Bot den
-  privilegierten Intent `GuildMembers` an, siehe
+  privilegierten Intent `GuildMembers` und `Partials.GuildMember` an, siehe
+  [Intents](../bot/intents.md) und
   [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md),
   „Rechte und Intent“.
+- Jede Route mit einem Server prüft die Rechte mit einem Aufruf an
+  Discord. Eine Grenze je Sitzung schützt das Budget des Bots, siehe
+  [API des Dashboards](../schnittstelle/api.md), „Grenzen je Sitzung“.
 - Ohne `DISCORD_CLIENT_SECRET` oder `DASHBOARD_URL` startet der Bot ohne
   API. Tests und CI brauchen beides nicht.

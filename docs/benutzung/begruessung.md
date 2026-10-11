@@ -11,7 +11,8 @@ Tritt jemand einem Server bei oder verlässt ihn, schickt der Bot eine
 Nachricht in den Kanal, den das Team des Servers im Dashboard wählt: einen
 Text mit Platzhaltern, ein Banner aus einem eigenen Bild, oder beides.
 Beitritt und Abschied werden getrennt eingestellt. Dafür braucht der Bot den
-privilegierten Intent `GuildMembers`. Eingestellt wird über die
+privilegierten Intent `GuildMembers` und `Partials.GuildMember`, siehe
+[Intents](../bot/intents.md). Eingestellt wird über die
 [API des Dashboards](../schnittstelle/api.md).
 
 ## Platzhalter
@@ -21,10 +22,17 @@ privilegierten Intent `GuildMembers`. Eingestellt wird über die
 | `{nutzer}` | Erwähnung des Mitglieds; im Banner `@` und Anzeigename | 23 Zeichen | 33 Zeichen |
 | `{name}` | Anzeigename auf dem Server; im Text Markdown maskiert | 64 Zeichen | 32 Zeichen |
 | `{server}` | Name des Servers; im Text Markdown maskiert | 200 Zeichen | 100 Zeichen |
-| `{anzahl}` | Mitglieder nach dem Beitritt oder Abschied, als Ziffern | 10 Zeichen | 10 Zeichen |
+| `{anzahl}` | ungefähre Zahl der Mitglieder nach dem Beitritt oder Abschied, als Ziffern | 10 Zeichen | 10 Zeichen |
 
 - Zeichen zählen wie in [API des Dashboards](../schnittstelle/api.md),
   „Einstellung speichern“.
+- Anzeigename heisst: der Spitzname auf dem Server, sonst der globale
+  Anzeigename, sonst der Nutzername. Beim Abschied eines Mitglieds, das
+  nicht im Cache war, kennt der Bot den Spitznamen nicht; dann gilt der
+  globale Anzeigename, siehe [Intents](../bot/intents.md), „Partials“.
+- `{anzahl}` ist `memberCount` von discord.js. Die Zahl kommt beim Start
+  von Discord und wird bei jedem Beitritt und Abschied um 1 fortgeschrieben.
+  Nach einer Lücke im Gateway kann sie etwas abweichen.
 - Anzeigename und Servername sind höchstens 32 und 100 Zeichen lang; das
   Maskieren im Text setzt vor ein Zeichen höchstens einen `\`, darum dort
   das Doppelte. Belege: [Users](https://docs.discord.com/developers/resources/user),
@@ -70,21 +78,17 @@ Ohne gespeicherte Einstellung gilt:
 
 ## Rechte und Intent
 
-| Was | Wofür |
+Den Intent `GuildMembers` und das Partial begründet [Intents](../bot/intents.md);
+dort steht auch, in welcher Reihenfolge der Intent kommt. Im gewählten
+Kanal braucht der Bot diese Rechte:
+
+| Recht | Wofür |
 |---|---|
-| Intent `GuildMembers`, privilegiert | Discord schickt `GUILD_MEMBER_ADD` und `GUILD_MEMBER_REMOVE` nur damit |
-| „Kanal ansehen“ im gewählten Kanal | den Kanal finden |
-| „Nachrichten senden“ im gewählten Kanal | die Nachricht |
-| „Dateien anhängen“ im gewählten Kanal | das Banner |
+| „Kanal ansehen“ | den Kanal finden |
+| „Nachrichten senden“ | die Nachricht |
+| „Dateien anhängen“ | das Banner |
 
-Belege: [List of Intents](https://docs.discord.com/developers/events/gateway#list-of-intents),
-[Privileged Intents](https://docs.discord.com/developers/events/gateway#privileged-intents),
-[Permissions](https://docs.discord.com/developers/topics/permissions).
-
-Der Intent muss im Developer Portal an sein, bevor ein Bot startet, der ihn
-anfordert. Sonst schliesst Discord die Verbindung mit 4014, siehe
-[Wiederanlauf](../bot/wiederanlauf.md). Ab 100 Servern muss Discord ihn
-nach der Verifizierung des Bots freigeben.
+Beleg: [Permissions](https://docs.discord.com/developers/topics/permissions).
 
 ## Wenn etwas fehlt
 
