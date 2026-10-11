@@ -276,6 +276,26 @@ export async function jpegMitExif(breite: number, hoehe: number, merkmal: string
   return Buffer.concat([jpeg.subarray(0, 2), kopf, app1, jpeg.subarray(2)]);
 }
 
+// Ein SVG mit 300 × 300 px, das @napi-rs/canvas lesen könnte.
+export function svgBild(): Buffer {
+  return Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300"><rect width="300" height="300" fill="red"/></svg>');
+}
+
+// Ein GIF mit 300 × 300 px Fläche und einem Pixel, das @napi-rs/canvas lesen könnte.
+export function gifBild(): Buffer {
+  const flaeche = Buffer.alloc(7);
+  flaeche.writeUInt16LE(300, 0);
+  flaeche.writeUInt16LE(300, 2);
+  flaeche[4] = 0x80;
+  return Buffer.concat([
+    Buffer.from('GIF89a', 'latin1'),
+    flaeche,
+    Buffer.from([0xff, 0, 0, 0xff, 0xff, 0xff]),
+    Buffer.from([0x2c, 0, 0, 0, 0, 1, 0, 1, 0, 0]),
+    Buffer.from([0x02, 0x02, 0x44, 0x01, 0x00, 0x3b]),
+  ]);
+}
+
 // Ein PNG in einer Farbe.
 export function pngBild(breite: number, hoehe: number, farbe = '#3a7d44'): Buffer {
   const flaeche = createCanvas(breite, hoehe);

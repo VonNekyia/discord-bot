@@ -139,7 +139,7 @@ Oberfläche schickt die Datei so, wie sie gewählt wurde:
 | `Content-Type` | `image/png`, `image/jpeg` oder `image/webp` | `415` `bildtyp` |
 | Grösse | höchstens 4 MiB, also 4 194 304 Byte | `413` `bild_zu_gross` |
 | Pixel | höchstens 4096 px je Seite, mindestens 200 px je Seite | `413` `bild_zu_gross` oder `400` `bild_zu_klein` |
-| lesbar | das Bild lässt sich dekodieren | `415` `bild_unlesbar` |
+| lesbar | die Datei beginnt mit der Signatur von PNG, JPEG oder WebP, egal welcher `Content-Type`, und lässt sich dekodieren | `415` `bild_unlesbar` |
 
 - Das Backend bricht ab, sobald der Body grösser als 4 MiB wird, statt ihn
   ganz zu lesen.

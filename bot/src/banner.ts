@@ -25,6 +25,18 @@ export class BildFehler extends Error {
   }
 }
 
+const signaturPng = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+// PNG, JPEG oder WebP an der Signatur der Datei; sonst undefined.
+// @napi-rs/canvas liest auch SVG, GIF und anderes; jeder weitere Decoder
+// wäre Angriffsfläche. Siehe docs/bot/dashboard-api.md, „Bilder“.
+export function format(daten: Buffer): 'png' | 'jpeg' | 'webp' | undefined {
+  if (daten.subarray(0, 8).equals(signaturPng)) return 'png';
+  if (daten[0] === 0xff && daten[1] === 0xd8 && daten[2] === 0xff) return 'jpeg';
+  if (daten.toString('latin1', 0, 4) === 'RIFF' && daten.toString('latin1', 8, 12) === 'WEBP') return 'webp';
+  return undefined;
+}
+
 // Breite und Höhe aus dem Kopf der Datei, ohne zu dekodieren; 0, wenn der
 // Kopf kein Bild ist. Vor einer EXIF-Drehung.
 export function masse(daten: Buffer): { breite: number; hoehe: number } {
@@ -41,11 +53,12 @@ function fuelle(g: ReturnType<ReturnType<typeof createCanvas>['getContext']>, bi
   g.drawImage(bild, (breite - w) / 2, (hoehe - h) / 2, w, h);
 }
 
-// Prüft die Masse aus dem Kopf und dekodiert erst danach. Schneidet mittig
-// auf 1100 × 440 zu und kodiert neu als WebP; EXIF und andere Metadaten
-// fallen dabei weg. `loadImage` wendet die EXIF-Drehung an.
+// Prüft Signatur und Masse aus dem Kopf und dekodiert erst danach. Schneidet
+// mittig auf 1100 × 440 zu und kodiert neu als WebP; EXIF und andere
+// Metadaten fallen dabei weg. `loadImage` wendet die EXIF-Drehung an.
 // Siehe docs/bot/dashboard-api.md, „Bilder“.
 export async function bereiteVor(daten: Buffer): Promise<Buffer> {
+  if (!format(daten)) throw new BildFehler(415, 'bild_unlesbar');
   const { breite: b, hoehe: h } = masse(daten);
   if (b === 0 || h === 0) throw new BildFehler(415, 'bild_unlesbar');
   if (b > 4096 || h > 4096) throw new BildFehler(413, 'bild_zu_gross');

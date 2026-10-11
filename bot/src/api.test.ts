@@ -19,6 +19,7 @@ import {
   DASHBOARD,
   discordClient,
   frage,
+  gifBild,
   GEHEIMNIS,
   gilde,
   jpegMitExif,
@@ -32,6 +33,7 @@ import {
   roh,
   ROLLE_TEAM,
   schliesse,
+  svgBild,
   TOKEN,
   type MockDiscord,
 } from './testhilfe.js';
@@ -497,6 +499,9 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
         ['image/png', pngBild(199, 300), 400, 'bild_zu_klein'],
         ['image/png', Buffer.from('kein Bild'), 415, 'bild_unlesbar'],
         ['image/png', pngKopf(500, 500), 415, 'bild_unlesbar'],
+        // Lesbar für @napi-rs/canvas, aber nicht PNG, JPEG oder WebP: an der Signatur abgewiesen.
+        ['image/png', svgBild(), 415, 'bild_unlesbar'],
+        ['image/png', gifBild(), 415, 'bild_unlesbar'],
       ];
       for (const [typ, body, status, code] of faelle) {
         const antwort = await hoch(kennung, typ, body);

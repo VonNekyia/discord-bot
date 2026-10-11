@@ -94,18 +94,23 @@ es“.
 
 1. `Content-Type` ist PNG, JPEG oder WebP, sonst `415` `bildtyp`.
 2. Der Body hat höchstens 4 MiB, sonst `413` `bild_zu_gross`.
-3. Breite und Höhe kommen aus dem Kopf der Datei (`masse`, `new Image()`),
+3. Die Datei beginnt mit der Signatur von PNG (`89 50 4E 47 0D 0A 1A 0A`),
+   JPEG (`FF D8 FF`) oder WebP (`RIFF`, vier Byte, `WEBP`), sonst `415`
+   `bild_unlesbar` (`format`). `@napi-rs/canvas` liest auch SVG, GIF und
+   anderes; der `Content-Type` setzt der Client frei, und jeder weitere
+   Decoder wäre Angriffsfläche.
+4. Breite und Höhe kommen aus dem Kopf der Datei (`masse`, `new Image()`),
    ohne zu dekodieren. 20000 × 20000 px dauern so 0,3 ms ohne Speicher.
    Keine Masse heisst `415` `bild_unlesbar`, über 4096 px je Seite `413`
    `bild_zu_gross`, unter 200 px `400` `bild_zu_klein`.
-4. Erst jetzt dekodiert `loadImage`; scheitert es, `415` `bild_unlesbar`.
-   `loadImage` wendet die EXIF-Drehung an. Die Masse aus Schritt 3 sind
+5. Erst jetzt dekodiert `loadImage`; scheitert es, `415` `bild_unlesbar`.
+   `loadImage` wendet die EXIF-Drehung an. Die Masse aus Schritt 4 sind
    die vor der Drehung; für die Grenzen spielt das keine Rolle, weil sie
    für beide Seiten gleich sind.
-5. Das Bild wird auf 1100 × 440 px skaliert und mittig beschnitten, wie
+6. Das Bild wird auf 1100 × 440 px skaliert und mittig beschnitten, wie
    das Banner es braucht, und als WebP mit Qualität 85 neu kodiert. EXIF,
    GPS und andere Metadaten fallen dabei weg.
-6. Das Ergebnis kommt in die Tabelle `bilder`, ein neues ersetzt das alte.
+7. Das Ergebnis kommt in die Tabelle `bilder`, ein neues ersetzt das alte.
 
 `DELETE …/bild` löscht die Zeile und setzt `banner` auf `false`, in einer
 Anweisung (`loescheBild`).
