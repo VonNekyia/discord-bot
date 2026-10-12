@@ -1,5 +1,4 @@
 import { createServer, type IncomingMessage, type OutgoingHttpHeaders, type Server, type ServerResponse } from 'node:http';
-import type { Client, Guild } from 'discord.js';
 import type { Pool } from 'pg';
 import {
   anmeldeFrist,
@@ -22,10 +21,8 @@ import { BausteinFehler, hoechstensSeiten, methoden, type Bereich, type MitRoute
 import { text } from '../kern/fehler.js';
 import { Grenze } from '../kern/grenze.js';
 import { Zaehlung } from '../kern/zaehlung.js';
-import { Berechtigte } from '../discord/eigentuemer.js';
-import { verwaltet, type Kontext, type NichtVerwalten } from '../discord/kontext.js';
-import { oauthUeber } from '../discord/oauth.js';
-import { debugStand } from '../discord/zaehlen.js';
+import type { DashboardGriff } from '../discord/dashboard.js';
+import type { Kontext, NichtVerwalten } from '../discord/kontext.js';
 
 export interface ApiUmgebung {
   geheimnis: string;
@@ -48,16 +45,16 @@ export function apiUmgebung(umgebung = process.env): ApiUmgebung | undefined {
 }
 
 export interface ApiOptionen {
-  client: Client;
+  // Was die API von Discord braucht, aus `dashboardGriff`.
+  griff: DashboardGriff;
   db: Pool;
   // Application-ID, zugleich Client-ID für OAuth2.
   anwendung: string;
   geheimnis: string;
   dashboard: string;
   // Zählt, wie oft eine Grenze unten greift. Siehe docs/bot/rate-limits.md, „Eigene Grenzen“.
-  // Zählt auch die Anfragen der Anmeldung an Discord und liefert den Stand
-  // für GET /api/debug. Ohne Angabe eine eigene, die nur die API zählt.
-  zaehlung?: Pick<Zaehlung, 'griff' | 'antwort' | 'stand'>;
+  // Ohne Angabe eine eigene, die nur die API zählt.
+  zaehlung?: Pick<Zaehlung, 'griff'>;
   // Die Uhr der Grenzen, in ms; in Tests eine falsche.
   uhr?: () => number;
   // Was die Module für das Dashboard anmelden, in der Reihenfolge der Tabs.
@@ -226,17 +223,12 @@ export function erstelleApi(o: ApiOptionen): Server {
   const sicher = o.dashboard.startsWith('https://');
   const zaehlung = o.zaehlung ?? new Zaehlung();
   const oauth: OAuth = {
-    // Über eine eigene REST-Instanz mit der Basis des Clients.
-    // Siehe docs/bot/rate-limits.md, „Anmeldung“.
-    frage: oauthUeber(o.client.rest, { zaehlung }),
+    frage: o.griff.frage,
     anwendung: o.anwendung,
     geheimnis: o.geheimnis,
     zurueck: `${o.dashboard}/api/anmelden/zurueck`,
   };
   const zeit = o.uhr ?? (() => Date.now());
-  // Wer die Debug-Seite sehen darf, höchstens 5 min gehalten.
-  // Siehe docs/schnittstelle/debug.md, „Wer sie sehen darf“.
-  const berechtigte = new Berechtigte(o.client, zeit);
   const grenze = new Grenze(60, 60_000, zeit, () => zaehlung.griff('sitzung'));
   const grenzeBild = new Grenze(20, 60_000, zeit, () => zaehlung.griff('bausteine'));
   const sortierer = new Intl.Collator('de');
@@ -336,11 +328,11 @@ export function erstelleApi(o: ApiOptionen): Server {
       async tue(a) {
         const { nutzer, name, avatar } = a.sitzung;
         // `GET /api/ich` scheitert nicht daran, dass Discord die Anwendung nicht liefert.
-        const debug = await berechtigte.darf(nutzer).catch((fehler: unknown) => {
+        const debug = await o.griff.darfDebug(nutzer).catch((fehler: unknown) => {
           console.error(`API ich: Eigentümer nicht gelesen: ${text(fehler)}`);
           return false;
         });
-        json(a, 200, { id: nutzer, name, avatar: avatar && o.client.rest.cdn.avatar(nutzer, avatar, { size: 128 }), debug });
+        json(a, 200, { id: nutzer, name, avatar: avatar && o.griff.avatar(nutzer, avatar), debug });
       },
     },
     {
@@ -352,8 +344,8 @@ export function erstelleApi(o: ApiOptionen): Server {
       // Scheitert das Lesen der Anwendung, wird es wie jeder andere Fehler 503.
       // Siehe docs/schnittstelle/debug.md.
       async tue(a) {
-        if (!(await berechtigte.darf(a.sitzung.nutzer))) throw new ApiFehler(403, 'kein_recht');
-        json(a, 200, debugStand(o.client, zaehlung));
+        if (!(await o.griff.darfDebug(a.sitzung.nutzer))) throw new ApiFehler(403, 'kein_recht');
+        json(a, 200, o.griff.debug());
       },
     },
     {
@@ -362,11 +354,7 @@ export function erstelleApi(o: ApiOptionen): Server {
       name: 'server',
       zugang: 'sitzung',
       async tue(a) {
-        const liste = a.sitzung.server
-          .map((id) => o.client.guilds.cache.get(id))
-          .filter((guild): guild is Guild => guild?.available === true)
-          .map((guild) => ({ id: guild.id, name: guild.name, icon: guild.iconURL({ size: 128 }) }))
-          .toSorted((x, y) => sortierer.compare(x.name, y.name));
+        const liste = o.griff.server(a.sitzung.server).toSorted((x, y) => sortierer.compare(x.name, y.name));
         json(a, 200, liste);
       },
     },
@@ -398,7 +386,7 @@ export function erstelleApi(o: ApiOptionen): Server {
     if (route.teuer) halte(grenzeBild, schluessel);
     const id = treffer[1];
     if (id === undefined) throw new Error(`Route ${route.name} ohne ID des Servers`);
-    const kontext = await verwaltet(o.client, id, sitzung.nutzer);
+    const kontext = await o.griff.verwaltet(id, sitzung.nutzer);
     if (typeof kontext === 'string') throw new ApiFehler(...nichtVerwalten[kontext]);
     return route.tue({ ...a, sitzung, kontext });
   }

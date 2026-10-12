@@ -23,6 +23,8 @@ code:
   - bot/src/discord/fehler.test.ts
   - bot/src/discord/sprachkanaele.test.ts
   - bot/src/discord/menue.test.ts
+  - bot/src/discord/rechte.test.ts
+  - bot/src/discord/dashboard.test.ts
   - bot/package.json
   - .github/workflows/backend.yml
 ---
@@ -210,7 +212,9 @@ Millisekunden. Darum:
 | ohne state-Cookie oder mit falschem state … | Weiterleitung mit Fehler, keine Anfrage an Discord |
 | bei 429 wartet die Anmeldung ein kurzes Retry-After ab … | `Retry-After: 0`: zweimal `POST /oauth2/token`, dann Erfolg; alle vier Routen zählen mit, eine Zeile `Rate-Limit: 429 bei POST /oauth2/token, …` |
 | verlangt Discord länger als die Frist, scheitert die Anmeldung gleich … | `Retry-After: 60`: unter 2 s `?fehler=anmeldung`, ein Aufruf; Log nur „Anmeldung: Tausch: Discord antwortet 429, Retry-After 60 s“ und die Zeile der Zählung, ohne Code, Token, state und ID |
-| die Anmeldung tauscht den Code, widerruft den Token … | Reihenfolge der Aufrufe, Basic-Auth, Widerruf mit dem Token, in der Datenbank nur der SHA-256, nur verwaltbare Server, 7 Tage; danach `ich` und `server` |
+| die Anmeldung tauscht den Code, widerruft den Token … | Reihenfolge der Aufrufe, Basic-Auth, Widerruf mit dem Token, in der Datenbank nur der SHA-256, nur verwaltbare Server, 7 Tage; danach `ich` und `server`. Ein Server mit `permissions` `viel` fällt weg, die Anmeldung gelingt |
+| darfVerwalten: „Server verwalten“ oder „Administrator“ … | `bot/src/discord/rechte.test.ts`: beide Rechte, andere Rechte, `0`, mehr als 64 Bit; leer, Text, Leerzeichen, negativ, hex und `32.0` heissen nein, ohne zu werfen |
+| server: nur Server mit Bot, die Discord gerade liefert … | `DashboardGriff#server`: ein Server ohne `available` und eine unbekannte ID fallen weg, die Reihenfolge der IDs bleibt, das Icon mit `size=128` |
 | der Token wird auch widerrufen, wenn das Lesen der Person scheitert | Widerruf als letzter Aufruf, keine Sitzung, eine Logzeile |
 | mit https tragen die Cookies Secure | `Secure` hinten am Cookie |
 | abmelden braucht den Origin des Dashboards … | ohne und mit falschem Origin `403`, sonst `204`, Cookie gelöscht, danach `401` |

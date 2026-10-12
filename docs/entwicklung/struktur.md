@@ -29,7 +29,7 @@ Linter. Warum so, steht in
 |---|---|---|
 | `bot/src/index.ts` | Einstieg: verbindet Kern, Discord-Schicht, API und Module | |
 | `bot/src/kern/` | Datenbank, Cache, Fehlertext fürs Log, Typwächter für Eingaben, Grenzen, Zählung, Aufräumen, der Vertrag des Baukastens; kennt weder Discord noch Module | `datenbank.ts`, `cache.ts`, `fehler.ts`, `eingabe.ts`, `grenze.ts`, `zaehlung.ts`, `aufraeumen.ts`, `baukasten.ts` |
-| `bot/src/discord/` | die einzige Schicht, die discord.js importiert | `client.ts`, `ordnung.ts`, `zaehlen.ts`, `oauth.ts`, `kanaele.ts`, `kontext.ts`, `eigentuemer.ts`, `nachrichten.ts`, `server.ts`, `fehler.ts`, `rechte.ts`, `sprachkanaele.ts`, `menue.ts`, `interaktionen.ts`, `befehle.ts` |
+| `bot/src/discord/` | die einzige Schicht, die discord.js importiert | `client.ts`, `ordnung.ts`, `zaehlen.ts`, `oauth.ts`, `kanaele.ts`, `kontext.ts`, `eigentuemer.ts`, `nachrichten.ts`, `server.ts`, `fehler.ts`, `rechte.ts`, `sprachkanaele.ts`, `menue.ts`, `interaktionen.ts`, `befehle.ts`, `dashboard.ts` |
 | `bot/src/api/` | HTTP-API des Dashboards: Server, Anmeldung, Grenzen, Fehler; die Routen der Seiten, die die Module anmelden | `server.ts`, `anmeldung.ts` |
 | `bot/src/module/befehle/` | Slash-Befehle, heute `/ping` | `befehle.ts` |
 | `bot/src/module/begruessung/` | Beitritt und Abschied: Einstellungen, Senden, Banner, Seiten im Dashboard | `begruessung.ts`, `senden.ts`, `banner.ts`, `seiten.ts` |
@@ -59,7 +59,8 @@ Ein Pfeil heisst „darf importieren“:
 ```text
 Bot:  index.ts ──> module/* ──> discord/, kern/
                ──> api/     ──> discord/, kern/
-      discord/ ──> kern/
+               ──> discord/ ──> discord.js, kern/
+               ──> discord.js
 
 Web:  dashboard.ts ──> seite.ts ──> bausteine/* ──> api/, kern/
                   ──> debug.ts ──> api/, kern/
@@ -80,9 +81,11 @@ Tests sind ausgenommen: Sie bauen discord.js nach und dürfen alles
 importieren. Die Regeln stehen in `bot/.oxlintrc.json` und
 `web/.oxlintrc.json`, siehe [Lint mit oxlint](lint.md).
 
-Kern, Discord-Schicht und Module im Bot und alle Schichten der Oberfläche
-halten die Grenzen schon; der Linter meldet dort Fehler. In `bot/src/api/`
-sind es noch Warnungen, siehe „Was noch fehlt“.
+discord.js importieren nur `bot/src/discord/` und `bot/src/index.ts`;
+Module und API sehen eigene Typen der Discord-Schicht, die API über
+`DashboardGriff` aus `discord/dashboard.ts`. Alle Schichten in Bot und
+Oberfläche halten die Grenzen; der Linter meldet jede Verletzung als
+Fehler.
 
 ## Ein Modul
 
@@ -140,7 +143,6 @@ PR mit gleichem Verhalten und grünen Tests.
 
 | Was | Wo | Lint |
 |---|---|---|
-| discord.js direkt in der API | `api/server.ts`, `api/anmeldung.ts` | 2 Warnungen |
 | Aufräumen kennt die Tabellen aller Module | `kern/aufraeumen.ts` | – |
 | Der Einstieg verdrahtet jedes Modul einzeln; nur die Seiten gehen schon als `Bereich` | `index.ts` | – |
 | Die Typen der API stehen dreimal: in `docs/schnittstelle/`, in `bot/src/kern/baukasten.ts` und in `web/src/api/klient.ts` | – | – |

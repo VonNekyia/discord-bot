@@ -101,17 +101,13 @@ In `**/*.test.ts` und `bot/src/testhilfe.ts` gilt anders:
 
 ## Altlasten
 
-Was beim Einführen schon da war und nicht schnell geht, ist eine Warnung
+Was beim Einführen schon da war und nicht schnell geht, wird eine Warnung
 statt eines Fehlers. `maxWarnings` ist die Zahl dieser Warnungen; eine
 neue Warnung lässt die Prüfung scheitern.
 
-Stand 2026-10-12:
-
-- Casts und `!` sind in beiden Paketen Fehler. Keine Datei steht mehr
-  unter `overrides`, um sie zur Warnung zu machen.
-- Im Bot bleiben die 2 Grenzverletzungen in `bot/src/api/` aus
-  [Struktur von Bot und Oberfläche](struktur.md), „Was noch fehlt“;
-  `maxWarnings` ist dort 2. In `web/` ist es 0.
+Stand 2026-10-12: Es gibt keine mehr. `maxWarnings` ist in `bot/` und
+`web/` 0. Keine Datei steht unter `overrides`, um eine Regel zur Warnung zu
+machen, und die Grenzen der Schichten sind überall Fehler.
 
 Eingaben von aussen prüfen Typwächter statt `as`. Im Bot sind das
 `istObjekt` und `ohneNul` in `bot/src/kern/eingabe.ts`; `pruefe` der
@@ -119,7 +115,9 @@ Begrüssung und der Sprachräume baut den Wert aus geprüften Feldern. Die
 Antworten der API prüft `web/src/api/klient.ts` mit Typprädikaten, siehe
 [Dashboard](../frontend/dashboard.md), „Antworten prüfen“.
 
-Wer eine Grenzverletzung beseitigt, senkt `maxWarnings` um ihre Zahl.
+Kommt eine Altlast dazu, etwa mit einer neuen Regel, steht sie hier mit
+Zahl und Ort, und `maxWarnings` zählt sie. Wer sie beseitigt, senkt
+`maxWarnings` um ihre Zahl.
 
 ## Eine Regel abschalten
 

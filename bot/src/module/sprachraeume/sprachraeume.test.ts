@@ -10,6 +10,8 @@ import { erstelleApi } from '../../api/server.js';
 import { behalteNur, vergiss } from '../../kern/aufraeumen.js';
 import { ladeCache } from '../../kern/cache.js';
 import { migriere, oeffne, verbindung } from '../../kern/datenbank.js';
+import { Zaehlung } from '../../kern/zaehlung.js';
+import { dashboardGriff } from '../../discord/dashboard.js';
 import { serverVon, type Server as Griff } from '../../discord/server.js';
 import { Raeume } from './raeume.js';
 import { sprachraeumeBereich } from './seiten.js';
@@ -423,7 +425,7 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
     before(async () => {
       if (!ziel) return;
       api = erstelleApi({
-        client,
+        griff: dashboardGriff(client, { zaehlung: new Zaehlung() }),
         db,
         anwendung: ANWENDUNG,
         geheimnis: GEHEIMNIS,

@@ -10,6 +10,7 @@ import { lese } from './module/begruessung/begruessung.js';
 import { ladeCache } from './kern/cache.js';
 import { beantworte, registriere } from './discord/befehle.js';
 import { erstelleClient } from './discord/client.js';
+import { dashboardGriff } from './discord/dashboard.js';
 import { alsMitglied, textkanalAuf } from './discord/nachrichten.js';
 import { alsDruck } from './discord/interaktionen.js';
 import { serverVon } from './discord/server.js';
@@ -91,7 +92,7 @@ async function nachDemVerbinden(bereit: Client<true>): Promise<void> {
   const { port, ...rest } = umgebung;
   // Die Seiten des Dashboards, in der Reihenfolge der Tabs. Siehe docs/schnittstelle/baukasten.md.
   const bereiche = [begruessungsBereich({ db, einstellungen, zaehlung }), sprachraeumeBereich({ db, sprachraeume })];
-  api = erstelleApi({ client: bereit, db, anwendung: bereit.application.id, zaehlung, bereiche, ...rest });
+  api = erstelleApi({ griff: dashboardGriff(bereit, { zaehlung }), db, anwendung: bereit.application.id, zaehlung, bereiche, ...rest });
   api.once('error', (e) => console.error(`API nicht gestartet: ${text(e)}`));
   api.listen(port, '127.0.0.1', () => console.log(`API auf 127.0.0.1:${port}.`));
   // Abgelaufene Sitzungen löschen. Siehe docs/schnittstelle/anmeldung.md, „Sitzung“.

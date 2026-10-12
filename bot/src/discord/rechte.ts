@@ -10,6 +10,14 @@ export const Recht = {
   verlauf: P.ReadMessageHistory,
 } as const;
 
+// Ob Rechte zum Verwalten eines Servers reichen: „Server verwalten“ oder
+// „Administrator“. `rechte` ist das Bitfeld als Dezimalzahl, wie es
+// `/users/@me/guilds` liefert; alles andere heisst nein.
+// Siehe docs/bot/dashboard-api.md, „Server der Sitzung“.
+export function darfVerwalten(rechte: string): boolean {
+  return /^\d+$/.test(rechte) && (BigInt(rechte) & (P.ManageGuild | P.Administrator)) !== 0n;
+}
+
 // Ein Rechte-Eintrag eines Kanals: für eine Rolle (auch @everyone) oder eine Person.
 export interface Eintrag {
   id: string;
