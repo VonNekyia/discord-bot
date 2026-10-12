@@ -144,7 +144,7 @@ Mitglieder, siehe [Datenschutz](datenschutz.md), „Was der Bot speichert“;
 
 Wer Einstellungen oder ein Bild schreibt oder löscht, ruft danach
 `delete` am Cache seines Moduls für den Server, siehe [Cache](cache.md),
-„So geht es“. Die Bereiche bekommen den Cache von `bot/src/index.ts`.
+„So geht es“. Jeder Bereich bekommt den Cache seines Moduls in dessen `modul.ts`.
 
 ## Grenzen und Zeitlimits
 

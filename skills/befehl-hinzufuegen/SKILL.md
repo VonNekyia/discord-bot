@@ -10,7 +10,9 @@ description: Fügt dem Bot einen Slash-Befehl hinzu oder ändert einen, mit Test
 1. **Seiten lesen:** [Befehle](../../docs/benutzung/befehle.md),
    [Intents](../../docs/bot/intents.md),
    [Datenschutz](../../docs/bot/datenschutz.md).
-2. **Befehl eintragen** in `befehle` in `bot/src/module/befehle/befehle.ts`:
+2. **Befehl eintragen** in `befehle` in `bot/src/module/befehle/befehle.ts`,
+   oder, gehört er zu einem anderen Modul, in `befehle` von dessen
+   `DiscordModul` in seinem `modul.ts`:
    ein `Befehl` aus `bot/src/discord/befehle.ts` mit `name` klein,
    `beschreibung` auf Deutsch und `ausfuehren(aufruf)`. `ausfuehren`
    antwortet innerhalb von 3 s mit `aufruf.antworte`. Das Modul importiert

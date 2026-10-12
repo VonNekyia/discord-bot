@@ -29,6 +29,7 @@ code:
   - bot/src/discord/dashboard.test.ts
   - bot/package.json
   - .github/workflows/backend.yml
+  - bot/src/discord/modul.test.ts
 ---
 
 # Tests
@@ -271,6 +272,13 @@ Millisekunden. Darum:
 | vergiss und behalteNur löschen in einer Anweisung … | dieselbe Datei, ohne Datenbank: je eine Anfrage mit jeder Tabelle genau einmal, die Werte mit Shards; ohne Tabellen keine Anfrage |
 | jede Tabelle mit Daten je Server (Spalte server bigint) gehört genau einem Modul | `bot/src/modulliste.test.ts`, PostgreSQL: die Tabellen aus `information_schema` nach allen Migrationen gegen die Tabellen aus `alleModule` |
 | die Seiten kommen in der Reihenfolge der Tabs; vergiss leert den Cache … | dieselbe Datei: `beitritt`, `abschied`, `sprachraeume`; `vergiss` nimmt nur den einen Server aus beiden Caches |
+| welches Modul welche Ereignisse, Befehle und Knöpfe hat | dieselbe Datei: Befehle `ping`; Begrüssung `beitritt`, `abschied`; Sprachräume `bereit`, `stimme`, `kanalWeg` und das Präfix `sprachraum:` |
+| Beitritt und Abschied gehen als Mitglied an jedes Modul … | `bot/src/discord/modul.test.ts`: `haengeAn` mit zwei falschen Modulen, `guildMemberAdd` und `guildMemberRemove` aus discord.js; beide Module in der Reihenfolge der Liste |
+| ein Wechsel des Sprachkanals kommt mit Griff, Person, vorher und nachher | dieselbe Datei: `voiceStateUpdate` mit zwei `VoiceState` |
+| ein gelöschter Kanal eines Servers geht an die Module, ein Kanal einer DM nicht | dieselbe Datei: `channelDelete` mit einem Textkanal und einem `DMChannel` |
+| ein Slash-Befehl geht an den Befehl seines Moduls, ein Knopf an das Modul mit seinem Präfix … | dieselbe Datei: echte Interaktionen über die Action `InteractionCreate`; ein fremdes Präfix geht an kein Modul |
+| das Modul gibt Beitritt und Abschied an begruesse … | `bot/src/module/begruessung/senden.test.ts`, PostgreSQL: `begruessungsModul` mit eigenem Cache sendet den Text von Beitritt und Abschied |
+| das Modul gibt Wechsel, gelöschte Kanäle und den Abgleich beim Start an seine Räume | `bot/src/module/sprachraeume/sprachraeume.test.ts`: `sprachraeumeModul` legt beim Betreten des Erzeugers einen Raum an, vergisst ihn bei `kanalWeg` und beim Start einen Raum ohne Kanal |
 | die Seite bietet Sprachkanäle und Kategorien … | Bausteine der Seite und der Liste; Sortierung, ohne Text und Bühne; ohne „Mitglieder verschieben“ gesperrt mit `erzeuger_ohne_recht`; eine Kategorie, die „Streamen“ verbietet, das der Bot nicht hat, gesperrt mit `kategorie_ohne_recht` |
 | fehlt dem Bot ein Recht auf dem Server, steht oben ein Hinweis | ohne „Kanäle verwalten“ ist der erste Baustein `hinweis` `rechte`, mit allen Rechten wieder `schalter` |
 | die Seite liefert ohne Zeile die Standardwerte … | `{ an: false, erzeuger: [] }`, `fund` `null`, Speichern mit 100 Zeichen Vorlage und `meldung`, fremde Felder fallen weg, Cache geleert |

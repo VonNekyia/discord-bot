@@ -32,26 +32,38 @@ describe('Module', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt' }, ()
     );
     const inDerDatenbank = rows.map((z) => z.tabelle).toSorted();
     // Aufraeumen wirft, wenn eine Tabelle zwei Modulen gehört.
-    const aufraeumer = new Aufraeumen(alleModule({ db, zaehlung: new Zaehlung(), einstellungen: new Map(), sprachraeume: new Map() }));
+    const aufraeumer = new Aufraeumen(alleModule({ db, zaehlung: new Zaehlung(), kanal: () => undefined }));
     assert.deepEqual([...aufraeumer.tabellen].toSorted(), inDerDatenbank);
     assert.ok(inDerDatenbank.length > 0);
   });
 
   test('die Seiten kommen in der Reihenfolge der Tabs; vergiss leert den Cache jedes Moduls nur für seinen Server', () => {
-    const einstellungen = new Map([
-      ['300000000000000071', 1],
-      ['300000000000000072', 1],
-    ]);
-    const sprachraeume = new Map([
-      ['300000000000000071', 1],
-      ['300000000000000072', 1],
-    ]);
-    const liste = alleModule({ db, zaehlung: new Zaehlung(), einstellungen, sprachraeume });
+    // Caches, die sich merken, was sie vergessen.
+    const vergessen: Record<'einstellungen' | 'sprachraeume', string[]> = { einstellungen: [], sprachraeume: [] };
+    const cache = (name: keyof typeof vergessen) => ({ fetch: async () => undefined, delete: (server: string) => vergessen[name].push(server) });
+    const liste = alleModule({ db, zaehlung: new Zaehlung(), kanal: () => undefined, einstellungen: cache('einstellungen'), sprachraeume: cache('sprachraeume') });
     assert.deepEqual(
       liste.flatMap((m) => (m.bereich ? Object.keys(m.bereich.seiten) : [])),
       ['beitritt', 'abschied', 'sprachraeume'],
     );
     for (const m of liste) m.vergiss?.('300000000000000071');
-    assert.deepEqual([[...einstellungen.keys()], [...sprachraeume.keys()]], [['300000000000000072'], ['300000000000000072']]);
+    assert.deepEqual(vergessen, { einstellungen: ['300000000000000071'], sprachraeume: ['300000000000000071'] });
+  });
+
+  test('welches Modul welche Ereignisse, Befehle und Knöpfe hat', () => {
+    const liste = alleModule({ db, zaehlung: new Zaehlung(), kanal: () => undefined });
+    assert.deepEqual(
+      liste.map((m) => ({
+        name: m.name,
+        ereignisse: Object.keys(m.ereignisse ?? {}),
+        befehle: (m.befehle ?? []).map((b) => b.name),
+        praefix: m.knoepfe?.praefix,
+      })),
+      [
+        { name: 'befehle', ereignisse: [], befehle: ['ping'], praefix: undefined },
+        { name: 'begruessung', ereignisse: ['beitritt', 'abschied'], befehle: [], praefix: undefined },
+        { name: 'sprachraeume', ereignisse: ['bereit', 'stimme', 'kanalWeg'], befehle: [], praefix: 'sprachraum:' },
+      ],
+    );
   });
 });

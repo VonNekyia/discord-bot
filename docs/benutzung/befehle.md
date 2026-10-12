@@ -5,6 +5,8 @@ code:
   - bot/src/module/befehle/befehle.ts
   - bot/src/discord/befehle.ts
   - bot/src/kern/datenbank.ts
+  - bot/src/module/befehle/modul.ts
+  - bot/src/discord/modul.ts
 ---
 
 # Befehle
@@ -19,6 +21,11 @@ Alle Befehle sind globale Slash-Befehle und stehen in `befehle` in
 
 ## Aufbau
 
+Das Modul Befehle (`bot/src/module/befehle/modul.ts`) hat nur Befehle,
+keine Tabellen und Seiten. Ein anderes Modul bringt seine Befehle in
+`befehle` seines `DiscordModul` mit, siehe
+[Struktur von Bot und Oberfläche](../entwicklung/struktur.md), „Ein Modul“.
+
 Das Modul kennt kein discord.js. Ein Befehl ist ein `Befehl` aus
 `bot/src/discord/befehle.ts`: `name`, `beschreibung` und
 `ausfuehren(aufruf)`. Optionen hat noch kein Befehl; sie kommen mit dem
@@ -27,7 +34,7 @@ ersten, der welche braucht. Den Rest macht die Discord-Schicht:
 | Was | wo |
 |---|---|
 | beim Start alle registrieren | `registriere`, siehe [Rate-Limits](../bot/rate-limits.md), „Befehle registrieren“ |
-| den Befehl zum Namen finden und ausführen | `beantworte`, aus `bot/src/index.ts` bei jedem Slash-Befehl |
+| den Befehl zum Namen finden und ausführen | `beantworte`, aus `haengeAn` in `bot/src/discord/modul.ts` bei jedem Slash-Befehl, mit den Befehlen aller Module (`befehleVon`) |
 | antworten | `Aufruf#antworte`: gleich, nur für den Nutzer (ephemeral), ohne Erwähnungen; scheitert es, wirft es `DiscordFehler` |
 | Fehler | `beantworte` fängt sie, siehe „Fehler“ |
 

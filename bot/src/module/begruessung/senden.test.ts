@@ -7,6 +7,7 @@ import { lese, speichere, speichereBild, standard, type Art, type Einstellung } 
 import { ladeCache } from '../../kern/cache.js';
 import { migriere, oeffne, verbindung } from '../../kern/datenbank.js';
 import { Zaehlung } from '../../kern/zaehlung.js';
+import { begruessungsModul } from './modul.js';
 import { begruesse, Bremse, erstelleBremse, Plaetze, zusammenfassung } from './senden.js';
 import { pngBild } from '../../testhilfe.js';
 import { DiscordFehler } from '../../discord/fehler.js';
@@ -149,6 +150,18 @@ describe('Senden bei Beitritt und Abschied', { skip: ziel ? false : 'keine Daten
     assert.deepEqual(gesendet, [
       { kanal: K.gruss, n: { text: `Hallo <@${NEU}> (\\*\\*Nick\\*\\*) auf Probe \\*Server\\*, Nr. 42! {Name}`, pingt: [NEU] } },
     ]);
+  });
+
+  test('das Modul gibt Beitritt und Abschied an begruesse, je mit seiner Art und eigenem Cache', async () => {
+    await stelle('beitritt', { an: true, kanal: K.gruss, text: 'Hallo {name}.' });
+    await stelle('abschied', { an: true, kanal: K.gruss, text: 'Tschüss {name}.' });
+    const { ereignisse } = begruessungsModul({ db, zaehlung: new Zaehlung(), kanal: kontext().kanal });
+    await ereignisse?.beitritt?.(neu('Mia'));
+    await ereignisse?.abschied?.(neu('Mia'));
+    assert.deepEqual(
+      gesendet.map((g) => g.n.text),
+      ['Hallo Mia.', 'Tschüss Mia.'],
+    );
   });
 
   test('Abschied: der Name, den die Schicht liefert, und niemand pingt', async () => {

@@ -3,6 +3,8 @@ title: Cache
 description: Wann der Bot Daten aus der Datenbank im Speicher hält und wann nicht; ladeCache, Standardwerte, Invalidierung, Grenzen.
 code:
   - bot/src/kern/cache.ts
+  - bot/src/module/begruessung/modul.ts
+  - bot/src/module/sprachraeume/modul.ts
 ---
 
 # Cache
@@ -11,8 +13,9 @@ code:
 Speicher: begrenzte Grösse, Ablaufzeit, und
 ein fehlender Wert wird beim ersten Zugriff geladen. Darunter liegt
 `lru-cache`, siehe Entscheidung [0006](../entscheidungen/0006-lru-cache.md).
-Heute nutzen ihn die Begrüssung und die Sprachräume: `einstellungen` und
-`sprachraeume` in `bot/src/index.ts` halten die Einstellungen je Server;
+Heute nutzen ihn die Begrüssung und die Sprachräume: `einstellungen` in
+`bot/src/module/begruessung/modul.ts` und `sprachraeume` in
+`bot/src/module/sprachraeume/modul.ts` halten die Einstellungen je Server;
 jeder Beitritt und Abschied und jedes Betreten eines Sprachkanals liest
 sie dort. Die API ruft nach jedem Schreiben `delete`.
 

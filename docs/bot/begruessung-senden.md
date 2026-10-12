@@ -6,6 +6,8 @@ code:
   - bot/src/module/begruessung/begruessung.ts
   - bot/src/index.ts
   - bot/src/discord/nachrichten.ts
+  - bot/src/module/begruessung/modul.ts
+  - bot/src/discord/modul.ts
 ---
 
 # Begrüssung senden
@@ -32,9 +34,11 @@ Discord-Schicht“:
 | `Nachricht`, `Textkanal#sende` | Text, Datei, `pingt`; daraus `allowedMentions`, siehe „Platzhalter und Erwähnungen“ |
 | `DiscordFehler` | aus `bot/src/discord/fehler.ts`, was `sende` wirft: `kein_recht` (50001, 50013), `nicht_gefunden` (10003), `zu_schnell` (RateLimitError), sonst `anderes`; die Meldung bleibt die von Discord |
 
-`bot/src/index.ts` wandelt jedes Mitglied aus `guildMemberAdd` und
-`guildMemberRemove` mit `alsMitglied` und gibt `begruesse` den Kanal über
-`textkanalAuf`. Die Seiten in `bot/src/module/begruessung/seiten.ts`
+`haengeAn` in `bot/src/discord/modul.ts` wandelt jedes Mitglied aus
+`guildMemberAdd` und `guildMemberRemove` mit `alsMitglied` und gibt es an
+`beitritt` und `abschied` des Moduls in `bot/src/module/begruessung/modul.ts`.
+Das ruft `begruesse` mit dem Kanal über `textkanalAuf`, den
+`bot/src/index.ts` an `alleModule` gibt. Die Seiten in `bot/src/module/begruessung/seiten.ts`
 bekommen Griff und `Mitglied` aus `Kontext` und nehmen `textkanal` für
 die Testnachricht.
 
@@ -76,7 +80,7 @@ Was die Bremse tut, steht in
   und der Bot im Kanal darf, ohne Ping und ohne Banner. In den 30 s können
   sich Einstellung und Rechte ändern; fehlt der Kanal dann, steht eine
   Logzeile da, und nichts wirft.
-- `bot/src/index.ts` legt eine Bremse für alle Server an. Sie lebt im
+- `begruessungsModul` legt eine Bremse für alle Server an. Sie lebt im
   Speicher; ein Neustart vergisst sie.
 
 ### Höchstens zwei Banner zugleich

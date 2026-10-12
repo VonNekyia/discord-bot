@@ -10,6 +10,8 @@ code:
   - bot/src/discord/interaktionen.ts
   - bot/src/discord/sprachkanaele.ts
   - bot/src/index.ts
+  - bot/src/module/sprachraeume/modul.ts
+  - bot/src/discord/modul.ts
 ---
 
 # Menü der Sprachräume im Bot
@@ -32,9 +34,11 @@ brechen darf. Wie Räume entstehen und gehen, steht in
 | `bot/src/module/sprachraeume/raumrechte.ts` | Sperren, Verstecken, Bann und neuer Besitzer als reine Rechnung auf den Rechte-Einträgen (`Eintrag` mit `art`, `Recht` aus `bot/src/discord/rechte.ts`) |
 
 `Raeume` postet das Menü nach dem Anlegen, siehe
-[Sprachräume im Bot](sprachraeume-bau.md), „Anlegen“. `bot/src/index.ts`
-macht bei `interactionCreate` mit `alsDruck` und dem Präfix aus jeder
-passenden Interaktion einen `Druck` und gibt ihn an `Knoepfe#bediene`.
+[Sprachräume im Bot](sprachraeume-bau.md), „Anlegen“. `haengeAn` in
+`bot/src/discord/modul.ts` macht bei `interactionCreate` mit `alsDruck` und
+dem Präfix aus `knoepfe` des Moduls (`bot/src/module/sprachraeume/modul.ts`)
+aus jeder passenden Interaktion einen `Druck` und gibt ihn an
+`Knoepfe#bediene`.
 
 ## Knöpfe
 

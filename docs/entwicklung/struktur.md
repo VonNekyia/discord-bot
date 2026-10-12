@@ -11,6 +11,7 @@ code:
   - web/src/dashboard.ts
   - web/src/seite.ts
   - web/.oxlintrc.json
+  - bot/src/discord/modul.ts
 ---
 
 # Struktur von Bot und Oberfläche
@@ -32,9 +33,9 @@ Linter. Warum so, steht in
 | `bot/src/index.ts` | Einstieg: verbindet Kern, Discord-Schicht, API und Module | |
 | `bot/src/modulliste.ts` | `alleModule`: die Liste der Module, in der Reihenfolge der Tabs | |
 | `bot/src/kern/` | Datenbank, Cache, Fehlertext fürs Log, Typwächter für Eingaben, Grenzen, Zählung, Aufräumen, der Vertrag des Baukastens; kennt weder Discord noch Module | `datenbank.ts`, `cache.ts`, `fehler.ts`, `eingabe.ts`, `grenze.ts`, `zaehlung.ts`, `aufraeumen.ts`, `baukasten.ts`, `modul.ts` |
-| `bot/src/discord/` | die einzige Schicht, die discord.js importiert | `client.ts`, `ordnung.ts`, `zaehlen.ts`, `oauth.ts`, `kanaele.ts`, `kontext.ts`, `eigentuemer.ts`, `nachrichten.ts`, `server.ts`, `fehler.ts`, `rechte.ts`, `sprachkanaele.ts`, `menue.ts`, `interaktionen.ts`, `befehle.ts`, `dashboard.ts` |
+| `bot/src/discord/` | die einzige Schicht, die discord.js importiert | `client.ts`, `ordnung.ts`, `zaehlen.ts`, `oauth.ts`, `kanaele.ts`, `kontext.ts`, `eigentuemer.ts`, `nachrichten.ts`, `server.ts`, `fehler.ts`, `rechte.ts`, `sprachkanaele.ts`, `menue.ts`, `interaktionen.ts`, `befehle.ts`, `dashboard.ts`, `modul.ts` |
 | `bot/src/api/` | HTTP-API des Dashboards: Server, Anmeldung, Grenzen, Fehler; die Routen der Seiten, die die Module anmelden | `server.ts`, `anmeldung.ts` |
-| `bot/src/module/befehle/` | Slash-Befehle, heute `/ping` | `befehle.ts` |
+| `bot/src/module/befehle/` | Slash-Befehle, heute `/ping` | `befehle.ts`, `modul.ts` |
 | `bot/src/module/begruessung/` | Beitritt und Abschied: Einstellungen, Senden, Banner, Seiten im Dashboard | `begruessung.ts`, `senden.ts`, `banner.ts`, `seiten.ts`, `modul.ts` |
 | `bot/src/module/sprachraeume/` | Sprachräume: Einstellungen, Räume, Menü, Knöpfe, Rechte, Seite im Dashboard | `sprachraeume.ts`, `raeume.ts`, `menue.ts`, `knoepfe.ts`, `raumrechte.ts`, `seiten.ts`, `modul.ts` |
 | `bot/src/module/strafen/` | geplant, kommt mit seinem Auftrag | – |
@@ -113,11 +114,35 @@ Jedes Modul gibt dazu ein Objekt nach dem Vertrag `Modul` in
 | `vergiss(server)` | vergisst, was das Modul im Speicher zum Server hält, etwa im Cache |
 | `bereich` | seine Seiten im Dashboard, `Bereich` aus `bot/src/kern/baukasten.ts` |
 
+Was nur die Discord-Schicht kennt, kommt in `DiscordModul` aus
+`bot/src/discord/modul.ts` dazu; der Vertrag in `kern/` kennt keine Typen
+von Discord:
+
+| Feld | Inhalt |
+|---|---|
+| `befehle` | seine Slash-Befehle als `Befehl` aus `discord/befehle.ts` |
+| `knoepfe` | `praefix` und `bediene(druck)`: Knöpfe, Nutzerauswahl und Formulare mit `praefix` am Anfang von `custom_id` |
+| `ereignisse` | was es bei Ereignissen von Discord tut, mit eigenen Typen; siehe unten |
+
+| Ereignis | von Discord | wer ruft |
+|---|---|---|
+| `bereit(server)` | `ClientReady`, mit den Servern dieses Prozesses | `bot/src/index.ts`, nach dem Abgleich der Server, Modul für Modul |
+| `beitritt(mitglied)`, `abschied(mitglied)` | `guildMemberAdd`, `guildMemberRemove`, mit `alsMitglied` | `haengeAn` |
+| `stimme(server, nutzer, vorher, nachher)` | `voiceStateUpdate` | `haengeAn` |
+| `kanalWeg(kanal)` | `channelDelete`, nur Kanäle eines Servers | `haengeAn` |
+
 `alleModule` in `bot/src/modulliste.ts` gibt die Liste, und
-`bot/src/index.ts` reicht sie weiter: die Bereiche an die API, die Tabellen
-an `Aufraeumen`, `vergiss` an `guildDelete`. Ereignisse und Befehle
-verdrahtet `index.ts` noch je Modul, siehe „Was noch fehlt“. Der Vertrag
-wächst, wenn ein Modul mehr braucht.
+`bot/src/index.ts` reicht sie weiter:
+
+- die Bereiche an die API, die Tabellen an `Aufraeumen`, `vergiss` an
+  `guildDelete`;
+- die Befehle aller Module (`befehleVon`) an `registriere`;
+- die Ereignisse, Befehle und Knöpfe an `haengeAn(client, liste)` in
+  `bot/src/discord/modul.ts`. Es hängt jedes Ereignis einmal an den Client
+  und gibt es den Modulen in der Reihenfolge der Liste.
+
+Jedes Modul fängt seine Fehler selbst und loggt sie. Der Vertrag wächst,
+wenn ein Modul mehr braucht.
 
 Der Test „jede Tabelle mit Daten je Server … gehört genau einem Modul“ in
 `bot/src/modulliste.test.ts` vergleicht die Tabellen der Module mit
@@ -163,5 +188,4 @@ PR mit gleichem Verhalten und grünen Tests.
 
 | Was | Wo | Lint |
 |---|---|---|
-| Der Einstieg verdrahtet Ereignisse und Befehle je Modul; Seiten und Aufräumen gehen schon über die Liste | `index.ts` | – |
 | Die Typen der API stehen dreimal: in `docs/schnittstelle/`, in `bot/src/kern/baukasten.ts` und in `web/src/api/klient.ts` | – | – |
