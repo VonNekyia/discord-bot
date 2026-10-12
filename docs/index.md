@@ -14,7 +14,7 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 ## Benutzung
 
 - [Einrichtung und Betrieb](benutzung/einrichtung.md): Bot im Developer Portal, `DISCORD_BOT_TOKEN` lokal und als GitHub-Secret, bauen, starten, einladen, Dienst.
-- [Befehle](benutzung/befehle.md): jeder Slash-Befehl mit Antwort, Sichtbarkeit, Rechten und Intents.
+- [Befehle](benutzung/befehle.md): jeder Slash-Befehl mit Antwort, Sichtbarkeit, Rechten und Intents; was Modul und Discord-Schicht tun, Fehler.
 - [Begrüssung bei Beitritt und Abschied](benutzung/begruessung.md): Platzhalter, Banner aus einem eigenen Bild, Standardwerte, Rechte, der Intent `GuildMembers`, die Bremse bei vielen Beitritten.
 - [Sprachräume](benutzung/sprachraeume.md): Räume auf Zeit über Erzeuger, Namensvorlage, Menü mit Knöpfen im Textchat des Raums, Grenzen, Rechte und der Intent `GuildVoiceStates`.
 

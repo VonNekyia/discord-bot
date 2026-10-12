@@ -95,11 +95,12 @@ export interface Ueberschreibung {
 }
 
 // Eine Antwort auf eine Interaktion: der Callback mit seinem Typ (4 Antwort,
-// 5 Antwort später, 6 Update später, 9 Formular) oder `bearbeitet` für
-// `PATCH /webhooks/{id}/{token}/messages/@original`.
+// 5 Antwort später, 6 Update später, 9 Formular), `bearbeitet` für
+// `PATCH /webhooks/{id}/{token}/messages/@original` oder `nachgereicht`
+// für `POST /webhooks/{id}/{token}` (`followUp`).
 export interface Antwort {
   token: string;
-  typ: number | 'bearbeitet';
+  typ: number | 'bearbeitet' | 'nachgereicht';
   daten: {
     content?: string;
     flags?: number;
@@ -136,6 +137,8 @@ export interface MockDiscord {
   loeschenFehler?: [number, number];
   aendernFehler?: [number, number];
   nachrichtFehler?: [number, number];
+  // Jeder Callback und jedes `followUp` einer Interaktion scheitert so.
+  antwortFehler?: [number, number];
   // Sekunden in `Retry-After`, wenn ein `PATCH /channels/{id}` einen Namen setzt.
   umbenennenWarten?: number;
   // Je kommendem `POST /oauth2/token` die Sekunden in `Retry-After` eines 429; leer: kein 429.
@@ -251,6 +254,7 @@ export async function mockDiscord(): Promise<MockDiscord> {
       }
       const rueckruf = /^\/api\/v10\/interactions\/(\d+)\/([^/]+)\/callback(\?.*)?$/.exec(pfad);
       if (rueckruf && req.method === 'POST') {
+        if (mock.antwortFehler) return antworte(mock.antwortFehler[0], { message: 'Fehler', code: mock.antwortFehler[1] });
         const daten = JSON.parse(body);
         mock.antworten.push({ token: rueckruf[2] ?? '', typ: daten.type, daten: daten.data ?? {} });
         return res.writeHead(204).end();
@@ -261,7 +265,14 @@ export async function mockDiscord(): Promise<MockDiscord> {
         mock.antworten.push({ token: bearbeitet[2] ?? '', typ: 'bearbeitet', daten });
         return antworte(200, nachrichtDaten('700000000000000099', daten.content ?? ''));
       }
-      const aendern = /^\/api\/v10\/channels\/(\d+)$/.exec(pfad);
+      const nachgereicht = /^\/api\/v10\/webhooks\/(\d+)\/([^/?]+)(\?.*)?$/.exec(pfad);
+      if (nachgereicht && req.method === 'POST') {
+        if (mock.antwortFehler) return antworte(mock.antwortFehler[0], { message: 'Fehler', code: mock.antwortFehler[1] });
+        const daten = JSON.parse(body);
+        mock.antworten.push({ token: nachgereicht[2] ?? '', typ: 'nachgereicht', daten });
+        return antworte(200, nachrichtDaten('700000000000000098', daten.content ?? ''));
+      }
+      const aendern =/^\/api\/v10\/channels\/(\d+)$/.exec(pfad);
       if (aendern && req.method === 'PATCH') {
         const daten = JSON.parse(body);
         mock.geaendert.push({ kanal: aendern[1] ?? '', body: daten, grund });

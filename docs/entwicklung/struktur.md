@@ -29,7 +29,7 @@ Linter. Warum so, steht in
 |---|---|---|
 | `bot/src/index.ts` | Einstieg: verbindet Kern, Discord-Schicht, API und Module | |
 | `bot/src/kern/` | Datenbank, Cache, Fehlertext fürs Log, Grenzen, Zählung, Aufräumen, der Vertrag des Baukastens; kennt weder Discord noch Module | `datenbank.ts`, `cache.ts`, `fehler.ts`, `grenze.ts`, `zaehlung.ts`, `aufraeumen.ts`, `baukasten.ts` |
-| `bot/src/discord/` | die einzige Schicht, die discord.js importiert | `client.ts`, `ordnung.ts`, `zaehlen.ts`, `oauth.ts`, `kanaele.ts`, `kontext.ts`, `eigentuemer.ts`, `nachrichten.ts`, `server.ts`, `fehler.ts`, `rechte.ts`, `sprachkanaele.ts`, `menue.ts`, `interaktionen.ts` |
+| `bot/src/discord/` | die einzige Schicht, die discord.js importiert | `client.ts`, `ordnung.ts`, `zaehlen.ts`, `oauth.ts`, `kanaele.ts`, `kontext.ts`, `eigentuemer.ts`, `nachrichten.ts`, `server.ts`, `fehler.ts`, `rechte.ts`, `sprachkanaele.ts`, `menue.ts`, `interaktionen.ts`, `befehle.ts` |
 | `bot/src/api/` | HTTP-API des Dashboards: Server, Anmeldung, Grenzen, Fehler; die Routen der Seiten, die die Module anmelden | `server.ts`, `anmeldung.ts` |
 | `bot/src/module/befehle/` | Slash-Befehle, heute `/ping` | `befehle.ts` |
 | `bot/src/module/begruessung/` | Beitritt und Abschied: Einstellungen, Senden, Banner, Seiten im Dashboard | `begruessung.ts`, `senden.ts`, `banner.ts`, `seiten.ts` |
@@ -80,9 +80,9 @@ Tests sind ausgenommen: Sie bauen discord.js nach und dürfen alles
 importieren. Die Regeln stehen in `bot/.oxlintrc.json` und
 `web/.oxlintrc.json`, siehe [Lint mit oxlint](lint.md).
 
-Kern und Discord-Schicht im Bot und alle Schichten der Oberfläche halten
-die Grenzen schon; der Linter meldet dort Fehler. In `bot/src/api/` und
-`bot/src/module/` sind es noch Warnungen, siehe „Was noch fehlt“.
+Kern, Discord-Schicht und Module im Bot und alle Schichten der Oberfläche
+halten die Grenzen schon; der Linter meldet dort Fehler. In `bot/src/api/`
+sind es noch Warnungen, siehe „Was noch fehlt“.
 
 ## Ein Modul
 
@@ -94,7 +94,7 @@ Was ein Modul im Bot bündelt, wenn der Umbau fertig ist:
 | Ereignisse | an welchen Ereignissen es hängt, über die Discord-Schicht |
 | Seiten | seine Seiten im Dashboard als `Bereich`, siehe [Baukasten des Dashboards](../schnittstelle/baukasten.md); `api/` baut daraus die Routen |
 | Aufräumen | was es löscht, wenn der Bot einen Server verlässt; alle Module in einer Transaktion, wie heute `kern/aufraeumen.ts` in einer Anweisung |
-| Befehle | seine Slash-Befehle, falls es welche hat |
+| Befehle | seine Slash-Befehle als `Befehl` aus `discord/befehle.ts`, falls es welche hat |
 
 Jedes Modul gibt dazu ein Objekt nach einem Vertrag in `bot/src/kern/`
 heraus; `index.ts` reicht die Module an Discord-Schicht und API weiter,
@@ -139,9 +139,7 @@ PR mit gleichem Verhalten und grünen Tests.
 
 | Was | Wo | Lint |
 |---|---|---|
-| discord.js direkt in Modulen | `befehle.ts`, Stufe 5 | 1 Warnung |
 | discord.js direkt in der API | `api/server.ts`, `api/anmeldung.ts` | 2 Warnungen |
 | Aufräumen kennt die Tabellen aller Module | `kern/aufraeumen.ts` | – |
 | Der Einstieg verdrahtet jedes Modul einzeln; nur die Seiten gehen schon als `Bereich` | `index.ts` | – |
-| Befehle registrieren steckt im Modul Befehle | `registriere` in `module/befehle/befehle.ts` | – |
 | Die Typen der API stehen dreimal: in `docs/schnittstelle/`, in `bot/src/kern/baukasten.ts` und in `web/src/api/klient.ts` | – | – |
