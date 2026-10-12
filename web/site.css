@@ -313,6 +313,14 @@ td:first-child {
 
 /* ---------- Dashboard ---------- */
 
+h3 {
+  margin: 64px 0 0;
+  font-family: var(--serif);
+  font-size: clamp(1.6rem, 2.6vw, 2.2rem);
+  font-weight: 500;
+  line-height: 1.15;
+}
+
 h4 {
   margin: 12px 0 0;
   font-family: var(--serif);
@@ -653,6 +661,65 @@ h4 {
   font-size: 0.86rem;
 }
 
+.facts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  width: 100%;
+  margin: 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.facts div {
+  padding: 18px 20px;
+  border-right: 1px solid var(--line);
+}
+
+.facts div:last-child {
+  border-right: 0;
+}
+
+.facts dt {
+  color: var(--umber);
+  font-size: 0.66rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.facts dd {
+  margin: 4px 0 0;
+  font-family: var(--serif);
+  font-size: 1.15rem;
+}
+
+.progress {
+  width: 100%;
+  max-width: 420px;
+}
+
+.progress-bar {
+  height: 10px;
+  overflow: hidden;
+  background: rgba(16, 24, 19, 0.1);
+  border-radius: 100px;
+}
+
+.progress-bar i {
+  display: block;
+  width: 62%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--umber), var(--gold));
+  border-radius: 100px;
+}
+
+.progress p {
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
 @media (max-width: 960px) {
   .grid-3 {
     grid-template-columns: repeat(2, 1fr);
@@ -671,6 +738,23 @@ h4 {
   .grid-2,
   .grid-3 {
     grid-template-columns: 1fr;
+  }
+
+  .facts {
+    grid-template-columns: 1fr;
+  }
+
+  .facts div {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .facts div:last-child {
+    border-bottom: 0;
+  }
+
+  td:first-child {
+    white-space: normal;
   }
 }
 

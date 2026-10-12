@@ -2,12 +2,13 @@
 // Seiten, die der Bot anmeldet. Setzt Skript voraus; ohne zeigt die Seite
 // ein noscript. Siehe docs/frontend/dashboard.md, „Zustände“.
 import { api, ApiFehler, type Ich, type Satz, type Seite, type Server } from './api/klient.js';
+import { debugAnsicht } from './debug.js';
 import { meldung, satz } from './kern/texte.js';
 import { baueSeite } from './seite.js';
 
 const element = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
-const abschnitte = { laden: element('laden'), server: element('server'), einstellungen: element('einstellungen') };
+const abschnitte = { laden: element('laden'), server: element('server'), einstellungen: element('einstellungen'), debug: element('debug') };
 const kopfMeldung = element('kopf-meldung');
 const anmelden = element('anmelden');
 const serverMeldung = element('server-meldung');
@@ -15,6 +16,8 @@ const serverMeldung = element('server-meldung');
 let serverListe: Server[] = [];
 let gezeigt: string | null = null;
 let aktiv = false;
+// Ob die Person die Debug-Seite sehen darf. Siehe docs/schnittstelle/debug.md, „Wer sie sehen darf“.
+let darfDebug = false;
 
 function zeigen(abschnitt: keyof typeof abschnitte | null): void {
   for (const [name, el] of Object.entries(abschnitte)) el.hidden = name !== abschnitt;
@@ -30,6 +33,9 @@ function kopf(anmeldenZeigen: boolean, inhalt: Satz | null = null, art: 'warn' |
 
 function abgemeldet(inhalt: Satz | null, art: 'warn' | 'error' = 'error'): void {
   aktiv = false;
+  darfDebug = false;
+  debug.verlasse();
+  element('debug-einstieg').hidden = true;
   serverListe = [];
   gezeigt = null;
   history.replaceState(null, '', location.pathname);
@@ -41,6 +47,7 @@ function abgemeldet(inhalt: Satz | null, art: 'warn' | 'error' = 'error'): void 
 
 // Eine Anfrage aus einer Seite gibt 401.
 const abgelaufen = () => abgemeldet(satz('abgelaufen'), 'warn');
+const debug = debugAnsicht(abgelaufen);
 
 // Ohne Bot geht auch die Anmeldung nicht; darum nur die Meldung.
 function nichtErreichbar(fehler: unknown): void {
@@ -63,6 +70,8 @@ function angemeldet(ich: Ich): void {
   element('avatar-ersatz').hidden = !!ich.avatar;
   element('person').hidden = false;
   element('abmelden').hidden = false;
+  darfDebug = ich.debug;
+  element('debug-einstieg').hidden = !darfDebug;
 }
 
 // Abmelden gibt 204; die Seite zeigt danach selbst die Anmeldung.
@@ -132,9 +141,17 @@ function tabs(seiten: Seite[], server: string): void {
   element('keine-seite').hidden = gezeigte.length > 0;
 }
 
-// Zeigt die Liste oder den Server aus dem Hash (#server-<id>).
+// Zeigt die Liste, den Server aus dem Hash (#server-<id>) oder, mit
+// `Ich.debug`, die Debug-Ansicht (#debug). Siehe docs/frontend/dashboard.md, „Debug“.
 async function route(): Promise<void> {
   if (!aktiv) return;
+  if (location.hash === '#debug' && darfDebug) {
+    gezeigt = null;
+    zeigen('debug');
+    debug.zeige();
+    return;
+  }
+  debug.verlasse();
   const id = location.hash.startsWith('#server-') ? location.hash.slice('#server-'.length) : null;
   const server = serverListe.find((s) => s.id === id);
   if (!server) {

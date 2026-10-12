@@ -53,6 +53,45 @@
           <h4>Kein Server da.</h4>
           <p>kitty ist auf keinem Server, den du verwalten darfst. Lade kitty ein und <a href="/api/anmelden">melde dich neu an</a>.</p>
         </div>
+        <div id="debug-einstieg" class="grid grid-3" hidden>
+          <a class="card" href="#debug"><p class="kicker">Für das Team</p><h4>Debug.</h4><p>Anfragen an Discord und Rate-Limits.</p></a>
+        </div>
+      </section>
+
+      <section id="debug" class="section ground-cream" hidden>
+        <div class="section-heading">
+          <p class="eyebrow eyebrow-dark">Debug</p>
+          <h2>kitty und <em>Discord.</em></h2>
+          <p class="lead">Wie nah kitty an den Rate-Limits von Discord ist, gezählt seit dem Start des Prozesses. <a href="#">Zurück zu den Servern</a></p>
+        </div>
+        <div id="debug-meldung" class="grid" role="alert" hidden></div>
+        <div id="debug-laden" class="grid grid-3" aria-hidden="true">
+          <div class="skeleton"><i></i><i></i><i></i></div>
+          <div class="skeleton"><i></i><i></i><i></i></div>
+          <div class="skeleton"><i></i><i></i><i></i></div>
+        </div>
+        <div id="debug-inhalt" hidden>
+          <p id="debug-stand" class="help"></p>
+          <h3>Überblick.</h3>
+          <div class="grid">
+            <dl class="facts"><div><dt>Anfragen an Discord</dt><dd id="debug-anfragen"></dd></div><div><dt>429 von Discord</dt><dd id="debug-429"></dd></div><div><dt>Läuft seit</dt><dd id="debug-seit"></dd></div></dl>
+          </div>
+          <h3>Ungültige Anfragen.</h3>
+          <p class="lead">401, 403 und 429 der letzten 10 Minuten. Ab der Grenze sperrt Cloudflare die IP des Bots.</p>
+          <div class="grid">
+            <div class="progress"><div id="debug-fortschritt" class="progress-bar" role="progressbar" aria-label="Ungültige Anfragen der letzten 10 Minuten" aria-valuemin="0"><i id="debug-balken"></i></div><p><span id="debug-ungueltig"></span><span id="debug-grenze"></span></p></div>
+            <div id="debug-warnung" hidden></div>
+          </div>
+          <h3>Routen.</h3>
+          <div id="debug-routen-rahmen" class="table-wrap"><table><thead><tr><th>Methode</th><th>Route</th><th>Anfragen</th><th>429</th><th>Übrig</th><th>Reset in</th><th>Zuletzt</th></tr></thead><tbody id="debug-routen"></tbody></table></div>
+          <div class="grid">
+            <div id="debug-keine-route" class="empty" hidden><h4>Noch keine Anfrage.</h4><p>Seit dem Start hat kitty Discord noch nichts gefragt.</p></div>
+          </div>
+          <h3>429 nach Scope.</h3>
+          <div class="table-wrap"><table><thead><tr><th>Scope</th><th>Anzahl</th></tr></thead><tbody id="debug-scope"></tbody></table></div>
+          <h3>Eigene Grenzen.</h3>
+          <div class="table-wrap"><table><thead><tr><th>Grenze</th><th>Gegriffen</th></tr></thead><tbody id="debug-eigene"></tbody></table></div>
+        </div>
       </section>
 
       <section id="einstellungen" class="section ground-cream" hidden>

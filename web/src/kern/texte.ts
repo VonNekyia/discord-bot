@@ -10,6 +10,11 @@ const saetze: Record<string, Satz> = {
   abgelaufen: { titel: 'Deine Anmeldung ist abgelaufen.', text: 'Melde dich neu an.' },
   nicht_erreichbar: { titel: 'kitty antwortet gerade nicht.', text: 'Versuch es in ein paar Minuten noch einmal.' },
   kein_recht: { titel: 'Du darfst diesen Server nicht verwalten.', text: 'Wähl einen anderen Server.' },
+  // 403 an GET /api/debug. Siehe docs/schnittstelle/debug.md, „Wer sie sehen darf“.
+  kein_recht_debug: {
+    titel: 'Du darfst die Debug-Seite nicht mehr sehen.',
+    text: 'Sie ist nur für den Eigentümer der Anwendung und ihr Team. Lade die Seite neu.',
+  },
   nicht_gefunden: { titel: 'kitty ist nicht mehr auf diesem Server.', text: 'Wähl einen anderen Server.' },
   zu_gross: { titel: 'Das ist zu viel auf einmal.', text: 'Kürz den Text und speicher noch einmal.' },
   steuerzeichen: {

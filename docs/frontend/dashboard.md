@@ -1,9 +1,10 @@
 ---
 title: Dashboard
-description: Die Seite /dashboard/ in web/; ihre Zustände von abgemeldet bis zu den Tabs, wie aus den Seiten des Bots Tabs und Formulare werden, die Bausteine im Code, Speichern, Bild, Aktion und Vorschau, was sie vor dem Senden prüft und welche Meldung sie wann zeigt.
+description: Die Seite /dashboard/ in web/; ihre Zustände von abgemeldet bis zu den Tabs, wie aus den Seiten des Bots Tabs und Formulare werden, die Bausteine im Code, Speichern, Bild, Aktion und Vorschau, die Debug-Ansicht, was sie vor dem Senden prüft und welche Meldung sie wann zeigt.
 code:
   - web/dashboard/index.html
   - web/src/dashboard.ts
+  - web/src/debug.ts
   - web/src/seite.ts
   - web/src/bausteine
   - web/src/kern/teil.ts
@@ -36,9 +37,10 @@ aussehen, steht in [Design der Oberfläche](design.md), „Elemente“.
 | abgelaufen | eine spätere Anfrage gibt `401` | wie abgemeldet, darunter eine Warnung |
 | nicht erreichbar | `GET /api/ich` oder `GET /api/server` scheitert anders, etwa `502` oder `503`; ein einzelner Server führt nie hierher, siehe unten | im Hero nur die Fehlermeldung, ohne Knopf, weil die Anmeldung auch den Bot braucht |
 | laden | Serverliste oder Server wird geholt | drei Skeletons |
-| Serverliste | angemeldet | Leiste mit Avatar, Name und „Abmelden“; je Server eine Karte mit Icon und Name |
+| Serverliste | angemeldet | Leiste mit Avatar, Name und „Abmelden“; je Server eine Karte mit Icon und Name; mit `Ich.debug` darunter die Karte „Debug.“ |
 | keine Server | `GET /api/server` gibt `[]` | leerer Zustand mit Link zum neuen Anmelden |
 | Server | Hash `#server-<id>` mit einem Server aus der Liste | je Seite des Bots ein Tab, siehe „Tabs“; ohne Seite der leere Zustand „Noch nichts einzustellen.“ |
+| Debug | Hash `#debug` und `Ich.debug` | die Debug-Ansicht, siehe „Debug“; ohne `Ich.debug` zeigt `#debug` die Liste |
 
 Der Hash trägt den gewählten Server, so gehen Zurück im Browser und ein
 Lesezeichen. Ein Hash mit einem Server, der nicht in der Liste steht,
@@ -148,6 +150,37 @@ Label, Eingabe, Hilfe und Fehler baut `Feld` in `web/src/kern/feld.ts`.
 Eine neue Art kommt zuerst in den Vertrag, dann als Datei hierher und in
 `baue` in `web/src/seite.ts`, mit einem Element aus dem Guide.
 
+## Debug
+
+Die Debug-Ansicht zeigt, wie nah der Bot an den Rate-Limits von Discord
+ist, nach [API der Debug-Seite](../schnittstelle/debug.md). Sie ist keine
+Seite des Baukastens, sondern ein fester Abschnitt (`#debug`) im Rahmen
+des Dashboards, gebaut von `web/src/debug.ts`. Ihren Einstieg, die Karte
+„Debug.“ unter der Serverliste, gibt es nur mit `Ich.debug`.
+
+| Teil | Element | Inhalt |
+|---|---|---|
+| Stand | `.help` | Uhrzeit von `jetzt`, die Shards, dass die Ansicht neu lädt |
+| Überblick | `.facts` | Anfragen an Discord (Summe über alle Routen), 429 von Discord, wie lange der Prozess läuft |
+| Ungültige Anfragen | `.progress` | `letzte10min` gegen `grenze`; ab `warnung` darunter eine `.message-warn` |
+| Routen | Tabelle | je Methode und Route: Anfragen, 429, übrig von Limit, Rest bis zum Reset, wann zuletzt; ohne Route ein `.empty` |
+| 429 nach Scope | Tabelle | `user`, `global`, `shared` und wie viele `global: true` hatten |
+| Eigene Grenzen | Tabelle | je Grenze aus `eigene`, wie oft sie gegriffen hat; ein unbekannter Name steht als Code |
+
+- **Zeiten** rechnet die Ansicht gegen `jetzt` aus der Antwort, nicht gegen
+  die Uhr des Browsers. Der Rest bis zum Reset ist `max(0, resetAfter −
+  (jetzt − zuletzt))`, aufgerundet auf Sekunden.
+- **Neu laden:** beim Öffnen, dann höchstens alle 10 s, nur bei
+  `document.visibilityState` `visible`. Wird die Seite wieder sichtbar,
+  lädt sie nach, sobald die 10 s um sind. Wer die Ansicht verlässt, stoppt
+  das Laden.
+- **Fehler:** `401` zeigt die Anmeldung. `403` zeigt den Satz
+  `kein_recht_debug` und lädt nicht mehr; der allgemeine Satz zu
+  `kein_recht` spricht von Servern. `429` wartet `Retry-After` ab, jeder
+  andere Fehler 10 s. Die Meldung steht über dem Inhalt; die letzten Daten
+  bleiben stehen.
+- **Bis zu den ersten Daten** stehen drei Skeletons da.
+
 ## Prüfen vor dem Senden
 
 Die Seite prüft, was ein Baustein selbst beschreibt, in der Reihenfolge
@@ -177,6 +210,7 @@ passiert ist, der zweite, was zu tun ist.
 | unter einer Aktion | Erfolg und jeder Fehler der Aktion ohne Feld; mit Feld steht er dort |
 | über der Serverliste | jeder Fehler beim Öffnen eines Servers ausser `401` |
 | im Hero | Anmeldung gescheitert, abgelaufen, nicht erreichbar, Abmelden gescheitert |
+| über der Debug-Ansicht | jeder Fehler von `GET /api/debug` ausser `401`, siehe „Debug“ |
 
 `429` nennt die Sekunden aus `Retry-After`. Eine Antwort ohne JSON ab
 `500` gilt als nicht erreichbar, ebenso ein `fetch`, das gar keine Antwort

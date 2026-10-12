@@ -78,7 +78,8 @@ nutzt heute 960 und 760 px:
 - Unter 960 px hat `.grid-3` zwei Spalten.
 - Unter 760 px haben Abschnitt und Hero 20 px Rand, `.grid-2` und
   `.grid-3` eine Spalte, und die Header bar steht nicht mehr über dem
-  Hero, sondern im Fluss.
+  Hero, sondern im Fluss. `.facts` hat dann eine Spalte, und die erste
+  Spalte einer Tabelle bricht um.
 
 ## Elemente
 
@@ -103,6 +104,11 @@ Im [Dashboard](dashboard.md) dazu:
 | je Seite ein Tab | `.tabs` mit `#tab-1` bis `#tab-6` | Navigation, „Tabs“ |
 | Formular einer Seite | `.form` | Inputs, „Text fields and text area“ |
 | Meldungen | `.message` mit `.message-ok`, `.message-warn`, `.message-error`, `.message-info` | Feedback, „Messages“ |
+| Einstieg in die Debug-Ansicht | `a.card` in `.grid.grid-3` unter der Serverliste, ohne Icon | Content, „Cards“; vom Orchestrator festgelegt |
+| Abschnitte der Debug-Ansicht | `h3` | Überschrift dritter Stufe aus `design.css` |
+| Überblick der Debug-Ansicht | `dl.facts` in einem `.grid` für den Abstand | Content, „Facts row“ |
+| Ungültige Anfragen | `.progress` mit `.progress-bar`, `role="progressbar"` | Feedback, „Progress“ |
+| Routen, Scope, eigene Grenzen | `.table-wrap` mit `table`, Route und Scope in `code` | Content, „Table, keys and code“ |
 
 Je Art von Baustein, siehe [Baukasten](../schnittstelle/baukasten.md),
 „Bausteine“:
@@ -129,10 +135,10 @@ eigenen PR neu, mit dem neuen Commit hier.
 
 `web/site.css` besteht aus Blöcken, die wörtlich aus `design.css` kommen:
 Tokens und Grundregeln, Hero, Abschnitte, Eyebrow, Knopf, Tabelle, Fuss;
-für das Dashboard `h4`, Raster, kleine und stille Knöpfe, der gesperrte
-Knopf, Karte, Formular, Header bar mit Wortmarke, Tabs, Meldungen,
-Skeleton, leerer Zustand und Bild mit Unterschrift; dazu die Breakpoints
-960 und 760 px und reduzierte Bewegung. Aus `.demo-header` wird dabei
+für das Dashboard `h3`, `h4`, Raster, kleine und stille Knöpfe, der
+gesperrte Knopf, Karte, Formular, Header bar mit Wortmarke, Tabs,
+Meldungen, Skeleton, leerer Zustand, Bild mit Unterschrift, Facts row und
+Progress; dazu die Breakpoints 960 und 760 px und reduzierte Bewegung. Aus `.demo-header` wird dabei
 `.header-bar`, mit denselben Regeln. Zwei Regeln kommen von der Website
 selbst, weil der Guide sie nur beschreibt: `.hero-actions` und
 `.js .reveal`. Eine neue Regel kommt ebenso wörtlich aus dem Guide, oder
@@ -179,6 +185,12 @@ Ohne eigene Regel, ebenso festgelegt:
   gesperrt und sagen, warum. Stand 2026-10-12.
 - Eine Aktion steht unter „Speichern“ als zweiter Knopf im Stil eines
   Links; es gibt je Seite nur einen Primary button.
+- Die Breite des Balkens in Progress setzt das Skript über
+  `element.style`, nur dort. Ein `style="…"` im HTML und
+  `setAttribute('style', …)` bleiben verboten; die CSP mit `style-src
+  'self'` erlaubt das CSSOM. Stand 2026-10-12.
+- In der Debug-Ansicht stehen Facts row, Progress und der leere Zustand je
+  in einem `.grid`, für den Abstand zur Überschrift.
 
 ## Bewegung
 
