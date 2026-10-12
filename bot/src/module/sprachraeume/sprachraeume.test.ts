@@ -543,6 +543,7 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
         [{ an: 'ja', erzeuger: [] }, 'ungueltig', 'an'],
         [{ an: true, erzeuger: {} }, 'ungueltig', 'erzeuger'],
         [{ an: true, erzeuger: [e(), 5] }, 'ungueltig', 'erzeuger.1'],
+        [{ an: true, erzeuger: [e(), [K.erzeuger]] }, 'ungueltig', 'erzeuger.1'],
         [{ an: true, erzeuger: [e(), e({ limit: '3' })] }, 'ungueltig', 'erzeuger.1.limit'],
         [{ an: true, erzeuger: [e({ name: 'a\0b' })] }, 'ungueltig', 'erzeuger.0.name'],
         [{ an: true, erzeuger: Array.from({ length: 11 }, () => e()) }, 'zu_viele_erzeuger', 'erzeuger'],

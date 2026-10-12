@@ -7,6 +7,7 @@ code:
   - web/.oxlintrc.json
   - bot/tsconfig.json
   - web/tsconfig.json
+  - bot/src/kern/eingabe.ts
 ---
 
 # Lint mit oxlint
@@ -101,24 +102,24 @@ In `**/*.test.ts` und `bot/src/testhilfe.ts` gilt anders:
 ## Altlasten
 
 Was beim Einführen schon da war und nicht schnell geht, ist eine Warnung
-statt eines Fehlers: je Datei unter `overrides` in `bot/.oxlintrc.json`.
-`maxWarnings` ist die Zahl dieser Warnungen, im Bot zusammen mit den 2
-Grenzverletzungen aus [Struktur von Bot und Oberfläche](struktur.md), „Was
-noch fehlt“. Eine neue Warnung lässt die Prüfung scheitern. `web/` hat
-keine Altlasten mehr: `maxWarnings` ist dort 0, und `web/.oxlintrc.json`
-hat keine `overrides` für Warnungen.
+statt eines Fehlers. `maxWarnings` ist die Zahl dieser Warnungen; eine
+neue Warnung lässt die Prüfung scheitern.
 
 Stand 2026-10-12:
 
-| Paket | Regel | Funde | wo |
-|---|---|---|---|
-| `bot/` | `no-unsafe-type-assertion` | 3 | die geprüfte Eingabe in `pruefe` der Begrüssung und der Sprachräume |
+- Casts und `!` sind in beiden Paketen Fehler. Keine Datei steht mehr
+  unter `overrides`, um sie zur Warnung zu machen.
+- Im Bot bleiben die 2 Grenzverletzungen in `bot/src/api/` aus
+  [Struktur von Bot und Oberfläche](struktur.md), „Was noch fehlt“;
+  `maxWarnings` ist dort 2. In `web/` ist es 0.
 
-Die Antworten der API prüft `web/src/api/klient.ts` mit Typprädikaten statt
-mit `as`, siehe [Dashboard](../frontend/dashboard.md), „Antworten prüfen“.
+Eingaben von aussen prüfen Typwächter statt `as`. Im Bot sind das
+`istObjekt` und `ohneNul` in `bot/src/kern/eingabe.ts`; `pruefe` der
+Begrüssung und der Sprachräume baut den Wert aus geprüften Feldern. Die
+Antworten der API prüft `web/src/api/klient.ts` mit Typprädikaten, siehe
+[Dashboard](../frontend/dashboard.md), „Antworten prüfen“.
 
-Wer eine Altlast beseitigt, senkt `maxWarnings` um ihre Zahl und nimmt
-die Datei aus `overrides`, sobald sie sauber ist.
+Wer eine Grenzverletzung beseitigt, senkt `maxWarnings` um ihre Zahl.
 
 ## Eine Regel abschalten
 

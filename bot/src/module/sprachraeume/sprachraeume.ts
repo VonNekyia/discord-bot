@@ -1,5 +1,6 @@
 import type { Pool } from 'pg';
 import type { Liste } from '../../discord/sprachkanaele.js';
+import { istObjekt, ohneNul } from '../../kern/eingabe.js';
 
 // Siehe docs/schnittstelle/sprachraeume.md, „Typen“.
 export type Erzeuger = {
@@ -29,14 +30,6 @@ export function hoechstens(vorlage: string): number {
 
 export type Geprueft = { sprachraeume: Sprachraeume } | { code: string; feld: string };
 
-function istObjekt(x: unknown): x is Record<string, unknown> {
-  return typeof x === 'object' && x !== null && !Array.isArray(x);
-}
-
-function ohneNul(x: unknown): boolean {
-  return typeof x === 'string' && !x.includes('\0');
-}
-
 // Prüft Regel für Regel in der Reihenfolge der Tabelle; bei den Erzeugern je
 // Regel alle Einträge der Reihe nach. Siehe docs/schnittstelle/sprachraeume.md,
 // „Sprachräume einstellen“.
@@ -44,14 +37,17 @@ export function pruefe(eingabe: unknown, l: Liste): Geprueft {
   if (!istObjekt(eingabe) || typeof eingabe.an !== 'boolean') return { code: 'ungueltig', feld: 'an' };
   if (!Array.isArray(eingabe.erzeuger)) return { code: 'ungueltig', feld: 'erzeuger' };
   const roh: unknown[] = eingabe.erzeuger;
+  // Nur die vier Felder, aus geprüften Werten; andere fallen weg.
+  const erzeuger: Erzeuger[] = [];
   for (const [i, e] of roh.entries()) {
     if (!istObjekt(e)) return { code: 'ungueltig', feld: `erzeuger.${i}` };
-    if (typeof e.kanal !== 'string') return { code: 'ungueltig', feld: `erzeuger.${i}.kanal` };
-    if (e.kategorie !== null && typeof e.kategorie !== 'string') return { code: 'ungueltig', feld: `erzeuger.${i}.kategorie` };
-    if (!ohneNul(e.name)) return { code: 'ungueltig', feld: `erzeuger.${i}.name` };
-    if (typeof e.limit !== 'number') return { code: 'ungueltig', feld: `erzeuger.${i}.limit` };
+    const { kanal, kategorie, name, limit } = e;
+    if (typeof kanal !== 'string') return { code: 'ungueltig', feld: `erzeuger.${i}.kanal` };
+    if (kategorie !== null && typeof kategorie !== 'string') return { code: 'ungueltig', feld: `erzeuger.${i}.kategorie` };
+    if (!ohneNul(name)) return { code: 'ungueltig', feld: `erzeuger.${i}.name` };
+    if (typeof limit !== 'number') return { code: 'ungueltig', feld: `erzeuger.${i}.limit` };
+    erzeuger.push({ kanal, kategorie, name, limit });
   }
-  const erzeuger = (roh as Erzeuger[]).map(({ kanal, kategorie, name, limit }) => ({ kanal, kategorie, name, limit }));
   if (erzeuger.length > 10) return { code: 'zu_viele_erzeuger', feld: 'erzeuger' };
 
   const kanaele = new Map(l.sprachkanaele.map((k) => [k.id, k]));

@@ -6,6 +6,7 @@ code:
   - bot/src/discord/befehle.test.ts
   - bot/src/kern/cache.test.ts
   - bot/src/kern/datenbank.test.ts
+  - bot/src/kern/eingabe.test.ts
   - bot/src/api/server.test.ts
   - bot/src/module/begruessung/begruessung.test.ts
   - bot/src/module/begruessung/banner.test.ts
@@ -196,6 +197,7 @@ Millisekunden. Darum:
 | der Text darf mit den längsten Werten genau 2000 Zeichen haben … | Grenze genau, ein Zeichen mehr gibt den Code |
 | jede Prüfregel meldet ihren Code und ihr Feld | `pruefe`: jede Zeile der Tabelle „Einstellung speichern“ |
 | die Regeln gelten in der Reihenfolge der Tabelle | bei mehreren Fehlern der erste |
+| ungültige Typen meldet pruefe in der Reihenfolge an, kanal, text, banner, bannerText | alle fünf falsch, dann eins nach dem anderen richtig: jedes Mal das nächste Feld, am Ende gültig |
 | eine gültige Einstellung kommt so zurück … | `bild` aus dem Stand, nicht aus der Eingabe |
 | ein Name mit Emoji, Kanji und Hangul zeigt kein Kästchen | jedes Zeichen einzeln mit dem Schriftstapel gezeichnet, hat Tinte und ist nicht das Glyph für ein fehlendes Zeichen (`U+0378`); dass der Vergleich ein Kästchen erkennt, zeigt `😀` mit Inter allein |
 | ein Banner mit Emoji und CJK im Namen hat 1100 × 440 px | `zeichne` mit dem Stapel |
@@ -262,7 +264,8 @@ Millisekunden. Darum:
 | die Seite bietet Sprachkanäle und Kategorien … | Bausteine der Seite und der Liste; Sortierung, ohne Text und Bühne; ohne „Mitglieder verschieben“ gesperrt mit `erzeuger_ohne_recht`; eine Kategorie, die „Streamen“ verbietet, das der Bot nicht hat, gesperrt mit `kategorie_ohne_recht` |
 | fehlt dem Bot ein Recht auf dem Server, steht oben ein Hinweis | ohne „Kanäle verwalten“ ist der erste Baustein `hinweis` `rechte`, mit allen Rechten wieder `schalter` |
 | die Seite liefert ohne Zeile die Standardwerte … | `{ an: false, erzeuger: [] }`, `fund` `null`, Speichern mit 100 Zeichen Vorlage und `meldung`, fremde Felder fallen weg, Cache geleert |
-| jede Prüfregel meldet ihren Code und den Pfad des Felds | alle Zeilen der Tabelle „Sprachräume einstellen“, mit Pfaden wie `erzeuger.1.limit` |
+| jede Prüfregel meldet ihren Code und den Pfad des Felds | alle Zeilen der Tabelle „Sprachräume einstellen“, mit Pfaden wie `erzeuger.1.limit`; ein Array als Erzeuger ist `erzeuger.1` |
+| istObjekt: nur ein Objekt mit Feldern … / ohneNul: nur ein Text ohne NUL | `bot/src/kern/eingabe.test.ts`: Objekt, Array, `null`, Text, Zahl; Text mit und ohne NUL |
 | ein gespeicherter Erzeuger, der nicht mehr geht, steht als fund … | eine Kategorie ohne `bereit` gibt `kategorie_ohne_recht` an `erzeuger.0.kategorie` |
 | Sperren: deferReply vor dem PATCH … | Callback mit Typ 5 und Flag 64 vor `PATCH /channels/{id}`; Body nur `permission_overwrites`; @everyone und Rollen ohne „Verbinden“, wer drin ist, mit eigenem; Grund im Audit-Log |
 | Sperren: wer nicht Besitzer ist, bekommt den Hinweis … | Hinweis mit dem Besitzer, `allowed_mentions` leer; gesperrt bleibt gesperrt; kein PATCH |

@@ -1,4 +1,5 @@
 import type { Pool } from 'pg';
+import { istObjekt, ohneNul } from '../../kern/eingabe.js';
 
 export type Art = 'beitritt' | 'abschied';
 
@@ -39,22 +40,21 @@ export function hoechstens(vorlage: string, wo: keyof typeof laengste): number {
 
 export type Geprueft = { einstellung: Einstellung } | { code: string; feld: string };
 
-const typen = { an: 'boolean', kanal: 'kanal', text: 'string', banner: 'boolean', bannerText: 'string' } as const;
+const ungueltig = (feld: string) => ({ code: 'ungueltig', feld });
 
 // Prüft eine Einstellung Regel für Regel in der Reihenfolge der Tabelle und
 // meldet die erste, die nicht passt. `kanaele` sind die Optionen des
 // Kanals, `bild` sagt, ob ein Bild hochgeladen ist.
 // Siehe docs/schnittstelle/begruessung.md, „Einstellung speichern“.
 export function pruefe(eingabe: unknown, kanaele: ReadonlyMap<string, { banner: boolean }>, bild: boolean): Geprueft {
-  const felder = (typeof eingabe === 'object' && eingabe !== null && !Array.isArray(eingabe) ? eingabe : {}) as Record<string, unknown>;
-  for (const [feld, typ] of Object.entries(typen)) {
-    const wert = felder[feld];
-    // PostgreSQL nimmt kein NUL in Text.
-    const passt =
-      typ === 'kanal' ? wert === null || typeof wert === 'string' : typeof wert === typ && (typ !== 'string' || !String(wert).includes('\0'));
-    if (!passt) return { code: 'ungueltig', feld };
-  }
-  const { an, kanal, text, banner, bannerText } = felder as unknown as Einstellung;
+  const felder: Record<string, unknown> = istObjekt(eingabe) ? eingabe : {};
+  // Die Typen in der Reihenfolge der Felder; danach kennt TypeScript sie.
+  const { an, kanal, text, banner, bannerText } = felder;
+  if (typeof an !== 'boolean') return ungueltig('an');
+  if (kanal !== null && typeof kanal !== 'string') return ungueltig('kanal');
+  if (!ohneNul(text)) return ungueltig('text');
+  if (typeof banner !== 'boolean') return ungueltig('banner');
+  if (!ohneNul(bannerText)) return ungueltig('bannerText');
   const ziel = kanal === null ? undefined : kanaele.get(kanal);
   if (kanal !== null && !ziel) return { code: 'kanal_unbekannt', feld: 'kanal' };
   if (hoechstens(text, 'text') > 2000) return { code: 'text_zu_lang', feld: 'text' };

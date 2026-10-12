@@ -62,6 +62,15 @@ test('die Regeln gelten in der Reihenfolge der Tabelle', () => {
   assert.equal((pruefe({ ...alles, kanal: null, text: '' }, kanaele, false) as { code: string }).code, 'banner_ohne_bild');
 });
 
+test('ungültige Typen meldet pruefe in der Reihenfolge an, kanal, text, banner, bannerText', () => {
+  const falsch: Record<string, unknown> = { an: 'ja', kanal: 5, text: 1, banner: 1, bannerText: 1 };
+  for (const feld of ['an', 'kanal', 'text', 'banner', 'bannerText']) {
+    assert.deepEqual(pruefe(falsch, kanaele, false), { code: 'ungueltig', feld });
+    falsch[feld] = mit({})[feld];
+  }
+  assert.ok('einstellung' in pruefe(falsch, kanaele, false));
+});
+
 test('eine gültige Einstellung kommt so zurück, wie sie gespeichert wird; bild zählt nicht als Eingabe', () => {
   const eingabe = mit({ an: true, banner: true, bild: false, fremd: 1 });
   assert.deepEqual(pruefe(eingabe, kanaele, true), {
