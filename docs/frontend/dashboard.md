@@ -147,6 +147,13 @@ Sätze, Werte und Optionen anderer Bausteine, die Routen, das Zeigen von
 Fehlern und, in einer Liste, die Werte der anderen Einträge. Ein Feld aus
 Label, Eingabe, Hilfe und Fehler baut `Feld` in `web/src/kern/feld.ts`.
 
+Texte eines Moduls kommen vom Bot; die Oberfläche erfindet keinen. Eine
+gesperrte Option einer `auswahl` nennt hinter ihrem Namen `grund`. Mit
+`einmalig` ist eine Option, die ein anderer Eintrag der Liste schon gewählt
+hat, ebenso gesperrt und nennt `vergeben`; fehlt `vergeben`, steht kein
+Text dahinter. Ist eine Option gesperrt und vergeben, steht `grund`. Eine
+`liste` hat keine eigene Überschrift.
+
 Eine neue Art kommt zuerst in den Vertrag, dann als Datei hierher und in
 `baue` in `web/src/seite.ts`, mit einem Element aus dem Guide.
 

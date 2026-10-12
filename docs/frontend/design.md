@@ -182,7 +182,7 @@ Ohne eigene Regel, ebenso festgelegt:
 - Jeder Eintrag einer Liste ist eine Karte (`article.card`) mit den
   Feldern darin; ein `.form` in der Karte gibt ihnen den Abstand, ein
   `.kicker` ist ihr Kopf. Optionen, die nicht gehen, sind im Select
-  gesperrt und sagen, warum. Stand 2026-10-12.
+  gesperrt und nennen mit dem Text vom Bot, warum. Stand 2026-10-12.
 - Eine Aktion steht unter „Speichern“ als zweiter Knopf im Stil eines
   Links; es gibt je Seite nur einen Primary button.
 - Die Breite des Balkens in Progress setzt das Skript über

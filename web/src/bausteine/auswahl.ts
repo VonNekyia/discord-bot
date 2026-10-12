@@ -51,6 +51,7 @@ export const auswahl: Bauer<Auswahl> = (b, u, start) => {
   const option = () => optionen.get(select.value);
 
   // Gesperrte Optionen und, mit `einmalig`, die in anderen Einträgen gewählten.
+  // Siehe docs/schnittstelle/baukasten.md, „Bausteine“.
   const aktualisiere = (): boolean => {
     const { vorher, nachher } = u.geschwister(b.id);
     const andere = new Set(b.einmalig ? [...vorher, ...nachher] : []);
@@ -59,7 +60,9 @@ export const auswahl: Bauer<Auswahl> = (b, u, start) => {
       if (!element) continue;
       const woanders = o.id !== select.value && andere.has(o.id);
       element.disabled = o.gesperrt !== null || woanders;
-      element.textContent = o.gesperrt ? `${o.name} – ${o.gesperrt.grund}` : woanders ? `${o.name} – schon gewählt` : o.name;
+      // Gesperrt hat Vorrang; ohne `vergeben` bleibt eine vergebene Option gesperrt, ohne Text.
+      const zusatz = o.gesperrt ? o.gesperrt.grund : woanders ? b.vergeben : undefined;
+      element.textContent = zusatz ? `${o.name} – ${zusatz}` : o.name;
     }
     return false;
   };

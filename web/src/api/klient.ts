@@ -30,6 +30,7 @@ export type Auswahl = {
   unbekannt: string;
   pflicht?: string;
   einmalig?: string;
+  vergeben?: string;
 };
 export type Text = {
   art: 'text';
@@ -68,7 +69,6 @@ export type Aktion = { art: 'aktion'; id: string; titel: string; laeuft: string;
 export type Liste = {
   art: 'liste';
   id: string;
-  titel: string;
   eintrag: string;
   kopf?: string;
   hoechstens: number;
