@@ -78,7 +78,11 @@ zeigt. Ein neuer Server erscheint erst nach neuer Anmeldung.
 Jede Route mit `{id}` prüft, bevor sie etwas liest oder schreibt:
 
 1. Der Bot ist auf dem Server, sonst `404` `nicht_gefunden`.
-2. Die Person ist dort Mitglied und ist jetzt Eigentümer oder hat „Server
+2. Discord liefert den Server gerade, er ist also nicht `unavailable`
+   wie bei einem Ausfall
+   ([Unavailable Guild Object](https://docs.discord.com/developers/resources/guild#unavailable-guild-object)),
+   sonst `503` `nicht_erreichbar`.
+3. Die Person ist dort Mitglied und ist jetzt Eigentümer oder hat „Server
    verwalten“ oder „Administrator“, sonst `403` `kein_recht`.
 
 Das prüft der Bot mit `guild.members.fetch({ user, force: true })` und
