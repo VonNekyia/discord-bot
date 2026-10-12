@@ -10,6 +10,7 @@ code:
   - bot/src/discord/kontext.ts
   - bot/src/discord/dashboard.ts
   - bot/src/discord/rechte.ts
+  - bot/src/kern/aufraeumen.ts
   - bot/src/module/begruessung/seiten.ts
   - bot/src/module/begruessung/banner.ts
   - bot/src/module/sprachraeume/seiten.ts
@@ -236,10 +237,20 @@ darf, steht in [Datenschutz](datenschutz.md), „Was ins Log geht“.
 
 - Abgelaufene Sitzungen löscht `raeumeAuf`, wenn die API öffnet, und dann
   jede Stunde.
-- Einstellungen, Bilder, Sprachräume und Räume von Servern, die der Bot verlassen hat, löschen
-  `vergiss` bei `guildDelete` und `behalteNur` beim Start, siehe
-  [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md),
+- Die Daten von Servern, die der Bot verlassen hat, löscht `Aufraeumen` in
+  `bot/src/kern/aufraeumen.ts`: `vergiss` bei `guildDelete`, `behalteNur`
+  beim Start. Welche Tabellen das sind, sagt jedes Modul in `tabellen`,
+  heute Einstellungen und Bilder der Begrüssung, Sprachräume und Räume,
+  siehe [Struktur von Bot und Oberfläche](../entwicklung/struktur.md), „Ein
+  Modul“, und [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md),
   „Wenn etwas fehlt“.
+- Beides löscht aus allen Tabellen in einer Anweisung mit CTEs, also in
+  einer Transaktion. Die Namen der Tabellen kommen ins SQL; `Aufraeumen`
+  prüft sie darum beim Bauen, vor dem Start des Bots: nur `a` bis `z`,
+  Ziffern und `_`, höchstens 63 Zeichen, jede in genau einem Modul. Sonst
+  startet der Bot nicht.
+- Bei `guildDelete` vergisst jedes Modul zuerst seine Caches (`vergiss`),
+  dann löscht `Aufraeumen` die Zeilen.
 - Startet der `ShardingManager` den Bot in mehreren Prozessen, sieht jeder
   Prozess nur die Server seiner Shards (`client.shard`). `behalteNur`
   gleicht dann nur unter ihnen ab: Ein Server liegt auf Shard

@@ -29,7 +29,7 @@ Code nicht brechen darf. Das Menü im Chat jedes Raums steht in
 | `bot/src/discord/sprachkanaele.ts` | die Discord-Schicht für die Sprachräume: `sprachListe` mit `bereit`, `belegung`, `hatKanal`, `kategorieVon`, `eintraegeVon`, `holeMitglied`, `legeSprachkanalAn`, `verschiebe`, `loescheKanal`, `sendeMenue`; alles über den Griff `Server`, Fehler als `DiscordFehler` |
 | `bot/src/discord/rechte.ts` | `Eintrag` mit `art` (`rolle` oder `person`) und `Recht` mit den Bits, die das Modul braucht |
 | `bot/src/module/sprachraeume/menue.ts`, `bot/src/module/sprachraeume/knoepfe.ts`, `bot/src/module/sprachraeume/raumrechte.ts` | das Menü, siehe [Menü der Sprachräume im Bot](sprachraeume-menue.md) |
-| `bot/src/kern/aufraeumen.ts` | `vergiss` und `behalteNur` für alle Tabellen je Server |
+| `bot/src/kern/aufraeumen.ts` | `Aufraeumen` mit `vergiss` und `behalteNur` für die Tabellen aller Module; die Sprachräume nennen `sprachraeume` und `raeume` in `bot/src/module/sprachraeume/modul.ts` |
 | `bot/src/discord/ordnung.ts` | `wieDiscord`: Kanäle sortieren wie Discord |
 
 `bot/src/index.ts` ruft bei `voiceStateUpdate` `Raeume#aenderung` mit dem
@@ -110,7 +110,7 @@ Nach `ClientReady` ruft `bot/src/index.ts` `Raeume#gleicheAb` für die
 Server im Cache, also die Shards dieses Prozesses: Zeilen ohne Kanal fallen
 weg, leere Räume löscht der Bot, belegte bleiben. Er geht Server für Server
 und Raum für Raum vor, nacheinander. Server, die den Bot
-verlassen haben, räumt `behalteNur` ab, mit derselben Regel für Shards wie
+verlassen haben, räumt `Aufraeumen#behalteNur` ab, mit derselben Regel für Shards wie
 in [API im Bot](dashboard-api.md), „Aufräumen“.
 
 ## Audit-Log und Log

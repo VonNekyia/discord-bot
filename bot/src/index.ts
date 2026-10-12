@@ -5,7 +5,7 @@ import { raeumeAuf } from './api/anmeldung.js';
 import { apiUmgebung, erstelleApi, type ApiUmgebung } from './api/server.js';
 import { befehle as allgemeineBefehle } from './module/befehle/befehle.js';
 import { text } from './kern/fehler.js';
-import { behalteNur, vergiss } from './kern/aufraeumen.js';
+import { Aufraeumen } from './kern/aufraeumen.js';
 import { lese } from './module/begruessung/begruessung.js';
 import { ladeCache } from './kern/cache.js';
 import { beantworte, registriere } from './discord/befehle.js';
@@ -21,9 +21,8 @@ import { Knoepfe } from './module/sprachraeume/knoepfe.js';
 import { praefix } from './module/sprachraeume/menue.js';
 import { Raeume } from './module/sprachraeume/raeume.js';
 import { begruesse, erstelleBremse } from './module/begruessung/senden.js';
-import { begruessungsBereich } from './module/begruessung/seiten.js';
 import { liesSprachraeume } from './module/sprachraeume/sprachraeume.js';
-import { sprachraeumeBereich } from './module/sprachraeume/seiten.js';
+import { alleModule } from './modulliste.js';
 
 const token = process.env.DISCORD_BOT_TOKEN;
 if (!token) {
@@ -65,6 +64,10 @@ const befehle = allgemeineBefehle({ db });
 
 // Zählt jede Anfrage an Discord, nur im Speicher. Siehe docs/bot/rate-limits.md, „Zählen“.
 const zaehlung = new Zaehlung();
+// Die Module in der Reihenfolge der Tabs; ihre Tabellen löscht `aufraeumer`,
+// wenn der Bot einen Server verlässt. Siehe docs/entwicklung/struktur.md, „Ein Modul“.
+const modulListe = alleModule({ db, zaehlung, einstellungen, sprachraeume });
+const aufraeumer = new Aufraeumen(modulListe);
 const client = erstelleClient();
 zaehleAnfragen(client.rest, zaehlung);
 let api: Server | undefined;
@@ -79,7 +82,7 @@ async function nachDemVerbinden(bereit: Client<true>): Promise<void> {
   // Server, die den Bot entfernt haben, während er aus war.
   // Siehe docs/benutzung/begruessung.md, „Wenn etwas fehlt“.
   const shards = bereit.shard && { ids: bereit.shard.ids, count: bereit.shard.count };
-  await behalteNur(db, [...bereit.guilds.cache.keys()], shards ?? undefined).then(
+  await aufraeumer.behalteNur(db, [...bereit.guilds.cache.keys()], shards ?? undefined).then(
     (n) => n > 0 && console.log(`Einstellungen von ${n} verlassenen Servern gelöscht.`),
     (e: unknown) => console.error(`Abgleich der Server fehlgeschlagen: ${text(e)}`),
   );
@@ -91,7 +94,7 @@ async function nachDemVerbinden(bereit: Client<true>): Promise<void> {
   // Siehe docs/schnittstelle/api.md, „Lokal“.
   const { port, ...rest } = umgebung;
   // Die Seiten des Dashboards, in der Reihenfolge der Tabs. Siehe docs/schnittstelle/baukasten.md.
-  const bereiche = [begruessungsBereich({ db, einstellungen, zaehlung }), sprachraeumeBereich({ db, sprachraeume })];
+  const bereiche = modulListe.flatMap((m) => (m.bereich ? [m.bereich] : []));
   api = erstelleApi({ griff: dashboardGriff(bereit, { zaehlung }), db, anwendung: bereit.application.id, zaehlung, bereiche, ...rest });
   api.once('error', (e) => console.error(`API nicht gestartet: ${text(e)}`));
   api.listen(port, '127.0.0.1', () => console.log(`API auf 127.0.0.1:${port}.`));
@@ -109,9 +112,8 @@ client.once(Events.ClientReady, (bereit) => {
 });
 
 client.on(Events.GuildDelete, (guild) => {
-  einstellungen.delete(guild.id);
-  sprachraeume.delete(guild.id);
-  void vergiss(db, guild.id).catch((e: unknown) => console.error(`Server verlassen: ${text(e)}`));
+  for (const m of modulListe) m.vergiss?.(guild.id);
+  void aufraeumer.vergiss(db, guild.id).catch((e: unknown) => console.error(`Server verlassen: ${text(e)}`));
 });
 
 // Eine Bremse für alle Server, im Speicher. Siehe docs/benutzung/begruessung.md, „Bremse“.

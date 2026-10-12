@@ -10,7 +10,8 @@ import { legeSitzungAn, raeumeAuf } from './anmeldung.js';
 import { apiUmgebung, erstelleApi } from './server.js';
 import { createCanvas, loadImage } from '@napi-rs/canvas';
 import { bereiteVor, masse } from '../module/begruessung/banner.js';
-import { behalteNur, vergiss } from '../kern/aufraeumen.js';
+import { Aufraeumen } from '../kern/aufraeumen.js';
+import { alleModule } from '../modulliste.js';
 import type { Bereich } from '../kern/baukasten.js';
 import { Grenze } from '../kern/grenze.js';
 import type { DashboardGriff } from '../discord/dashboard.js';
@@ -153,6 +154,7 @@ test('erstelleApi weist doppelte, zu viele und ungültige Seiten ab', () => {
 
 describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt' }, () => {
   let db: Pool;
+  let aufraeumer: Aufraeumen;
   let mock: MockDiscord;
   // Server, deren Einstellungen die API im Cache gelöscht hat.
   const geleert: string[] = [];
@@ -173,6 +175,8 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
     if (!ziel) return;
     await migriere(ziel, fileURLToPath(new URL('../../migrationen', import.meta.url)));
     db = oeffne(ziel);
+    // Wie im Bot: die Tabellen aller Module.
+    aufraeumer = new Aufraeumen(alleModule({ db, zaehlung: new Zaehlung(), einstellungen: new Map(), sprachraeume: new Map() }));
     mock = await mockDiscord();
     mock.meineServer = meineServer;
     client = discordClient(mock, gilden);
@@ -681,7 +685,7 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
         await speichere(db, server, 'beitritt', standard('beitritt'));
         await speichereBild(db, server, 'beitritt', bild);
       }
-      await vergiss(db, SERVER);
+      await aufraeumer.vergiss(db, SERVER);
       assert.equal(await zahl(SERVER), '0');
       assert.equal(await zahl(EIGENER), '2');
       // In einer Transaktion, die zurückrollt: Die Dev-Datenbank verliert nichts,
@@ -693,7 +697,7 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
           'SELECT server FROM begruessungen WHERE server <> $1 UNION SELECT server FROM bilder WHERE server <> $1',
           [EIGENER],
         );
-        assert.ok((await behalteNur(verbindung, andere.rows.map((z) => z.server))) >= 1);
+        assert.ok((await aufraeumer.behalteNur(verbindung, andere.rows.map((z) => z.server))) >= 1);
         const { rows } = await verbindung.query(
           'SELECT (SELECT count(*) FROM begruessungen WHERE server = $1) + (SELECT count(*) FROM bilder WHERE server = $1) AS n',
           [EIGENER],
@@ -720,7 +724,7 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
           [[EIGENER, ANDERER_SHARD]],
         );
         // Der Prozess mit Shard 1 von 2 kennt keinen der beiden; EIGENER liegt auf Shard 0 und bleibt.
-        assert.ok((await behalteNur(verbindung, andere.rows.map((z) => z.server), { ids: [1], count: 2 })) >= 1);
+        assert.ok((await aufraeumer.behalteNur(verbindung, andere.rows.map((z) => z.server), { ids: [1], count: 2 })) >= 1);
         const zahl = async (server: string) =>
           (await verbindung.query('SELECT (SELECT count(*) FROM begruessungen WHERE server = $1) + (SELECT count(*) FROM bilder WHERE server = $1) AS n', [server])).rows[0].n;
         assert.equal(await zahl(EIGENER), '2');

@@ -7,7 +7,8 @@ import { ChannelType, PermissionFlagsBits as R, type Client, type Guild } from '
 import type { Pool } from 'pg';
 import { legeSitzungAn } from '../../api/anmeldung.js';
 import { erstelleApi } from '../../api/server.js';
-import { behalteNur, vergiss } from '../../kern/aufraeumen.js';
+import { Aufraeumen } from '../../kern/aufraeumen.js';
+import { alleModule } from '../../modulliste.js';
 import { ladeCache } from '../../kern/cache.js';
 import { migriere, oeffne, verbindung } from '../../kern/datenbank.js';
 import { Zaehlung } from '../../kern/zaehlung.js';
@@ -98,6 +99,7 @@ function server() {
 
 describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt' }, () => {
   let db: Pool;
+  let aufraeumer: Aufraeumen;
   let mock: MockDiscord;
   let client: Client;
   let guild: Guild;
@@ -109,6 +111,8 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
     if (!ziel) return;
     await migriere(ziel, fileURLToPath(new URL('../../../migrationen', import.meta.url)));
     db = oeffne(ziel);
+    // Wie im Bot: die Tabellen aller Module.
+    aufraeumer = new Aufraeumen(alleModule({ db, zaehlung: new Zaehlung(), einstellungen: new Map(), sprachraeume: new Map() }));
     mock = await mockDiscord();
     client = discordClient(mock, [server()]);
     guild = client.guilds.cache.get(SERVER) as Guild;
@@ -124,14 +128,14 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
     mock.nachrichtFehler = undefined;
     guild.voiceStates.cache.clear();
     for (const id of guild.channels.cache.keys()) if (BigInt(id) >= 800000000000000000n) guild.channels.cache.delete(id);
-    await vergiss(db, SERVER);
+    await aufraeumer.vergiss(db, SERVER);
     mock.mitglieder.set(`${SERVER}/${BESITZER}`, mitglied(BESITZER, [], { global_name: 'Mia' }));
     mock.mitglieder.set(`${SERVER}/${ANDERER}`, mitglied(ANDERER, [], { global_name: 'Ben' }));
   });
 
   after(async () => {
     if (!ziel) return;
-    await vergiss(db, SERVER);
+    await aufraeumer.vergiss(db, SERVER);
     await db.query('DELETE FROM sitzungen WHERE nutzer = $1', [TEAM]);
     await schliesse(mock);
     await client.destroy();
@@ -368,7 +372,7 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
     assert.equal(await zeile(raum), undefined);
 
     await db.query('INSERT INTO raeume (kanal, server, besitzer) VALUES ($1, $2, $3)', ['880000000000000009', SERVER, BESITZER]);
-    await vergiss(db, SERVER);
+    await aufraeumer.vergiss(db, SERVER);
     const zahl = async () =>
       (await db.query('SELECT (SELECT count(*) FROM sprachraeume WHERE server = $1) + (SELECT count(*) FROM raeume WHERE server = $1) AS n', [SERVER])).rows[0].n;
     assert.equal(await zahl(), '0');
@@ -379,7 +383,7 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
     try {
       await verbindung.query('BEGIN');
       const andere = await verbindung.query<{ server: string }>('SELECT server FROM sprachraeume WHERE server <> $1', [SERVER]);
-      assert.ok((await behalteNur(verbindung, andere.rows.map((z) => z.server))) >= 1);
+      assert.ok((await aufraeumer.behalteNur(verbindung, andere.rows.map((z) => z.server))) >= 1);
       assert.equal((await verbindung.query('SELECT 1 FROM sprachraeume WHERE server = $1', [SERVER])).rowCount, 0);
     } finally {
       await verbindung.query('ROLLBACK');

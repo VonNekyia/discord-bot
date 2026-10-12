@@ -7,6 +7,8 @@ code:
   - bot/src/kern/cache.test.ts
   - bot/src/kern/datenbank.test.ts
   - bot/src/kern/eingabe.test.ts
+  - bot/src/kern/aufraeumen.test.ts
+  - bot/src/modulliste.test.ts
   - bot/src/api/server.test.ts
   - bot/src/module/begruessung/begruessung.test.ts
   - bot/src/module/begruessung/banner.test.ts
@@ -233,7 +235,7 @@ Millisekunden. Darum:
 | eine Seite liefert Standardwerte, speichert … | Standardwerte in `wert`, `PUT` mit `meldung`, Cache der Einstellungen für den Server geleert, wieder lesen |
 | Speichern prüft Origin, Content-Type und Regeln | `403`, `415`, kaputtes JSON, Regeln mit Code und Feld |
 | ein Body über 16 KiB gibt 413, ohne ihn ganz zu lesen | `Content-Length` zu gross ohne Body; chunked ohne Ende; danach `Connection: close` |
-| verlässt der Bot einen Server, gehen Einstellungen und Bilder … | `vergiss` und `behalteNur` für beide Tabellen |
+| verlässt der Bot einen Server, gehen Einstellungen und Bilder … | `Aufraeumen` aus `alleModule`: `vergiss` und `behalteNur` für beide Tabellen |
 | mit dem ShardingManager gleicht ein Prozess nur … | Shard 1 von 2: der Server auf Shard 0 bleibt |
 | unbekannte Routen, Seiten, Bausteine und Methoden geben 404 … | eine unbekannte Seite, `GET` auf eine Seite, `POST` und `GET` auf `…/bild`, `PUT` auf `…/test`, ein Baustein einer anderen Seite; kein Aufruf an Discord |
 | was der gespeicherte Stand nicht mehr besteht, steht als fund … | ein Kanal ohne Recht gibt `kanal_unbekannt` an `kanal`; der Standard gibt `null` |
@@ -264,7 +266,11 @@ Millisekunden. Darum:
 | die Grenze von 30 s vergisst ein Mitglied nach ihrer Zeit | mit falscher Uhr in `planen`: nach dem Anlegen ein Eintrag, nach 29 999 ms noch einer, nach 30 000 ms keiner; unabhängig davon, wie lange `betritt` braucht |
 | Räume stehen nicht unter den Optionen … | ein Raum fehlt unter den Optionen des Erzeugers, als Erzeuger `erzeuger_unbekannt` |
 | der Abgleich beim Start … | Zeile ohne Kanal weg, leerer Raum gelöscht, belegter bleibt |
-| channelDelete vergisst den Raum … | `geloescht`, `vergiss` und `behalteNur` für Sprachräume und Räume |
+| channelDelete vergisst den Raum … | `geloescht`, `Aufraeumen#vergiss` und `#behalteNur` für Sprachräume und Räume |
+| Aufraeumen prüft die Tabellen beim Bauen … | `bot/src/kern/aufraeumen.test.ts`: Umlaut und SQL im Namen werfen, eine Tabelle in zwei Modulen wirft, Module ohne Tabellen zählen nicht |
+| vergiss und behalteNur löschen in einer Anweisung … | dieselbe Datei, ohne Datenbank: je eine Anfrage mit jeder Tabelle genau einmal, die Werte mit Shards; ohne Tabellen keine Anfrage |
+| jede Tabelle mit Daten je Server (Spalte server bigint) gehört genau einem Modul | `bot/src/modulliste.test.ts`, PostgreSQL: die Tabellen aus `information_schema` nach allen Migrationen gegen die Tabellen aus `alleModule` |
+| die Seiten kommen in der Reihenfolge der Tabs; vergiss leert den Cache … | dieselbe Datei: `beitritt`, `abschied`, `sprachraeume`; `vergiss` nimmt nur den einen Server aus beiden Caches |
 | die Seite bietet Sprachkanäle und Kategorien … | Bausteine der Seite und der Liste; Sortierung, ohne Text und Bühne; ohne „Mitglieder verschieben“ gesperrt mit `erzeuger_ohne_recht`; eine Kategorie, die „Streamen“ verbietet, das der Bot nicht hat, gesperrt mit `kategorie_ohne_recht` |
 | fehlt dem Bot ein Recht auf dem Server, steht oben ein Hinweis | ohne „Kanäle verwalten“ ist der erste Baustein `hinweis` `rechte`, mit allen Rechten wieder `schalter` |
 | die Seite liefert ohne Zeile die Standardwerte … | `{ an: false, erzeuger: [] }`, `fund` `null`, Speichern mit 100 Zeichen Vorlage und `meldung`, fremde Felder fallen weg, Cache geleert |

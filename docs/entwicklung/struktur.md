@@ -5,6 +5,8 @@ code:
   - bot/src/index.ts
   - bot/src/kern/fehler.ts
   - bot/src/kern/baukasten.ts
+  - bot/src/kern/modul.ts
+  - bot/src/modulliste.ts
   - bot/.oxlintrc.json
   - web/src/dashboard.ts
   - web/src/seite.ts
@@ -28,12 +30,13 @@ Linter. Warum so, steht in
 | Pfad | Inhalt | Dateien, Stand 2026-10-12 |
 |---|---|---|
 | `bot/src/index.ts` | Einstieg: verbindet Kern, Discord-Schicht, API und Module | |
-| `bot/src/kern/` | Datenbank, Cache, Fehlertext fürs Log, Typwächter für Eingaben, Grenzen, Zählung, Aufräumen, der Vertrag des Baukastens; kennt weder Discord noch Module | `datenbank.ts`, `cache.ts`, `fehler.ts`, `eingabe.ts`, `grenze.ts`, `zaehlung.ts`, `aufraeumen.ts`, `baukasten.ts` |
+| `bot/src/modulliste.ts` | `alleModule`: die Liste der Module, in der Reihenfolge der Tabs | |
+| `bot/src/kern/` | Datenbank, Cache, Fehlertext fürs Log, Typwächter für Eingaben, Grenzen, Zählung, Aufräumen, der Vertrag des Baukastens; kennt weder Discord noch Module | `datenbank.ts`, `cache.ts`, `fehler.ts`, `eingabe.ts`, `grenze.ts`, `zaehlung.ts`, `aufraeumen.ts`, `baukasten.ts`, `modul.ts` |
 | `bot/src/discord/` | die einzige Schicht, die discord.js importiert | `client.ts`, `ordnung.ts`, `zaehlen.ts`, `oauth.ts`, `kanaele.ts`, `kontext.ts`, `eigentuemer.ts`, `nachrichten.ts`, `server.ts`, `fehler.ts`, `rechte.ts`, `sprachkanaele.ts`, `menue.ts`, `interaktionen.ts`, `befehle.ts`, `dashboard.ts` |
 | `bot/src/api/` | HTTP-API des Dashboards: Server, Anmeldung, Grenzen, Fehler; die Routen der Seiten, die die Module anmelden | `server.ts`, `anmeldung.ts` |
 | `bot/src/module/befehle/` | Slash-Befehle, heute `/ping` | `befehle.ts` |
-| `bot/src/module/begruessung/` | Beitritt und Abschied: Einstellungen, Senden, Banner, Seiten im Dashboard | `begruessung.ts`, `senden.ts`, `banner.ts`, `seiten.ts` |
-| `bot/src/module/sprachraeume/` | Sprachräume: Einstellungen, Räume, Menü, Knöpfe, Rechte, Seite im Dashboard | `sprachraeume.ts`, `raeume.ts`, `menue.ts`, `knoepfe.ts`, `raumrechte.ts`, `seiten.ts` |
+| `bot/src/module/begruessung/` | Beitritt und Abschied: Einstellungen, Senden, Banner, Seiten im Dashboard | `begruessung.ts`, `senden.ts`, `banner.ts`, `seiten.ts`, `modul.ts` |
+| `bot/src/module/sprachraeume/` | Sprachräume: Einstellungen, Räume, Menü, Knöpfe, Rechte, Seite im Dashboard | `sprachraeume.ts`, `raeume.ts`, `menue.ts`, `knoepfe.ts`, `raumrechte.ts`, `seiten.ts`, `modul.ts` |
 | `bot/src/module/strafen/` | geplant, kommt mit seinem Auftrag | – |
 
 Tests liegen neben dem Code, den sie prüfen; `bot/src/testhilfe.ts` hilft
@@ -57,9 +60,10 @@ allen. `dist/` spiegelt `src/`; `npm test` findet die Tests mit
 Ein Pfeil heisst „darf importieren“:
 
 ```text
-Bot:  index.ts ──> module/* ──> discord/, kern/
-               ──> api/     ──> discord/, kern/
-               ──> discord/ ──> discord.js, kern/
+Bot:  index.ts ──> modulliste.ts ──> module/*
+               ──> module/*     ──> discord/, kern/
+               ──> api/         ──> discord/, kern/
+               ──> discord/     ──> discord.js, kern/
                ──> discord.js
 
 Web:  dashboard.ts ──> seite.ts ──> bausteine/* ──> api/, kern/
@@ -89,20 +93,36 @@ Fehler.
 
 ## Ein Modul
 
-Was ein Modul im Bot bündelt, wenn der Umbau fertig ist:
+Was ein Modul im Bot bündelt:
 
 | Teil | Inhalt |
 |---|---|
 | Einstellungen | lesen, prüfen, speichern; die Tabellen gehören dem Modul |
 | Ereignisse | an welchen Ereignissen es hängt, über die Discord-Schicht |
 | Seiten | seine Seiten im Dashboard als `Bereich`, siehe [Baukasten des Dashboards](../schnittstelle/baukasten.md); `api/` baut daraus die Routen |
-| Aufräumen | was es löscht, wenn der Bot einen Server verlässt; alle Module in einer Transaktion, wie heute `kern/aufraeumen.ts` in einer Anweisung |
+| Aufräumen | seine Tabellen mit Daten je Server und seine Caches; `Aufraeumen` in `kern/aufraeumen.ts` löscht die Tabellen aller Module in einer Anweisung |
 | Befehle | seine Slash-Befehle als `Befehl` aus `discord/befehle.ts`, falls es welche hat |
 
-Jedes Modul gibt dazu ein Objekt nach einem Vertrag in `bot/src/kern/`
-heraus; `index.ts` reicht die Module an Discord-Schicht und API weiter,
-statt jedes einzeln zu verdrahten. Für die Seiten gibt es den Vertrag
-schon: `Bereich` in `bot/src/kern/baukasten.ts`. In der Oberfläche
+Jedes Modul gibt dazu ein Objekt nach dem Vertrag `Modul` in
+`bot/src/kern/modul.ts` heraus, aus einer Fabrik in seinem `modul.ts`:
+
+| Feld | Inhalt |
+|---|---|
+| `name` | für Fehler beim Start |
+| `tabellen` | Tabellen mit der Spalte `server`; verlässt der Bot einen Server, gehen ihre Zeilen |
+| `vergiss(server)` | vergisst, was das Modul im Speicher zum Server hält, etwa im Cache |
+| `bereich` | seine Seiten im Dashboard, `Bereich` aus `bot/src/kern/baukasten.ts` |
+
+`alleModule` in `bot/src/modulliste.ts` gibt die Liste, und
+`bot/src/index.ts` reicht sie weiter: die Bereiche an die API, die Tabellen
+an `Aufraeumen`, `vergiss` an `guildDelete`. Ereignisse und Befehle
+verdrahtet `index.ts` noch je Modul, siehe „Was noch fehlt“. Der Vertrag
+wächst, wenn ein Modul mehr braucht.
+
+Der Test „jede Tabelle mit Daten je Server … gehört genau einem Modul“ in
+`bot/src/modulliste.test.ts` vergleicht die Tabellen der Module mit
+`information_schema` nach allen Migrationen. Vergisst ein Modul eine
+Tabelle, fällt er. In der Oberfläche
 braucht ein Modul keinen Code, solange es mit den Bausteinen auskommt.
 
 Ein neues Modul bekommt seinen Ordner, Tests daneben, eine Seite unter
@@ -143,6 +163,5 @@ PR mit gleichem Verhalten und grünen Tests.
 
 | Was | Wo | Lint |
 |---|---|---|
-| Aufräumen kennt die Tabellen aller Module | `kern/aufraeumen.ts` | – |
-| Der Einstieg verdrahtet jedes Modul einzeln; nur die Seiten gehen schon als `Bereich` | `index.ts` | – |
+| Der Einstieg verdrahtet Ereignisse und Befehle je Modul; Seiten und Aufräumen gehen schon über die Liste | `index.ts` | – |
 | Die Typen der API stehen dreimal: in `docs/schnittstelle/`, in `bot/src/kern/baukasten.ts` und in `web/src/api/klient.ts` | – | – |
