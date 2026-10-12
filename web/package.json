@@ -8,11 +8,14 @@
   },
   "scripts": {
     "build": "tsc",
+    "lint": "oxlint",
     "serve": "node serve.mjs",
     "lighthouse": "lhci autorun --config=./lighthouserc.cjs"
   },
   "devDependencies": {
     "@lhci/cli": "^0.15.1",
+    "oxlint": "^1.87.0",
+    "oxlint-tsgolint": "^7.0.2004",
     "typescript": "^7.0.2"
   }
 }

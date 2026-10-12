@@ -56,7 +56,7 @@ async function frage(schritt: string, url: string, init: RequestInit): Promise<R
   try {
     antwort = await fetch(url, { ...init, signal: AbortSignal.timeout(10_000) });
   } catch (fehler) {
-    throw new Error(`${schritt}: ${fehler instanceof Error ? fehler.message : String(fehler)}`);
+    throw new Error(`${schritt}: ${fehler instanceof Error ? fehler.message : String(fehler)}`, { cause: fehler });
   }
   if (!antwort.ok) throw new Error(`${schritt}: Discord antwortet ${antwort.status}`);
   return antwort;
@@ -129,9 +129,9 @@ export async function legeSitzungAn(db: Pick<Pool, 'query'>, person: Omit<Sitzun
 }
 
 // Die Sitzung zum Cookie, wenn es sie gibt und sie nicht abgelaufen ist.
-export async function findeSitzung(db: Pick<Pool, 'query'>, cookie: string | undefined): Promise<Sitzung | undefined> {
-  if (!cookie || !/^[A-Za-z0-9_-]{43}$/.test(cookie)) return undefined;
-  const kennung = hash(Buffer.from(cookie, 'base64url'));
+export async function findeSitzung(db: Pick<Pool, 'query'>, wert: string | undefined): Promise<Sitzung | undefined> {
+  if (!wert || !/^[A-Za-z0-9_-]{43}$/.test(wert)) return undefined;
+  const kennung = hash(Buffer.from(wert, 'base64url'));
   const { rows } = await db.query<Omit<Sitzung, 'kennung'>>(
     'SELECT nutzer, name, avatar, server FROM sitzungen WHERE kennung = $1 AND ablauf > now()',
     [kennung],

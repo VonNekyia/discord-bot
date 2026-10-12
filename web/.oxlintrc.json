@@ -1,0 +1,24 @@
+// Regeln für web/. Die gemeinsamen stehen in ../.oxlintrc.json.
+// Siehe docs/entwicklung/lint.md.
+{
+  "extends": ["../.oxlintrc.json"],
+  "ignorePatterns": ["dist"],
+  "env": { "browser": true },
+  "options": {
+    "maxWarnings": 28
+  },
+  "overrides": [
+    {
+      // Altlasten: Casts an Antworten der API und an querySelector, und
+      // Formulare, die sich im Konstruktor selbst anhängen. Sie sind
+      // Warnungen, bis der Umbau sie beseitigt; mehr als `maxWarnings`
+      // dürfen es nicht werden. Siehe docs/entwicklung/lint.md, „Altlasten“.
+      "files": ["src/api.ts", "src/begruessung.ts", "src/dashboard.ts", "src/platzhalter.ts", "src/sprachraeume.ts"],
+      "rules": {
+        "typescript/no-unsafe-type-assertion": "warn",
+        "typescript/no-unnecessary-type-parameters": "warn",
+        "eslint/no-new": "warn"
+      }
+    }
+  ]
+}

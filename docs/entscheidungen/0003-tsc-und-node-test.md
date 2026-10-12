@@ -12,7 +12,9 @@ code:
 # 0003: Nur tsc und node:test als Werkzeuge
 
 Teilweise abgelöst durch [0007](0007-postgres-mit-pg.md): Zu den
-Dev-Abhängigkeiten kommt `@types/pg`.
+Dev-Abhängigkeiten kommt `@types/pg`. Teilweise abgelöst durch
+[0014](0014-oxlint-und-moderne-sprachmittel.md): `tsc` ist nicht mehr der
+einzige Lint, dazu kommt oxlint.
 
 ## Anlass
 

@@ -99,7 +99,8 @@ Zeile.
 
 Nach `ClientReady` ruft `bot/src/index.ts` `Raeume#gleicheAb` für die
 Server im Cache, also die Shards dieses Prozesses: Zeilen ohne Kanal fallen
-weg, leere Räume löscht der Bot, belegte bleiben. Server, die den Bot
+weg, leere Räume löscht der Bot, belegte bleiben. Er geht Server für Server
+und Raum für Raum vor, nacheinander. Server, die den Bot
 verlassen haben, räumt `behalteNur` ab, mit derselben Regel für Shards wie
 in [API im Bot](dashboard-api.md), „Aufräumen“.
 

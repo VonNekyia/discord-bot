@@ -38,7 +38,10 @@ function weiterleiten(anfrage, antwort) {
     },
   );
   weiter.on('error', () => {
-    if (antwort.headersSent) return void antwort.destroy();
+    if (antwort.headersSent) {
+      antwort.destroy();
+      return;
+    }
     antwort
       .writeHead(502, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' })
       .end('{"code":"nicht_erreichbar"}');
@@ -50,10 +53,10 @@ createServer(async (anfrage, antwort) => {
   if (anfrage.url?.startsWith('/api/')) return weiterleiten(anfrage, antwort);
   try {
     const pfad = decodeURIComponent(new URL(anfrage.url ?? '/', 'http://x').pathname);
-    const datei = resolve(wurzel, '.' + (pfad.endsWith('/') ? pfad + 'index.html' : pfad));
+    const datei = resolve(wurzel, `.${pfad.endsWith('/') ? `${pfad}index.html` : pfad}`);
     // Nur bekannte Typen und nur unter diesem Ordner, ausser node_modules.
-    const erlaubt = datei.startsWith(wurzel + sep) && !datei.includes(sep + 'node_modules' + sep) && typen[extname(datei)];
-    if (!erlaubt) throw new Error();
+    const erlaubt = datei.startsWith(`${wurzel}${sep}`) && !datei.includes(`${sep}node_modules${sep}`) && typen[extname(datei)];
+    if (!erlaubt) throw new Error('nicht erlaubt');
     const inhalt = await readFile(datei);
     antwort.writeHead(200, { ...kopf, 'Content-Type': typen[extname(datei)] }).end(inhalt);
   } catch {

@@ -1,0 +1,97 @@
+// Gemeinsame Regeln für bot/ und web/. bot/.oxlintrc.json und
+// web/.oxlintrc.json erben sie. Siehe docs/entwicklung/lint.md.
+{
+  "$schema": "./bot/node_modules/oxlint/configuration_schema.json",
+  "plugins": ["eslint", "typescript", "unicorn", "oxc", "import", "promise", "node"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "error"
+  },
+  "options": {
+    "typeAware": true,
+    "reportUnusedDisableDirectives": "error"
+  },
+  "rules": {
+    // Promises und Typen. Siehe docs/entwicklung/lint.md, „Regeln“.
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/await-thenable": "error",
+    "typescript/return-await": ["error", "in-try-catch"],
+    "typescript/only-throw-error": "error",
+    "typescript/prefer-promise-reject-errors": "error",
+    "typescript/switch-exhaustiveness-check": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-non-null-assertion": "error",
+    "typescript/no-unnecessary-type-assertion": "error",
+    "typescript/restrict-template-expressions": "error",
+    "typescript/use-unknown-in-catch-callback-variable": "error",
+    "typescript/no-deprecated": "error",
+    "typescript/consistent-type-imports": "error",
+    "typescript/no-import-type-side-effects": "error",
+    "typescript/prefer-nullish-coalescing": ["error", { "ignorePrimitives": { "string": true } }],
+    "typescript/prefer-includes": "error",
+    "typescript/prefer-for-of": "error",
+    "eslint/eqeqeq": ["error", "always", { "null": "ignore" }],
+    "eslint/no-var": "error",
+    "eslint/prefer-const": "error",
+    "eslint/prefer-object-has-own": "error",
+    "eslint/prefer-rest-params": "error",
+    "eslint/prefer-template": "error",
+    "eslint/object-shorthand": "error",
+    "import/no-cycle": "error",
+    "import/no-self-import": "error",
+    "import/no-duplicates": "error",
+    "promise/no-return-wrap": "error",
+
+    // Moderne Sprachmittel. Siehe docs/entwicklung/lint.md, „Moderne Sprachmittel“.
+    "unicorn/prefer-at": "error",
+    "unicorn/prefer-node-protocol": "error",
+    "unicorn/prefer-structured-clone": "error",
+    "unicorn/prefer-string-replace-all": "error",
+    "unicorn/prefer-string-slice": "error",
+    "unicorn/prefer-regexp-test": "error",
+    "unicorn/prefer-array-flat-map": "error",
+    "unicorn/prefer-array-find": "error",
+    "unicorn/prefer-array-some": "error",
+    "unicorn/prefer-includes": "error",
+    "unicorn/prefer-negative-index": "error",
+    "unicorn/prefer-object-from-entries": "error",
+    "unicorn/prefer-global-this": "error",
+    "unicorn/prefer-optional-catch-binding": "error",
+    "unicorn/prefer-response-static-json": "error",
+    "unicorn/prefer-top-level-await": "error",
+    "unicorn/prefer-spread": "error",
+    "unicorn/prefer-math-min-max": "error",
+    "unicorn/prefer-modern-math-apis": "error",
+    "unicorn/prefer-number-properties": "error",
+    "unicorn/prefer-date-now": "error",
+    "unicorn/no-array-for-each": "error",
+    "unicorn/no-instanceof-builtins": "error",
+    "unicorn/no-useless-promise-resolve-reject": "error",
+    "unicorn/no-lonely-if": "error",
+    "unicorn/throw-new-error": "error",
+    "unicorn/prefer-type-error": "error",
+    "unicorn/error-message": "error"
+  },
+  "overrides": [
+    {
+      // test, describe und it aus node:test geben ein Promise zurück, das
+      // der Testrunner selbst abwartet.
+      "files": ["**/*.test.ts", "**/testhilfe.ts"],
+      "rules": {
+        "typescript/no-floating-promises": [
+          "error",
+          { "allowForKnownSafeCalls": [{ "from": "package", "package": "node:test", "name": ["test", "describe", "it", "suite"] }] }
+        ],
+        // In Tests gelten einige Regeln nicht. Siehe docs/entwicklung/lint.md, „Tests“.
+        "eslint/no-await-in-loop": "off",
+        "eslint/no-shadow": "off",
+        "eslint/no-underscore-dangle": "off",
+        "unicorn/consistent-function-scoping": "off",
+        "typescript/no-unsafe-type-assertion": "off",
+        "typescript/require-array-sort-compare": "off"
+      }
+    }
+  ]
+}

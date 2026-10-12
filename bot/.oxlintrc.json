@@ -1,0 +1,21 @@
+// Regeln für bot/. Die gemeinsamen stehen in ../.oxlintrc.json.
+// Siehe docs/entwicklung/lint.md.
+{
+  "extends": ["../.oxlintrc.json"],
+  "ignorePatterns": ["dist"],
+  "options": {
+    "maxWarnings": 45
+  },
+  "overrides": [
+    {
+      // Altlasten: Casts und `!` an Eingaben von aussen. Sie sind Warnungen,
+      // bis der Umbau sie beseitigt; mehr als `maxWarnings` dürfen es nicht
+      // werden. Siehe docs/entwicklung/lint.md, „Altlasten“.
+      "files": ["src/anmeldung.ts", "src/api.ts", "src/begruessung.ts", "src/knoepfe.ts", "src/sprachraeume.ts"],
+      "rules": {
+        "typescript/no-unsafe-type-assertion": "warn",
+        "typescript/no-non-null-assertion": "warn"
+      }
+    }
+  ]
+}

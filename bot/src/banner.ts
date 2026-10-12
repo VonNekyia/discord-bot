@@ -123,7 +123,7 @@ export async function zeichne(hintergrund: Buffer, avatar: Buffer | undefined, t
   g.strokeStyle = rand;
   g.stroke();
 
-  const zeile = text.replace(/\s+/g, ' ').trim();
+  const zeile = text.replaceAll(/\s+/g, ' ').trim();
   const breiteMax = breite - 2 * 60;
   let groesse = 64;
   g.font = `${groesse}px ${schriftStapel}`;

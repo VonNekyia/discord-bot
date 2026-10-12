@@ -80,7 +80,7 @@ test('zwei gleichzeitige Läufe von migriere wenden jede Datei nur einmal an', {
   });
 
   const laeufe = await Promise.all([migriere(ziel, ordner), migriere(ziel, ordner)]);
-  assert.deepEqual(laeufe.sort((a, b) => b.length - a.length), [['probe-1.sql', 'probe-2.sql'], []]);
+  assert.deepEqual(laeufe.toSorted((a, b) => b.length - a.length), [['probe-1.sql', 'probe-2.sql'], []]);
 });
 
 test('der Pool überlebt, wenn die Datenbank eine freie Verbindung trennt', { skip: ohne }, async (t) => {

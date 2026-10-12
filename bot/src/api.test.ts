@@ -534,17 +534,17 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
 
       const { rows } = await db.query<{ daten: Buffer }>('SELECT daten FROM bilder WHERE server = $1 AND art = $2', [SERVER, 'beitritt']);
       const daten = rows[0]?.daten ?? Buffer.alloc(0);
-      assert.equal(`${daten.subarray(0, 4)}${daten.subarray(8, 12)}`, 'RIFFWEBP');
+      assert.equal(daten.toString('latin1', 0, 4) + daten.toString('latin1', 8, 12), 'RIFFWEBP');
       assert.deepEqual(masse(daten), { breite: 1100, hoehe: 440 });
       for (const merkmal of ['GEHEIMER-ORT', 'Exif', 'EXIF', 'XMP ']) assert.ok(!daten.includes(merkmal), merkmal);
       // Quer, links rot, rechts blau; nach Drehung 6 hochkant, oben rot, unten blau.
       const flaeche = createCanvas(1100, 440);
       const g = flaeche.getContext('2d');
       g.drawImage(await loadImage(daten), 0, 0);
-      const pixel = (x: number, y: number) => [...g.getImageData(x, y, 1, 1).data.slice(0, 3)];
+      const pixel = (x: number, y: number) => [...g.getImageData(x, y, 1, 1).data.subarray(0, 3)];
       const [oben, unten] = [pixel(100, 40), pixel(100, 400)];
-      assert.ok((oben[0] ?? 0) > 200 && (oben[2] ?? 0) < 60, `oben ${oben}`);
-      assert.ok((unten[2] ?? 0) > 200 && (unten[0] ?? 0) < 60, `unten ${unten}`);
+      assert.ok((oben[0] ?? 0) > 200 && (oben[2] ?? 0) < 60, `oben ${oben.join(',')}`);
+      assert.ok((unten[2] ?? 0) > 200 && (unten[0] ?? 0) < 60, `unten ${unten.join(',')}`);
 
       const gelesen = (await (await frage(basis, `/api/server/${SERVER}/begruessung`, { sitzung: kennung })).json()) as Record<string, { bild: boolean }>;
       assert.deepEqual([gelesen.beitritt?.bild, gelesen.abschied?.bild], [true, false]);

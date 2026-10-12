@@ -13,7 +13,7 @@ export function vergleiche(x: Platz, y: Platz): number {
 // Kategorien nach ihrer Position; in einer Gruppe nach Position, bei
 // gleicher nach ID. Siehe docs/schnittstelle/api.md, „Typen“.
 export function wieDiscord<T extends Platz & { parent: Platz | null }>(liste: T[]): T[] {
-  return [...liste].sort((x, y) => {
+  return liste.toSorted((x, y) => {
     if (x.parent?.id === y.parent?.id) return vergleiche(x, y);
     if (!x.parent) return -1;
     if (!y.parent) return 1;

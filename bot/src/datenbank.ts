@@ -55,7 +55,10 @@ export async function migriere(ziel: ClientConfig, ordner: string): Promise<stri
     );
     const { rows } = await client.query<{ name: string }>('SELECT name FROM migrationen');
     const fertig = new Set(rows.map((zeile) => zeile.name));
-    const neu = (await readdir(ordner)).filter((name) => name.endsWith('.sql') && !fertig.has(name)).sort();
+    const neu = (await readdir(ordner)).filter((name) => name.endsWith('.sql') && !fertig.has(name)).toSorted();
+    // Eine Datei nach der anderen, in der Reihenfolge der Namen.
+    // Siehe docs/bot/datenbank.md, „Migrationen“.
+    /* oxlint-disable no-await-in-loop */
     for (const name of neu) {
       const sql = await readFile(join(ordner, name), 'utf8');
       await client.query('BEGIN');
@@ -68,6 +71,7 @@ export async function migriere(ziel: ClientConfig, ordner: string): Promise<stri
         throw fehler;
       }
     }
+    /* oxlint-enable no-await-in-loop */
     return neu;
   } finally {
     await client.end();

@@ -80,6 +80,8 @@ function stand(l: Lage): rechte.Raum {
 // Wer im Raum ist, ohne den Bot.
 const drin = (l: Lage) => belegung(l.guild, l.raum.id).filter((id) => id !== l.bot);
 
+const ja = (wert: boolean) => (wert ? 'ja' : 'nein');
+
 const nichtVerbunden = (fehler: unknown) => fehler instanceof DiscordAPIError && fehler.code === Code.TargetUserIsNotConnectedToVoice;
 
 // Die Knöpfe des Menüs. Ein Knopf wirkt auf den Raum, in dessen Chat er
@@ -276,7 +278,6 @@ export class Knoepfe {
 
   private info(l: Lage): string {
     const r = stand(l);
-    const ja = (wert: boolean) => (wert ? 'ja' : 'nein');
     return [
       `Besitzer: <@${l.besitzer}>`,
       `Limit: ${l.raum.userLimit === 0 ? 'keins' : l.raum.userLimit}`,

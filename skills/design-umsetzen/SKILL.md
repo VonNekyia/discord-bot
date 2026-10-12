@@ -22,7 +22,8 @@ description: Baut oder ändert ein Element der Oberfläche strikt nach dem Desig
 6. **Ansehen** mit `npm run build` und `npm run serve` in `web/`: bei
    360 px, 760 px, 1280 px und 1920 px Breite, mit Tastatur (Fokus
    sichtbar) und mit `prefers-reduced-motion: reduce`.
-7. **Prüfen:** `npm run lighthouse` in `web/`, während der Server läuft.
+7. **Prüfen:** `npm run lint` in `web/`, dann `npm run lighthouse`, während
+   der Server läuft.
 8. **Doku:** die Tabelle „Elemente“ auf der Seite Design nachziehen;
    Skill `doku-pflegen`.
 

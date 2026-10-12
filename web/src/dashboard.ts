@@ -76,9 +76,9 @@ async function abmelden(): Promise<void> {
 }
 
 function karte(server: Server): HTMLAnchorElement {
-  const karte = document.createElement('a');
-  karte.className = 'card';
-  karte.href = `#server-${server.id}`;
+  const link = document.createElement('a');
+  link.className = 'card';
+  link.href = `#server-${server.id}`;
   let icon: HTMLElement;
   if (server.icon) {
     const bild = new Image(56, 56);
@@ -97,8 +97,8 @@ function karte(server: Server): HTMLAnchorElement {
   name.textContent = server.name;
   const text = document.createElement('p');
   text.textContent = 'Beitritt und Abschied einstellen.';
-  karte.append(icon, kicker, name, text);
-  return karte;
+  link.append(icon, kicker, name, text);
+  return link;
 }
 
 // Zeigt die Liste oder den Server aus dem Hash (#server-<id>).
@@ -164,7 +164,7 @@ async function start(): Promise<void> {
   }
   element('server-liste').replaceChildren(...serverListe.map(karte));
   element('server-leer').hidden = serverListe.length > 0;
-  window.addEventListener('hashchange', () => void route());
+  globalThis.addEventListener('hashchange', () => void route());
   await route();
 }
 
@@ -172,4 +172,4 @@ element('abmelden').addEventListener('submit', (ereignis) => {
   ereignis.preventDefault();
   void abmelden();
 });
-void start();
+await start();

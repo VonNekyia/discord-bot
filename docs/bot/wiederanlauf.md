@@ -20,6 +20,7 @@ siehe [Einrichtung und Betrieb](../benutzung/einrichtung.md), „Betrieb“.
 | `ShardResume` | `Shard <n>: wieder verbunden.` |
 | `ShardDisconnect` | `Shard <n>: getrennt mit Code <code>, beende.`, dann Exit 1 |
 | `Error` | `Fehler: <Meldung>` |
+| unerwarteter Fehler nach `ClientReady` | `Start fehlgeschlagen: <Meldung>`, dann Exit 1 |
 
 ## Wann discord.js aufgibt
 

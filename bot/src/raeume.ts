@@ -232,6 +232,8 @@ export class Raeume {
   // Beim Start: Räume ohne Kanal vergessen, leere löschen. Nur für Server in
   // `guilds`, also die Shards dieses Prozesses. Siehe docs/bot/sprachraeume-bau.md, „Abgleich beim Start“.
   async gleicheAb(guilds: Iterable<Guild>): Promise<void> {
+    // Server für Server, Raum für Raum.
+    /* oxlint-disable no-await-in-loop */
     for (const guild of guilds) {
       const { rows } = await this.k.db.query<{ kanal: string }>('SELECT kanal FROM raeume WHERE server = $1', [guild.id]);
       for (const { kanal } of rows) {
@@ -239,5 +241,6 @@ export class Raeume {
         else if (belegung(guild, kanal).length === 0) await this.loesche(guild, kanal, grund.leer);
       }
     }
+    /* oxlint-enable no-await-in-loop */
   }
 }

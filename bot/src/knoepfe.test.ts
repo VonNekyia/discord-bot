@@ -48,7 +48,7 @@ const eintrag = (id: string, type: number, allow: bigint, deny: bigint): Uebersc
 const kategorie = [eintrag(SERVER, 0, 0n, R.ViewChannel), eintrag(ROLLE_TEAM, 0, sieht, 0n), eintrag(ROLLE_BOT, 0, sieht, 0n)];
 // Der Raum, wie `eintraege` ihn anlegt.
 const start = [...kategorie, eintrag(BESITZER, 1, besitzerRechte, 0n), eintrag(BOT, 1, botRechte, 0n)];
-const sortiert = (liste: Ueberschreibung[] = []) => [...liste].sort((a, b) => a.id.localeCompare(b.id));
+const sortiert = (liste: Ueberschreibung[] = []) => liste.toSorted((a, b) => a.id.localeCompare(b.id));
 
 const raumDaten = (ueberschreibt: Ueberschreibung[] = start) => ({
   ...kanal(RAUM, ChannelType.GuildVoice, 'Mias Raum', 0, KATEGORIE),

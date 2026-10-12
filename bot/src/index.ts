@@ -1,6 +1,6 @@
 import type { Server } from 'node:http';
 import { fileURLToPath } from 'node:url';
-import { Events } from 'discord.js';
+import { Events, type Client } from 'discord.js';
 import { raeumeAuf } from './anmeldung.js';
 import { apiUmgebung, erstelleApi, type ApiUmgebung } from './api.js';
 import { beantworte, registriere, text } from './befehle.js';
@@ -52,7 +52,9 @@ const knoepfe = new Knoepfe({ db });
 const client = erstelleClient();
 let api: Server | undefined;
 
-client.once(Events.ClientReady, async (bereit) => {
+// Was nach dem Verbinden läuft. Scheitert es unerwartet, endet der Prozess,
+// und der Dienst startet ihn neu. Siehe docs/bot/wiederanlauf.md, „Was der Bot loggt“.
+async function nachDemVerbinden(bereit: Client<true>): Promise<void> {
   console.log('Verbunden.');
   await registriere(bereit.rest, bereit.application.id).catch((e: unknown) =>
     console.error(`Befehle nicht registriert: ${text(e)}`),
@@ -78,6 +80,13 @@ client.once(Events.ClientReady, async (bereit) => {
   const aufraeumen = () => void raeumeAuf(db).catch((e: unknown) => console.error(`Sitzungen nicht aufgeräumt: ${text(e)}`));
   aufraeumen();
   setInterval(aufraeumen, 60 * 60 * 1000).unref();
+}
+
+client.once(Events.ClientReady, (bereit) => {
+  nachDemVerbinden(bereit).catch((e: unknown) => {
+    console.error(`Start fehlgeschlagen: ${text(e)}`);
+    process.exit(1);
+  });
 });
 
 client.on(Events.GuildDelete, (guild) => {
