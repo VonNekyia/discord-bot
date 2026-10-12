@@ -7,7 +7,7 @@ import {
 } from 'discord.js';
 import type { Pool } from 'pg';
 import { holeAvatar, zeichne } from './banner.js';
-import { text as fehlertext } from './befehle.js';
+import { text as fehlertext } from '../../kern/fehler.js';
 import { ersetze, liesBild, type Art, type Einstellung, type Werte } from './begruessung.js';
 
 type Mitglied = GuildMember | PartialGuildMember;

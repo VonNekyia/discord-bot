@@ -5,7 +5,7 @@ status: abgelöst durch 0007
 date: 2026-10-10
 issues: []
 code:
-  - bot/src/datenbank.ts
+  - bot/src/kern/datenbank.ts
   - bot/package.json
 ---
 

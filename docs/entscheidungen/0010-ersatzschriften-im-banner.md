@@ -5,7 +5,7 @@ status: gilt
 date: 2026-10-11
 issues: []
 code:
-  - bot/src/banner.ts
+  - bot/src/module/begruessung/banner.ts
   - bot/schrift/Noto-COLRv1.ttf
   - bot/schrift/Noto-Color-Emoji-OFL.txt
   - bot/schrift/NotoSansCJKjp-Bold.otf
@@ -28,7 +28,7 @@ erlaubt. Mehr als 15 MB im Repository entscheidet er selbst; er hat
 
 ## Entscheidung
 
-`zeichne` in `bot/src/banner.ts` setzt den Text mit der Liste
+`zeichne` in `bot/src/module/begruessung/banner.ts` setzt den Text mit der Liste
 `Inter, "Noto Color Emoji", "Noto Sans CJK"`. Fehlt einer Schrift ein
 Zeichen, nimmt `@napi-rs/canvas` die nächste, Zeichen für Zeichen.
 
@@ -81,7 +81,7 @@ Belegt mit Versuchen in `@napi-rs/canvas` 1.0.10:
 - 22,07 MB mehr im Repository, zusammen mit Inter 22,49 MB Schriften. Jede
   spätere neue Version einer dieser Schriften lässt die Git-Historie um
   dieselbe Grösse wachsen; der Maintainer weiss das und hat zugestimmt.
-- Rund 22 MB mehr im Speicher des Bots, sobald `bot/src/banner.ts` geladen
+- Rund 22 MB mehr im Speicher des Bots, sobald `bot/src/module/begruessung/banner.ts` geladen
   ist.
 - Zeichen, die keine der drei Schriften hat, etwa seltene historische
   Schriften, bleiben Kästchen.

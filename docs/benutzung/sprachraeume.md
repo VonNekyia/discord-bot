@@ -3,9 +3,9 @@ title: Sprachräume
 description: Eigene Sprachkanäle auf Zeit; wer einen Erzeuger betritt, bekommt einen Raum, steuert ihn mit Knöpfen im Textchat des Raums, und der Raum verschwindet, wenn er leer ist. Ablauf, Namensvorlage, Menü und Knöpfe, Grenzen, Rechte und Intent.
 code:
   - bot/src/index.ts
-  - bot/src/raeume.ts
-  - bot/src/menue.ts
-  - bot/src/knoepfe.ts
+  - bot/src/module/sprachraeume/raeume.ts
+  - bot/src/module/sprachraeume/menue.ts
+  - bot/src/module/sprachraeume/knoepfe.ts
 ---
 
 # Sprachräume

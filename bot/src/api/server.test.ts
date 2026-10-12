@@ -7,12 +7,12 @@ import { fileURLToPath } from 'node:url';
 import type { Client } from 'discord.js';
 import type { Pool } from 'pg';
 import { legeSitzungAn, raeumeAuf } from './anmeldung.js';
-import { apiUmgebung, erstelleApi, Grenze } from './api.js';
+import { apiUmgebung, erstelleApi, Grenze } from './server.js';
 import { createCanvas, loadImage } from '@napi-rs/canvas';
-import { bereiteVor, masse } from './banner.js';
-import { behalteNur, vergiss } from './aufraeumen.js';
-import { speichere, speichereBild, standard, type Einstellung } from './begruessung.js';
-import { migriere, oeffne, verbindung } from './datenbank.js';
+import { bereiteVor, masse } from '../module/begruessung/banner.js';
+import { behalteNur, vergiss } from '../kern/aufraeumen.js';
+import { speichere, speichereBild, standard, type Einstellung } from '../module/begruessung/begruessung.js';
+import { migriere, oeffne, verbindung } from '../kern/datenbank.js';
 import {
   ANWENDUNG,
   ChannelType,
@@ -37,7 +37,7 @@ import {
   svgBild,
   TOKEN,
   type MockDiscord,
-} from './testhilfe.js';
+} from '../testhilfe.js';
 
 // Gegen eine gemockte Discord-API und eine echte PostgreSQL; ohne DB_HOST
 // übersprungen, in der CI immer dabei. Alle IDs sind erfunden.
@@ -126,7 +126,7 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
 
   before(async () => {
     if (!ziel) return;
-    await migriere(ziel, fileURLToPath(new URL('../migrationen', import.meta.url)));
+    await migriere(ziel, fileURLToPath(new URL('../../migrationen', import.meta.url)));
     db = oeffne(ziel);
     mock = await mockDiscord();
     mock.meineServer = meineServer;

@@ -1,18 +1,19 @@
 import type { Server } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { Events, type Client } from 'discord.js';
-import { raeumeAuf } from './anmeldung.js';
-import { apiUmgebung, erstelleApi, type ApiUmgebung } from './api.js';
-import { beantworte, registriere, text } from './befehle.js';
-import { behalteNur, vergiss } from './aufraeumen.js';
-import { lese } from './begruessung.js';
-import { ladeCache } from './cache.js';
-import { erstelleClient } from './client.js';
-import { migriere, oeffne, verbindung } from './datenbank.js';
-import { istMenue, Knoepfe } from './knoepfe.js';
-import { Raeume } from './raeume.js';
-import { begruesse, erstelleBremse } from './senden.js';
-import { liesSprachraeume } from './sprachraeume.js';
+import { raeumeAuf } from './api/anmeldung.js';
+import { apiUmgebung, erstelleApi, type ApiUmgebung } from './api/server.js';
+import { beantworte, registriere } from './module/befehle/befehle.js';
+import { text } from './kern/fehler.js';
+import { behalteNur, vergiss } from './kern/aufraeumen.js';
+import { lese } from './module/begruessung/begruessung.js';
+import { ladeCache } from './kern/cache.js';
+import { erstelleClient } from './discord/client.js';
+import { migriere, oeffne, verbindung } from './kern/datenbank.js';
+import { istMenue, Knoepfe } from './module/sprachraeume/knoepfe.js';
+import { Raeume } from './module/sprachraeume/raeume.js';
+import { begruesse, erstelleBremse } from './module/begruessung/senden.js';
+import { liesSprachraeume } from './module/sprachraeume/sprachraeume.js';
 
 const token = process.env.DISCORD_BOT_TOKEN;
 if (!token) {

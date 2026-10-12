@@ -1,9 +1,9 @@
 // Ein Formular für Beitritt oder Abschied: Kanal, Text, Banner, Bild und
 // Vorschau, gespeichert über die API. Prüft vor dem Senden dieselben Regeln
 // wie das Backend. Siehe docs/frontend/dashboard.md, „Formular“.
-import { api, ApiFehler, type Art, type Einstellung, type Kanal } from './api.js';
-import { grenzeBanner, grenzeText, laengeImBanner, laengeImText } from './platzhalter.js';
-import { meldung, satz, type Satz } from './texte.js';
+import { api, ApiFehler, type Art, type Einstellung, type Kanal } from '../../api/klient.js';
+import { grenzeBanner, grenzeText, laengeImBanner, laengeImText } from '../../kern/platzhalter.js';
+import { meldung, satz, type Satz } from '../../kern/texte.js';
 
 const artName: Record<Art, string> = { beitritt: 'Beitritt', abschied: 'Abschied' };
 const bildTypen = new Set(['image/png', 'image/jpeg', 'image/webp']);

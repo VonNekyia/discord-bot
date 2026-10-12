@@ -2,10 +2,10 @@
 title: Sprachräume im Bot
 description: Wie der Bot die Sprachräume baut; Module, Belegung aus den Voice States, Anlegen in einem Aufruf mit dem Menü danach, nacheinander je Mitglied, erwartete Fehler, Löschen nach 2 s, Abgleich beim Start, Audit-Log und Log.
 code:
-  - bot/src/raeume.ts
-  - bot/src/sprachraeume.ts
-  - bot/src/aufraeumen.ts
-  - bot/src/client.ts
+  - bot/src/module/sprachraeume/raeume.ts
+  - bot/src/module/sprachraeume/sprachraeume.ts
+  - bot/src/kern/aufraeumen.ts
+  - bot/src/discord/client.ts
   - bot/src/index.ts
 ---
 
@@ -22,11 +22,11 @@ Code nicht brechen darf. Das Menü im Chat jedes Raums steht in
 
 | Datei | Inhalt |
 |---|---|
-| `bot/src/sprachraeume.ts` | Einstellungen, `liste` mit `bereit`, `pruefe` mit den Regeln beim Speichern |
-| `bot/src/raeume.ts` | `Raeume`: Erzeuger betreten, anlegen, verschieben, Menü posten, leere löschen, Abgleich beim Start; `belegung`, `eintraege`, `besitzerVon` |
-| `bot/src/menue.ts`, `bot/src/knoepfe.ts`, `bot/src/raumrechte.ts` | das Menü, siehe [Menü der Sprachräume im Bot](sprachraeume-menue.md) |
-| `bot/src/aufraeumen.ts` | `vergiss` und `behalteNur` für alle Tabellen je Server |
-| `bot/src/ordnung.ts` | `wieDiscord`: Kanäle sortieren wie Discord |
+| `bot/src/module/sprachraeume/sprachraeume.ts` | Einstellungen, `liste` mit `bereit`, `pruefe` mit den Regeln beim Speichern |
+| `bot/src/module/sprachraeume/raeume.ts` | `Raeume`: Erzeuger betreten, anlegen, verschieben, Menü posten, leere löschen, Abgleich beim Start; `belegung`, `eintraege`, `besitzerVon` |
+| `bot/src/module/sprachraeume/menue.ts`, `bot/src/module/sprachraeume/knoepfe.ts`, `bot/src/module/sprachraeume/raumrechte.ts` | das Menü, siehe [Menü der Sprachräume im Bot](sprachraeume-menue.md) |
+| `bot/src/kern/aufraeumen.ts` | `vergiss` und `behalteNur` für alle Tabellen je Server |
+| `bot/src/discord/ordnung.ts` | `wieDiscord`: Kanäle sortieren wie Discord |
 
 `bot/src/index.ts` ruft bei `voiceStateUpdate` `Raeume#aenderung` mit den
 Kanälen vorher und nachher, bei `channelDelete` `Raeume#geloescht`. Die
@@ -43,7 +43,7 @@ leer oder `null`. Braucht der Bot den Namen eines Mitglieds, holt er es mit
 `guild.members.fetch({ user, force: true })`; das kommt nicht in den Cache.
 
 Voice States ohne Kanal räumt ein Sweeper alle 10 Minuten weg
-(`erstelleClient` in `bot/src/client.ts`).
+(`erstelleClient` in `bot/src/discord/client.ts`).
 
 ## Anlegen
 
@@ -61,7 +61,7 @@ Voice States ohne Kanal räumt ein Sweeper alle 10 Minuten weg
    und nicht verboten.
 5. Die Zeile in `raeume`, dann `guild.members.edit` mit `channel`.
    Scheitert eins davon, geht der neue Raum wieder.
-6. Das Menü in den Textchat des Raums (`menue` aus `bot/src/menue.ts`).
+6. Das Menü in den Textchat des Raums (`menue` aus `bot/src/module/sprachraeume/menue.ts`).
    Scheitert es, bleibt der Raum ohne Knöpfe, mit einer Logzeile; bei
    40032 und 10003 ohne.
 

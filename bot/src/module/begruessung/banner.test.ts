@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { test } from 'node:test';
 import { createCanvas } from '@napi-rs/canvas';
 import { masse, schriftStapel, zeichne } from './banner.js';
-import { pngBild } from './testhilfe.js';
+import { pngBild } from '../../testhilfe.js';
 
 // U+0378 ist nicht vergeben; jede Schrift zeichnet dafür ihr Glyph für ein
 // fehlendes Zeichen. Siehe docs/entwicklung/tests.md, „Was abgedeckt ist“.

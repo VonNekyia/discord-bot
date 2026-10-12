@@ -2,12 +2,12 @@
 title: Cache
 description: Wann der Bot Daten aus der Datenbank im Speicher hält und wann nicht; ladeCache, Standardwerte, Invalidierung, Grenzen.
 code:
-  - bot/src/cache.ts
+  - bot/src/kern/cache.ts
 ---
 
 # Cache
 
-`ladeCache` in `bot/src/cache.ts` hält Werte aus der Datenbank im
+`ladeCache` in `bot/src/kern/cache.ts` hält Werte aus der Datenbank im
 Speicher: begrenzte Grösse, Ablaufzeit, und
 ein fehlender Wert wird beim ersten Zugriff geladen. Darunter liegt
 `lru-cache`, siehe Entscheidung [0006](../entscheidungen/0006-lru-cache.md).

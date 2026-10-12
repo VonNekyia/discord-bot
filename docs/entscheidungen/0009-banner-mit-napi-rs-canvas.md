@@ -6,7 +6,7 @@ date: 2026-10-11
 issues: []
 code:
   - bot/package.json
-  - bot/src/banner.ts
+  - bot/src/module/begruessung/banner.ts
   - bot/schrift/Inter-SemiBold.ttf
   - bot/schrift/OFL.txt
   - NOTICE

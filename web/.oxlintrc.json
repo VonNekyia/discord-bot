@@ -9,11 +9,54 @@
   },
   "overrides": [
     {
+      // Grenzen der Schichten. Siehe docs/entwicklung/struktur.md, „Grenzen“.
+      "files": ["src/**"],
+      "excludeFiles": ["src/api/**"],
+      "rules": {
+        "eslint/no-restricted-globals": ["error", { "name": "fetch", "message": "Nur src/api/ spricht mit dem Bot." }]
+      }
+    },
+    {
+      "files": ["src/api/**"],
+      "rules": {
+        "eslint/no-restricted-imports": ["error", { "patterns": [{ "regex": "^\\.", "message": "Die API-Schicht importiert nichts Eigenes." }] }]
+      }
+    },
+    {
+      "files": ["src/kern/**"],
+      "rules": {
+        "eslint/no-restricted-imports": [
+          "error",
+          { "patterns": [{ "regex": "^\\.\\./(module/|dashboard)", "message": "Der Kern kennt keine Module und nicht das Dashboard." }] }
+        ]
+      }
+    },
+    {
+      "files": ["src/module/**"],
+      "rules": {
+        "eslint/no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              { "regex": "^\\.\\./[^./][^/]*/", "message": "Ein Modul importiert kein anderes Modul." },
+              { "regex": "^\\.\\./\\.\\./(dashboard|main)", "message": "Ein Modul kennt das Dashboard nicht; das Dashboard bindet die Module ein." }
+            ]
+          }
+        ]
+      }
+    },
+    {
       // Altlasten: Casts an Antworten der API und an querySelector, und
       // Formulare, die sich im Konstruktor selbst anhängen. Sie sind
       // Warnungen, bis der Umbau sie beseitigt; mehr als `maxWarnings`
       // dürfen es nicht werden. Siehe docs/entwicklung/lint.md, „Altlasten“.
-      "files": ["src/api.ts", "src/begruessung.ts", "src/dashboard.ts", "src/platzhalter.ts", "src/sprachraeume.ts"],
+      "files": [
+        "src/api/klient.ts",
+        "src/dashboard.ts",
+        "src/kern/platzhalter.ts",
+        "src/module/begruessung/begruessung.ts",
+        "src/module/sprachraeume/sprachraeume.ts"
+      ],
       "rules": {
         "typescript/no-unsafe-type-assertion": "warn",
         "typescript/no-unnecessary-type-parameters": "warn",

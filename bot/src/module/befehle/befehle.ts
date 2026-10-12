@@ -1,6 +1,7 @@
 import { MessageFlags, Routes, SlashCommandBuilder, type ChatInputCommandInteraction, type REST } from 'discord.js';
 import type { Pool } from 'pg';
-import { misse } from './datenbank.js';
+import { misse } from '../../kern/datenbank.js';
+import { text } from '../../kern/fehler.js';
 
 // Was ein Befehl ausser der Interaktion braucht.
 export interface Kontext {
@@ -50,9 +51,4 @@ export async function beantworte(interaction: ChatInputCommandInteraction, konte
     const senden = interaction.replied || interaction.deferred ? interaction.followUp(antwort) : interaction.reply(antwort);
     await senden.catch((e: unknown) => console.error(`/${interaction.commandName}: Antwort fehlgeschlagen: ${text(e)}`));
   }
-}
-
-// Nur die Meldung: Fehler von discord.js tragen in `url` den Token der Interaktion.
-export function text(fehler: unknown): string {
-  return fehler instanceof Error ? fehler.message : String(fehler);
 }

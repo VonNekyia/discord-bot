@@ -10,7 +10,7 @@ description: Fügt dem Bot einen Slash-Befehl hinzu oder ändert einen, mit Test
 1. **Seiten lesen:** [Befehle](../../docs/benutzung/befehle.md),
    [Intents](../../docs/bot/intents.md),
    [Datenschutz](../../docs/bot/datenschutz.md).
-2. **Befehl eintragen** in `befehle` in `bot/src/befehle.ts`: `daten` mit
+2. **Befehl eintragen** in `befehle` in `bot/src/module/befehle/befehle.ts`: `daten` mit
    `SlashCommandBuilder`, Name klein, Beschreibung auf Deutsch;
    `ausfuehren` antwortet innerhalb von 3 s mit `reply` oder ruft vorher
    `deferReply` auf.
@@ -19,7 +19,7 @@ description: Fügt dem Bot einen Slash-Befehl hinzu oder ändert einen, mit Test
    Intent, kommt beides mit Grund in die Doku (`AGENTS.md`, Regel 24).
 4. **Daten:** Speichert der Befehl etwas über Nutzer, vorher eine Zeile in
    „Was der Bot speichert“ auf der Datenschutzseite. Nichts davon ins Log.
-5. **Test** in `bot/src/befehle.test.ts`: die Antwort mit `interaktion`;
+5. **Test** in `bot/src/module/befehle/befehle.test.ts`: die Antwort mit `interaktion`;
    ruft der Befehl die REST-API auf, auch 429 und 5xx mit `mockApi`.
    Der Test fällt, wenn der Befehl fehlt.
 6. **Doku:** eine Zeile in der Tabelle auf der Seite Befehle; Skill

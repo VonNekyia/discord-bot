@@ -3,9 +3,9 @@ title: API des Dashboards
 description: Jede Route unter /api/, die der Bot dem Dashboard anbietet; Typen, Grenzen, Fehler und Statuscodes, die Weiterleitung von serve.mjs.
 code:
   - bot/src/index.ts
-  - bot/src/api.ts
-  - bot/src/begruessung.ts
-  - bot/src/banner.ts
+  - bot/src/api/server.ts
+  - bot/src/module/begruessung/begruessung.ts
+  - bot/src/module/begruessung/banner.ts
   - web/serve.mjs
 ---
 

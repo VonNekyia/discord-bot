@@ -4,11 +4,11 @@ description: Die Seite /dashboard/ in web/; ihre Zustände von abgemeldet bis Fo
 code:
   - web/dashboard/index.html
   - web/src/dashboard.ts
-  - web/src/begruessung.ts
-  - web/src/sprachraeume.ts
-  - web/src/api.ts
-  - web/src/platzhalter.ts
-  - web/src/texte.ts
+  - web/src/module/begruessung/begruessung.ts
+  - web/src/module/sprachraeume/sprachraeume.ts
+  - web/src/api/klient.ts
+  - web/src/kern/platzhalter.ts
+  - web/src/kern/texte.ts
 ---
 
 # Dashboard
@@ -78,7 +78,7 @@ bleiben wählbar, und derselbe lässt sich später noch einmal öffnen.
 
 ## Formular
 
-Je Art (`beitritt`, `abschied`) ein Formular, `web/src/begruessung.ts`:
+Je Art (`beitritt`, `abschied`) ein Formular, `web/src/module/begruessung/begruessung.ts`:
 
 | Feld | Element | Verhalten |
 |---|---|---|
@@ -96,7 +96,7 @@ Je Art (`beitritt`, `abschied`) ein Formular, `web/src/begruessung.ts`:
 
 Der dritte Tab stellt die Sprachräume des Servers ein, nach
 [API der Sprachräume](../schnittstelle/sprachraeume.md),
-`web/src/sprachraeume.ts`. Was in Discord passiert, steht in
+`web/src/module/sprachraeume/sprachraeume.ts`. Was in Discord passiert, steht in
 [Sprachräume](../benutzung/sprachraeume.md).
 
 | Teil | Element | Verhalten |
@@ -126,8 +126,8 @@ am Feld steht. Das Backend prüft trotzdem.
 
 | Regel | wie | Quelle |
 |---|---|---|
-| kein NUL (`\0`) in Text und Text auf dem Banner | Fehler am Feld, vor der Länge; das Backend lehnt NUL als `ungueltig` ab, weil PostgreSQL es in Text nicht nimmt | `bot/src/begruessung.ts`, `pruefe`; [API des Dashboards](../schnittstelle/api.md), „Einstellung speichern“ |
-| Länge von Text und Text auf dem Banner | jeder Platzhalter mit seinem längsten Wert, ein Zeichen ist eine UTF-16-Einheit; `web/src/platzhalter.ts` | [API des Dashboards](../schnittstelle/api.md), „Einstellung speichern“; [Begrüssung](../benutzung/begruessung.md), „Platzhalter“ |
+| kein NUL (`\0`) in Text und Text auf dem Banner | Fehler am Feld, vor der Länge; das Backend lehnt NUL als `ungueltig` ab, weil PostgreSQL es in Text nicht nimmt | `bot/src/module/begruessung/begruessung.ts`, `pruefe`; [API des Dashboards](../schnittstelle/api.md), „Einstellung speichern“ |
+| Länge von Text und Text auf dem Banner | jeder Platzhalter mit seinem längsten Wert, ein Zeichen ist eine UTF-16-Einheit; `web/src/kern/platzhalter.ts` | [API des Dashboards](../schnittstelle/api.md), „Einstellung speichern“; [Begrüssung](../benutzung/begruessung.md), „Platzhalter“ |
 | Aktiv braucht einen Kanal | Fehler am Kanal | ebenda |
 | Aktiv braucht Text oder Banner | Meldung unter dem Knopf | ebenda |
 | Bild: Typ, Grösse, Pixel je Seite, lesbar | Typ und Grösse aus der Datei, Pixel mit `createImageBitmap` | [API des Dashboards](../schnittstelle/api.md), „Bild“ |
@@ -136,7 +136,7 @@ am Feld steht. Das Backend prüft trotzdem.
 
 ## Meldungen
 
-Jeder Fehlercode der API hat einen Satz in `web/src/texte.ts`: Der erste
+Jeder Fehlercode der API hat einen Satz in `web/src/kern/texte.ts`: Der erste
 sagt, was passiert ist, der zweite, was zu tun ist.
 
 | Wo | wann |

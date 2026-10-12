@@ -1,9 +1,9 @@
 // Der Tab „Sprachräume“: der Schalter und die Liste der Erzeuger, gespeichert
 // über die API. Prüft vor dem Senden dieselben Regeln wie das Backend.
 // Siehe docs/frontend/dashboard.md, „Sprachräume“.
-import { api, ApiFehler, type Erzeuger, type SprachDaten, type Sprachraeume } from './api.js';
-import { grenzeRaumname, laengeImRaumnamen } from './platzhalter.js';
-import { meldung, satz, type Satz } from './texte.js';
+import { api, ApiFehler, type Erzeuger, type SprachDaten, type Sprachraeume } from '../../api/klient.js';
+import { grenzeRaumname, laengeImRaumnamen } from '../../kern/platzhalter.js';
+import { meldung, satz, type Satz } from '../../kern/texte.js';
 
 // Siehe docs/schnittstelle/sprachraeume.md, „Sprachräume einstellen“.
 const hoechstens = 10;

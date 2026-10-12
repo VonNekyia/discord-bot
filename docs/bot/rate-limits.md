@@ -2,10 +2,10 @@
 title: Rate-Limits
 description: Was der Bot tut, wenn Discord mit 429 oder 5xx antwortet, wie oft er Befehle registriert, und warum nur das Ändern von Kanälen nicht wartet.
 code:
-  - bot/src/befehle.ts
-  - bot/src/befehle.test.ts
-  - bot/src/client.ts
-  - bot/src/client.test.ts
+  - bot/src/module/befehle/befehle.ts
+  - bot/src/module/befehle/befehle.test.ts
+  - bot/src/discord/client.ts
+  - bot/src/discord/client.test.ts
 ---
 
 # Rate-Limits
@@ -17,7 +17,7 @@ Code dafür hat der Bot nicht. Die Regeln von Discord stehen in der
 
 ## Befehle registrieren
 
-`registriere` in `bot/src/befehle.ts` ersetzt beim Start alle globalen
+`registriere` in `bot/src/module/befehle/befehle.ts` ersetzt beim Start alle globalen
 Befehle mit einem `PUT` auf `/applications/{id}/commands`. Das ist eine
 Anfrage je Start, egal wie viele Befehle es gibt. Schlägt sie fehl, läuft
 der Bot weiter mit den Befehlen, die Discord schon kennt, und das Log
@@ -36,7 +36,7 @@ wartet nicht, siehe „Kanäle ändern“.
 einem Sublimit (`hasSublimit`) und wartet bei 429 still, so lange Discord
 es verlangt; beim Umbenennen sind das Minuten. Die Interaktion des Menüs
 bliebe so lange ohne Antwort. Darum setzt `erstelleClient` in
-`bot/src/client.ts` `rejectOnRateLimit` auf `wartetNicht`: Nur
+`bot/src/discord/client.ts` `rejectOnRateLimit` auf `wartetNicht`: Nur
 `PATCH /channels/:id` wirft bei einem Rate-Limit einen `RateLimitError`
 mit `retryAfter` in ms, statt zu warten. Das Menü nennt dann die
 Wartezeit, siehe [Menü der Sprachräume im Bot](sprachraeume-menue.md),

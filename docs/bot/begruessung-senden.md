@@ -2,8 +2,8 @@
 title: Begrüssung senden
 description: Wie der Bot bei Beitritt und Abschied sendet; Ereignisse und Partial, Einstellungen aus dem Cache, die Bremse, höchstens zwei Banner zugleich, Prüfung der Rechte im Kanal, Platzhalter, Erwähnungen, die Testnachricht, was ins Log geht.
 code:
-  - bot/src/senden.ts
-  - bot/src/begruessung.ts
+  - bot/src/module/begruessung/senden.ts
+  - bot/src/module/begruessung/begruessung.ts
   - bot/src/index.ts
 ---
 
@@ -11,7 +11,7 @@ code:
 
 Was der Bot bei Beitritt und Abschied schickt, steht in
 [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md). Diese
-Seite sagt, wie `begruesse` in `bot/src/senden.ts` das tut. Es läuft bei
+Seite sagt, wie `begruesse` in `bot/src/module/begruessung/senden.ts` das tut. Es läuft bei
 `guildMemberAdd` und `guildMemberRemove`; beide kommen nur mit dem Intent
 `GuildMembers`, der Abschied für Mitglieder ausserhalb des Caches nur mit
 `Partials.GuildMember`, siehe [Intents](intents.md).
@@ -41,7 +41,7 @@ Was die Bremse tut, steht in
 [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md),
 „Bremse“. Gebaut ist sie so:
 
-- `Bremse` in `bot/src/senden.ts` hält je Schlüssel `<Server>/<Art>` die
+- `Bremse` in `bot/src/module/begruessung/senden.ts` hält je Schlüssel `<Server>/<Art>` die
   Zeiten der letzten Ereignisse und die Zahl der gezählten. `zaehle` gibt
   `einzeln`, `an` (das erste gezählte) oder `gezaehlt` zurück.
 - Ab dem ersten gezählten Ereignis läuft ein Timer über 30 s; jedes weitere
@@ -64,7 +64,7 @@ Rechenzeit gleichzeitig.
 
 ## Platzhalter und Erwähnungen
 
-`ersetze` in `bot/src/begruessung.ts` ersetzt in einem Durchgang; ein
+`ersetze` in `bot/src/module/begruessung/begruessung.ts` ersetzt in einem Durchgang; ein
 eingesetzter Wert wird nicht noch einmal ersetzt. Im Text setzt
 `maskiere` vor jedes ASCII-Satzzeichen in Namen einen Backslash. Discord
 liest danach nichts davon als Markdown, als Erwähnung (`<@…>`) oder als
@@ -85,7 +85,7 @@ keinen Spitznamen.
 
 ## Testnachricht
 
-`POST …/test` ruft `sendeTest` in `bot/src/senden.ts`, nachdem die API die
+`POST …/test` ruft `sendeTest` in `bot/src/module/begruessung/senden.ts`, nachdem die API die
 Regeln aus [API des Dashboards](../schnittstelle/api.md), „Testnachricht“,
 und die Grenze je Server geprüft hat, siehe [API im Bot](dashboard-api.md).
 `sendeTest` baut Text und Banner wie `begruesse`, mit der angemeldeten

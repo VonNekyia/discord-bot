@@ -3,8 +3,8 @@ title: Anmeldung am Dashboard
 description: Discord-Login mit OAuth2, die Sitzung in PostgreSQL und ihr Cookie, die Prüfung von Rechten und Origin, die Umgebungsvariablen der API.
 code:
   - bot/.env.example
-  - bot/src/anmeldung.ts
-  - bot/src/api.ts
+  - bot/src/api/anmeldung.ts
+  - bot/src/api/server.ts
   - web/serve.mjs
 ---
 

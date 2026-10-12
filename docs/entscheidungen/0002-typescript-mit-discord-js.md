@@ -29,7 +29,7 @@ Node selbst mit `--env-file`.
 
 - **dotenv.** `node --env-file` kann dasselbe seit Node 20.6.
 - **Ein Framework über discord.js** für Befehle. Bei einem Befehl reicht
-  die Liste `befehle` in `bot/src/befehle.ts`.
+  die Liste `befehle` in `bot/src/module/befehle/befehle.ts`.
 - **Eine eigene Schicht über der REST-API.** `@discordjs/rest` hält die
   Limits schon ein, siehe [Rate-Limits](../bot/rate-limits.md).
 

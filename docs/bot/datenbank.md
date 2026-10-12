@@ -2,7 +2,7 @@
 title: Datenbank
 description: PostgreSQL für den Bot; Verbindung aus der Umgebung, Discord-IDs als bigint, der Pool und seine Werte, Migrationen unter Sperre und je in einer Transaktion, die Dev-Datenbank in Docker, was noch fehlt.
 code:
-  - bot/src/datenbank.ts
+  - bot/src/kern/datenbank.ts
   - bot/src/index.ts
   - bot/compose.yaml
   - bot/migrationen/
@@ -23,7 +23,7 @@ nicht. Welche Tabellen es gibt, steht unter „Tabellen“.
 
 ## Verbindung
 
-`verbindung` in `bot/src/datenbank.ts` liest die Umgebung:
+`verbindung` in `bot/src/kern/datenbank.ts` liest die Umgebung:
 
 | Variable | Pflicht | Bedeutung |
 |---|---|---|

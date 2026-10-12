@@ -1,7 +1,7 @@
 // Die Sätze zu den Fehlercodes der API und die Meldungen aus dem Guide.
 // Der erste Satz sagt, was passiert ist, der zweite, was zu tun ist.
 // Siehe docs/frontend/dashboard.md, „Meldungen“.
-import { ApiFehler } from './api.js';
+import { ApiFehler } from '../api/klient.js';
 
 export type Satz = { titel: string; text: string };
 

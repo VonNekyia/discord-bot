@@ -2,10 +2,10 @@
 title: API im Bot
 description: Wie der Bot die API des Dashboards baut; Module, Start und Ende, die Reihenfolge der Prüfungen, Grenzen und Zeitlimits im Prozess, Bilder und Vorschau, Fehler und Aufräumen.
 code:
-  - bot/src/api.ts
-  - bot/src/anmeldung.ts
-  - bot/src/begruessung.ts
-  - bot/src/banner.ts
+  - bot/src/api/server.ts
+  - bot/src/api/anmeldung.ts
+  - bot/src/module/begruessung/begruessung.ts
+  - bot/src/module/begruessung/banner.ts
   - bot/src/index.ts
 ---
 
@@ -22,12 +22,12 @@ Bilder und Banner zeichnet `@napi-rs/canvas`, siehe Entscheidung
 
 | Datei | Inhalt |
 |---|---|
-| `bot/src/api.ts` | `erstelleApi`: Routen, Origin, Grenzen, Rechte, Body; dazu `apiUmgebung`, `kanaele`, `Grenze` |
-| `bot/src/anmeldung.ts` | OAuth2 mit `fetch`, Sitzungen in PostgreSQL, Cookies |
-| `bot/src/begruessung.ts` | Standardwerte, `pruefe` mit den Regeln beim Speichern, Platzhalter, Lesen, Speichern und Löschen von Einstellungen und Bildern |
-| `bot/src/banner.ts` | `masse`, `bereiteVor` für ein hochgeladenes Bild, `zeichne` für das Banner |
-| `bot/src/sprachraeume.ts` | Routen der Sprachräume: `liste` für `GET …/sprachkanaele`, `pruefe` für `PUT …/sprachraeume`, siehe [Sprachräume im Bot](sprachraeume-bau.md) |
-| `bot/src/senden.ts` | `banner` für Vorschau und Senden, `sendeTest` für die Testnachricht; `begruesse` und die Bremse, siehe [Begrüssung senden](begruessung-senden.md) |
+| `bot/src/api/server.ts` | `erstelleApi`: Routen, Origin, Grenzen, Rechte, Body; dazu `apiUmgebung`, `kanaele`, `Grenze` |
+| `bot/src/api/anmeldung.ts` | OAuth2 mit `fetch`, Sitzungen in PostgreSQL, Cookies |
+| `bot/src/module/begruessung/begruessung.ts` | Standardwerte, `pruefe` mit den Regeln beim Speichern, Platzhalter, Lesen, Speichern und Löschen von Einstellungen und Bildern |
+| `bot/src/module/begruessung/banner.ts` | `masse`, `bereiteVor` für ein hochgeladenes Bild, `zeichne` für das Banner |
+| `bot/src/module/sprachraeume/sprachraeume.ts` | Routen der Sprachräume: `liste` für `GET …/sprachkanaele`, `pruefe` für `PUT …/sprachraeume`, siehe [Sprachräume im Bot](sprachraeume-bau.md) |
+| `bot/src/module/begruessung/senden.ts` | `banner` für Vorschau und Senden, `sendeTest` für die Testnachricht; `begruesse` und die Bremse, siehe [Begrüssung senden](begruessung-senden.md) |
 
 ## Start und Ende
 
@@ -97,7 +97,7 @@ es“.
 ## Bilder
 
 `PUT …/bild` prüft und speichert in dieser Reihenfolge (`bereiteVor` in
-`bot/src/banner.ts`):
+`bot/src/module/begruessung/banner.ts`):
 
 1. `Content-Type` ist PNG, JPEG oder WebP, sonst `415` `bildtyp`.
 2. Der Body hat höchstens 4 MiB, sonst `413` `bild_zu_gross`.
@@ -123,7 +123,7 @@ es“.
 Anweisung (`loescheBild`).
 
 `GET …/vorschau` zeichnet das Banner wie beim Senden (`banner` in
-`bot/src/senden.ts`). Das Mitglied ist das aus der Prüfung der Rechte,
+`bot/src/module/begruessung/senden.ts`). Das Mitglied ist das aus der Prüfung der Rechte,
 also mit Spitzname und Avatar auf diesem Server. Ohne Bild `404`
 `kein_bild`. Die Vorschau zeichnet auch, wenn `banner` aus ist, damit das
 Team sie vor dem Einschalten sieht.

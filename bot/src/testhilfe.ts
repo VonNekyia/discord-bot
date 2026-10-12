@@ -4,7 +4,7 @@ import { createServer, type Server } from 'node:http';
 import { connect, type AddressInfo } from 'node:net';
 import { createCanvas } from '@napi-rs/canvas';
 import { ChannelType, ClientUser, PermissionFlagsBits as R, type Client } from 'discord.js';
-import { erstelleClient } from './client.js';
+import { erstelleClient } from './discord/client.js';
 
 export const BOT = '100000000000000001';
 export const PERSON = '200000000000000002';

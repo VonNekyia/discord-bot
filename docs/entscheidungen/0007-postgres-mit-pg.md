@@ -5,7 +5,7 @@ status: gilt
 date: 2026-10-11
 issues: []
 code:
-  - bot/src/datenbank.ts
+  - bot/src/kern/datenbank.ts
   - bot/package.json
   - bot/compose.yaml
   - .github/workflows/backend.yml

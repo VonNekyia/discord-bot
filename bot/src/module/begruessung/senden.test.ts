@@ -5,10 +5,10 @@ import type { Client, Guild, GuildMember } from 'discord.js';
 import type { Pool } from 'pg';
 import { bereiteVor, masse } from './banner.js';
 import { lese, speichere, speichereBild, standard, type Art, type Einstellung } from './begruessung.js';
-import { ladeCache } from './cache.js';
-import { migriere, oeffne, verbindung } from './datenbank.js';
+import { ladeCache } from '../../kern/cache.js';
+import { migriere, oeffne, verbindung } from '../../kern/datenbank.js';
 import { begruesse, Bremse, erstelleBremse, Plaetze, zusammenfassung } from './senden.js';
-import { ChannelType, discordClient, gilde, kanal, mitglied, mockDiscord, pngBild, R, schliesse, type MockDiscord } from './testhilfe.js';
+import { ChannelType, discordClient, gilde, kanal, mitglied, mockDiscord, pngBild, R, schliesse, type MockDiscord } from '../../testhilfe.js';
 
 // Gegen eine gemockte Discord-API und eine echte PostgreSQL; ohne DB_HOST
 // übersprungen, in der CI immer dabei. Alle IDs sind erfunden.
@@ -87,7 +87,7 @@ describe('Senden bei Beitritt und Abschied', { skip: ziel ? false : 'keine Daten
 
   before(async () => {
     if (!ziel) return;
-    await migriere(ziel, fileURLToPath(new URL('../migrationen', import.meta.url)));
+    await migriere(ziel, fileURLToPath(new URL('../../../migrationen', import.meta.url)));
     db = oeffne(ziel);
     mock = await mockDiscord();
     client = discordClient(mock, [

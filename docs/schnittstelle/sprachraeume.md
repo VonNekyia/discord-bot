@@ -3,8 +3,8 @@ title: API der Sprachräume
 description: Die Routen, mit denen das Dashboard die Sprachräume eines Servers einstellt; Typen, Prüfregeln, Codes.
 code:
   - bot/src/index.ts
-  - bot/src/sprachraeume.ts
-  - bot/src/api.ts
+  - bot/src/module/sprachraeume/sprachraeume.ts
+  - bot/src/api/server.ts
   - web/serve.mjs
 ---
 
