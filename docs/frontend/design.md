@@ -6,6 +6,7 @@ code:
   - web/index.html
   - web/dashboard/index.html
   - web/src/main.ts
+  - web/src/bausteine
   - docs/frontend/design.html
   - docs/frontend/design.css
 ---
@@ -96,20 +97,28 @@ Im [Dashboard](dashboard.md) dazu:
 |---|---|---|
 | Leiste mit Wortmarke, Person und Abmelden | `.header-bar` mit `.wordmark`; Abmelden als `.button.button-small.button-quiet` | Navigation, „Header bar“; Actions, „Quiet and small buttons“; vom Orchestrator festgelegt |
 | Anmelden, Speichern | `.button` mit `span` und `strong` | Actions, „Primary button“ |
-| Bild entfernen | `button.link-button` | Actions, „Links“, „In text“; vom Orchestrator festgelegt |
 | Serverliste | `.grid.grid-3` mit `a.card`, `.card-icon`, `.kicker`, `h4` | Content, „Cards“ |
 | Laden | `.skeleton` in `.grid.grid-3` | Feedback, „Loading and empty states“ |
-| Kein Server, kein Bild, kein Erzeuger | `.empty` | Feedback, „Loading and empty states“ |
-| Beitritt, Abschied, Sprachräume | `.tabs` mit `#tab-1` bis `#tab-3` | Navigation, „Tabs“ |
-| Liste der Erzeuger | `.grid` mit je einem `article.card`, darin `.form` für den Abstand der Felder; „Erzeuger hinzufügen“ und „Entfernen“ als `button.link-button` | Content, „Cards“; vom Orchestrator festgelegt |
-| Limit eines Erzeugers | `input type="number"` in `.field` | Inputs, „Text fields and text area“; vom Orchestrator festgelegt |
-| Fehlende Rechte für Sprachräume | `.message-warn` oben im Tab | Feedback, „Messages“ |
-| Formular | `.form`, `.field`, `.help`, `.error`, `.field-error` | Inputs, „Text fields and text area“ |
-| Kanal | `select` in `.field`, Kategorien als `optgroup` | Inputs, „Select“ |
-| Aktiv, Banner | `label.choice` mit Checkbox | Inputs, „Checkbox, radio and switch“; Checkbox statt Switch, vom Orchestrator festgelegt |
-| Bild | Datei-Feld in `.field` | fehlt im Guide; vom Orchestrator festgelegt |
-| Vorschau des Banners | `.figure-card` mit `.picture` und `img` | Media, „Picture with caption“; vom Orchestrator festgelegt |
-| Meldungen | `.message` mit `.message-ok`, `.message-warn`, `.message-error` | Feedback, „Messages“ |
+| Kein Server, keine Seite | `.empty` | Feedback, „Loading and empty states“ |
+| je Seite ein Tab | `.tabs` mit `#tab-1` bis `#tab-6` | Navigation, „Tabs“ |
+| Formular einer Seite | `.form` | Inputs, „Text fields and text area“ |
+| Meldungen | `.message` mit `.message-ok`, `.message-warn`, `.message-error`, `.message-info` | Feedback, „Messages“ |
+
+Je Art von Baustein, siehe [Baukasten](../schnittstelle/baukasten.md),
+„Bausteine“:
+
+| Art | Klasse | Element im Guide |
+|---|---|---|
+| `schalter` | `label.choice` mit Checkbox, darunter `.help` | Inputs, „Checkbox, radio and switch“; Checkbox statt Switch, vom Orchestrator festgelegt |
+| `auswahl` | `select` in `.field`, Gruppen als `optgroup` | Inputs, „Select“ |
+| `text` | `input type="text"` oder `textarea` in `.field`, mit `.help` und `.error` | Inputs, „Text fields and text area“ |
+| `zahl` | `input type="number"` in `.field` | Inputs, „Text fields and text area“; vom Orchestrator festgelegt |
+| `bild` | Datei-Feld in `.field`, darunter `button.link-button` zum Entfernen | fehlt im Guide; vom Orchestrator festgelegt |
+| `vorschau` | `.figure-card` mit `.picture` und `img`; ohne Bild `.empty` | Media, „Picture with caption“; vom Orchestrator festgelegt |
+| `aktion` | `button.link-button`, darunter `.help` und Meldungen | Actions, „Links“, „In text“; vom Orchestrator festgelegt |
+| `liste` | `.grid` mit je einem `article.card`, darin `.form` mit `.kicker` als Kopf; `.empty`; `button.link-button` zum Hinzufügen und Entfernen | Content, „Cards“; vom Orchestrator festgelegt |
+| `hinweis` | `.message-warn` oder `.message-info` | Feedback, „Messages“ |
+| eine Art, die die Oberfläche nicht kennt | `.message-warn` | Feedback, „Messages“ |
 
 ## Herkunft der Regeln
 
@@ -152,20 +161,24 @@ stehen. Stand 2026-10-11, alle für das [Dashboard](dashboard.md).
 | `.field-error textarea`, `.field-error select` | Fehler wie bei `.field-error input` |
 | `.form .field input::file-selector-button` | Datei-Feld: Rahmen, Höhe, Fokus und Fehler wie das Textfeld; der Knopf darin in `--sans`, `--ink` auf `--cream`, ohne Rand |
 | `.picture`, `.picture img` | `.picture` ohne `min-height`; darin ein `img` mit `width` 1100 und `height` 440 und diesem Seitenverhältnis |
+| `#tab-4` bis `#tab-6` | wie `#tab-1` bis `#tab-3` im Guide: der aktive Tab mit `--ink` und Strich in `--gold`, sein Panel sichtbar; das Dashboard hat höchstens 6 Tabs |
 
 Ohne eigene Regel, ebenso festgelegt:
 
-- Im Tab stehen Formular und Vorschau als `.grid.grid-2` nebeneinander.
+- Eine Seite mit Bausteinen `daneben` steht als `.grid.grid-2`: links das
+  Formular, rechts was daneben steht, etwa die Vorschau.
 - Eine Meldung über der Serverliste steht in einem `.grid`, für den
   Abstand.
 - Auf der Startseite ist „Einstellen | Dashboard“ der Primary button und
   „Ansehen | Quelltext“ ein `.button.button-quiet`.
-- Das Datei-Feld nimmt `image/png`, `image/jpeg` und `image/webp`; die
-  Hilfe sagt „PNG, JPEG oder WebP, bis 4 MiB, am besten 1100 × 440 px.“
-- Jeder Erzeuger der Sprachräume ist eine Karte (`article.card`) mit den
-  Feldern darin; ein `.form` in der Karte gibt ihnen den Abstand. Optionen,
-  die nicht gehen, sind im Select gesperrt und sagen, warum. Stand
-  2026-10-12.
+- Das Datei-Feld nimmt die Typen aus `typen`; Hilfe und Texte kommen vom
+  Bot.
+- Jeder Eintrag einer Liste ist eine Karte (`article.card`) mit den
+  Feldern darin; ein `.form` in der Karte gibt ihnen den Abstand, ein
+  `.kicker` ist ihr Kopf. Optionen, die nicht gehen, sind im Select
+  gesperrt und sagen, warum. Stand 2026-10-12.
+- Eine Aktion steht unter „Speichern“ als zweiter Knopf im Stil eines
+  Links; es gibt je Seite nur einen Primary button.
 
 ## Bewegung
 

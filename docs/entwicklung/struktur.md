@@ -7,17 +7,21 @@ code:
   - bot/src/kern/baukasten.ts
   - bot/.oxlintrc.json
   - web/src/dashboard.ts
+  - web/src/seite.ts
   - web/.oxlintrc.json
 ---
 
 # Struktur von Bot und Oberfläche
 
 Jede Feature-Suite ist ein Modul: Befehle, Begrüssung, Sprachräume, später
-Strafen. Ein Modul hat seinen Ordner unter `bot/src/module/` und, wenn es
-eine Oberfläche hat, unter `web/src/module/`. Darunter liegen Schichten,
-die alle Module nutzen: der Kern, eine eigene Schicht über discord.js und
-die API des Dashboards. Wer wen importieren darf, prüft der Linter. Warum
-so, steht in [0015](../entscheidungen/0015-feature-module-und-schichten.md).
+Strafen. Ein Modul hat seinen Ordner unter `bot/src/module/`. Seine
+Oberfläche meldet es als Seiten im Baukasten an; `web/` hat keine Ordner
+je Modul, sondern baut jede Art von Baustein allgemein. Darunter liegen
+Schichten, die alle Module nutzen: der Kern, eine eigene Schicht über
+discord.js und die API des Dashboards. Wer wen importieren darf, prüft der
+Linter. Warum so, steht in
+[0015](../entscheidungen/0015-feature-module-und-schichten.md) und
+[0017](../entscheidungen/0017-dashboard-als-baukasten.md).
 
 ## Bot
 
@@ -41,11 +45,11 @@ allen. `dist/` spiegelt `src/`; `npm test` findet die Tests mit
 | Pfad | Inhalt |
 |---|---|
 | `web/src/main.ts` | Startseite |
-| `web/src/dashboard.ts` | Rahmen: Anmeldung, Serverliste, Tabs; bindet die Module ein |
-| `web/src/api/` | die einzige Stelle mit `fetch`: Aufrufe und Typen der [API des Dashboards](../schnittstelle/api.md) |
-| `web/src/kern/` | Texte und Meldungen, Längen mit Platzhaltern |
-| `web/src/module/begruessung/` | Formular für Beitritt und Abschied |
-| `web/src/module/sprachraeume/` | Tab Sprachräume |
+| `web/src/dashboard.ts` | Rahmen: Anmeldung, Serverliste, je Seite ein Tab |
+| `web/src/seite.ts` | baut eine Seite aus ihren Bausteinen: Formular, Speichern, Fehler am Feld |
+| `web/src/bausteine/` | je Art von Baustein eine Datei: `schalter.ts`, `auswahl.ts`, `text.ts`, `zahl.ts`, `bild.ts`, `vorschau.ts`, `aktion.ts`, `liste.ts`, `hinweis.ts` |
+| `web/src/api/` | die einzige Stelle mit `fetch`: Aufrufe und Typen der [API des Dashboards](../schnittstelle/api.md) und des [Baukastens](../schnittstelle/baukasten.md) |
+| `web/src/kern/` | was alle Bausteine nutzen: Teil und Umgebung, Feld, Länge eines Texts, allgemeine Sätze und Meldungen |
 
 ## Grenzen
 
@@ -56,7 +60,7 @@ Bot:  index.ts ──> module/* ──> discord/, kern/
                ──> api/     ──> discord/, kern/
       discord/ ──> kern/
 
-Web:  dashboard.ts ──> module/* ──> api/, kern/
+Web:  dashboard.ts ──> seite.ts ──> bausteine/* ──> api/, kern/
       kern/ ──> api/
 ```
 
@@ -64,9 +68,10 @@ Web:  dashboard.ts ──> module/* ──> api/, kern/
 |---|---|---|---|
 | Nur die Discord-Schicht spricht mit discord.js | `discord.js` und `@discordjs/*` nur in `src/discord/` und `src/index.ts` | – | `no-restricted-imports` |
 | Nur die API-Schicht spricht mit dem Bot | – | `fetch` nur in `src/api/` | `no-restricted-globals` |
-| Ein Modul importiert kein anderes | `src/module/*` | `src/module/*` | `no-restricted-imports` |
+| Ein Modul importiert kein anderes | `src/module/*` | – | `no-restricted-imports` |
+| Ein Baustein importiert keinen anderen und kennt die Seite nicht | – | `src/bausteine/*` | `no-restricted-imports` |
 | Die API kennt kein Modul; jedes Modul meldet seine Routen an | `src/api/` importiert nichts aus `src/module/` | `src/api/` importiert nichts Eigenes | `no-restricted-imports` |
-| Der Kern kennt keine Schicht über sich | `src/kern/` | `src/kern/` nur `src/api/` | `no-restricted-imports` |
+| Der Kern kennt keine Schicht über sich | `src/kern/` | `src/kern/` nur `src/api/` und sich | `no-restricted-imports` |
 | Keine Kreise | überall | überall | `import/no-cycle` |
 
 Tests sind ausgenommen: Sie bauen discord.js nach und dürfen alles
@@ -92,9 +97,8 @@ Was ein Modul im Bot bündelt, wenn der Umbau fertig ist:
 Jedes Modul gibt dazu ein Objekt nach einem Vertrag in `bot/src/kern/`
 heraus; `index.ts` reicht die Module an Discord-Schicht und API weiter,
 statt jedes einzeln zu verdrahten. Für die Seiten gibt es den Vertrag
-schon: `Bereich` in `bot/src/kern/baukasten.ts`.
-In der Oberfläche gibt jedes Modul seinen Tab heraus, und `dashboard.ts`
-hängt die Tabs ein.
+schon: `Bereich` in `bot/src/kern/baukasten.ts`. In der Oberfläche
+braucht ein Modul keinen Code, solange es mit den Bausteinen auskommt.
 
 Ein neues Modul bekommt seinen Ordner, Tests daneben, eine Seite unter
 `docs/benutzung/` und, wenn es Seiten im Dashboard hat, zuerst eine Seite

@@ -1,14 +1,13 @@
-// Das Dashboard: Anmeldung, Serverliste und die Formulare für Beitritt und
-// Abschied. Setzt Skript voraus; ohne zeigt die Seite ein noscript.
-// Siehe docs/frontend/dashboard.md, „Zustände“.
-import { api, ApiFehler, type Ich, type Server } from './api/klient.js';
-import { Begruessung } from './module/begruessung/begruessung.js';
-import { SprachraeumeFormular } from './module/sprachraeume/sprachraeume.js';
-import { meldung, satz, type Satz } from './kern/texte.js';
+// Das Dashboard: Anmeldung, Serverliste und je Server die Tabs mit den
+// Seiten, die der Bot anmeldet. Setzt Skript voraus; ohne zeigt die Seite
+// ein noscript. Siehe docs/frontend/dashboard.md, „Zustände“.
+import { api, ApiFehler, type Ich, type Satz, type Seite, type Server } from './api/klient.js';
+import { meldung, satz } from './kern/texte.js';
+import { baueSeite } from './seite.js';
 
 const element = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
-const abschnitte = { laden: element('laden'), server: element('server'), begruessung: element('begruessung') };
+const abschnitte = { laden: element('laden'), server: element('server'), einstellungen: element('einstellungen') };
 const kopfMeldung = element('kopf-meldung');
 const anmelden = element('anmelden');
 const serverMeldung = element('server-meldung');
@@ -39,6 +38,9 @@ function abgemeldet(inhalt: Satz | null, art: 'warn' | 'error' = 'error'): void 
   element('abmelden').hidden = true;
   kopf(true, inhalt, art);
 }
+
+// Eine Anfrage aus einer Seite gibt 401.
+const abgelaufen = () => abgemeldet(satz('abgelaufen'), 'warn');
 
 // Ohne Bot geht auch die Anmeldung nicht; darum nur die Meldung.
 function nichtErreichbar(fehler: unknown): void {
@@ -96,9 +98,38 @@ function karte(server: Server): HTMLAnchorElement {
   name.className = 'name';
   name.textContent = server.name;
   const text = document.createElement('p');
-  text.textContent = 'Beitritt und Abschied einstellen.';
+  text.textContent = 'Einstellen, was kitty dort tut.';
   link.append(icon, kicker, name, text);
   return link;
+}
+
+// Die Tabs aus dem Guide, je Seite einer, in der Reihenfolge des Bots; das
+// Dashboard hat Regeln für höchstens 6. Siehe docs/frontend/dashboard.md, „Tabs“.
+function tabs(seiten: Seite[], server: string): void {
+  const gezeigte = seiten.slice(0, 6);
+  const radios = gezeigte.map((_, i) => {
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.name = 'tabs';
+    radio.id = `tab-${i + 1}`;
+    radio.checked = i === 0;
+    return radio;
+  });
+  const liste = document.createElement('div');
+  liste.className = 'tab-list';
+  const panels = gezeigte.map((seite, i) => {
+    const label = document.createElement('label');
+    label.htmlFor = `tab-${i + 1}`;
+    label.textContent = seite.titel;
+    liste.append(label);
+    const panel = document.createElement('div');
+    panel.className = `tab-panel tab-p${i + 1}`;
+    panel.append(baueSeite(seite, server, abgelaufen));
+    return panel;
+  });
+  element('tabs').replaceChildren(...radios, liste, ...panels);
+  element('tabs').hidden = gezeigte.length === 0;
+  element('keine-seite').hidden = gezeigte.length > 0;
 }
 
 // Zeigt die Liste oder den Server aus dem Hash (#server-<id>).
@@ -116,20 +147,11 @@ async function route(): Promise<void> {
   serverMeldung.hidden = true;
   zeigen('laden');
   try {
-    const [kanaele, einstellungen, sprachDaten, sprachraeume] = await Promise.all([
-      api.kanaele(server.id),
-      api.begruessung(server.id),
-      api.sprachkanaele(server.id),
-      api.sprachraeume(server.id),
-    ]);
+    const seiten = await api.seiten(server.id);
     if (gezeigt !== server.id) return;
     element('server-name').textContent = server.name;
-    const abgelaufen = () => abgemeldet(satz('abgelaufen'), 'warn');
-    for (const art of ['beitritt', 'abschied'] as const) {
-      new Begruessung(element(`panel-${art}`), server.id, art, kanaele, einstellungen[art], abgelaufen);
-    }
-    new SprachraeumeFormular(element('panel-sprachraeume'), server.id, sprachDaten, sprachraeume, abgelaufen);
-    zeigen('begruessung');
+    tabs(seiten, server.id);
+    zeigen('einstellungen');
   } catch (fehler) {
     if (gezeigt !== server.id) return;
     if (fehler instanceof ApiFehler && fehler.status === 401) return abgemeldet(satz('abgelaufen'), 'warn');

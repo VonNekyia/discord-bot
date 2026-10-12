@@ -833,3 +833,17 @@ i.card-icon {
     margin: 18px 20px 0;
   }
 }
+
+/* Tabs 4 bis 6 wie 1 bis 3 im Guide; das Dashboard zeigt höchstens 6 Seiten. */
+#tab-4:checked ~ .tab-list [for="tab-4"],
+#tab-5:checked ~ .tab-list [for="tab-5"],
+#tab-6:checked ~ .tab-list [for="tab-6"] {
+  color: var(--ink);
+  border-bottom-color: var(--gold);
+}
+
+#tab-4:checked ~ .tab-p4,
+#tab-5:checked ~ .tab-p5,
+#tab-6:checked ~ .tab-p6 {
+  display: block;
+}

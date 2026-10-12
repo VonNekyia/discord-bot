@@ -110,7 +110,10 @@ type Baustein =
   siehe [API des Dashboards](api.md), „Fehler“.
 - `fund`: Der Bot prüft den gespeicherten Stand wie beim Speichern und
   nennt die erste Regel, die nicht passt, etwa einen Kanal, den es nicht
-  mehr gibt. Die Oberfläche zeigt ihn beim Laden am Feld.
+  mehr gibt. Die Oberfläche zeigt ihn beim Laden am Feld. Ohne `feld`
+  oder an einem `schalter` steht er als Warnung unter „Speichern“, etwa
+  `an_ohne_inhalt`, wenn nach dem Entfernen des Bilds nichts mehr zu
+  senden ist.
 - `wert` kommt so, wie er gespeichert ist, auch mit IDs, die es nicht mehr
   gibt.
 
