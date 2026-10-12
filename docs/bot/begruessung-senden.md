@@ -1,10 +1,11 @@
 ---
 title: Begrüssung senden
-description: Wie der Bot bei Beitritt und Abschied sendet; Ereignisse und Partial, Einstellungen aus dem Cache, die Bremse, höchstens zwei Banner zugleich, Prüfung der Rechte im Kanal, Platzhalter, Erwähnungen, die Testnachricht, was ins Log geht.
+description: Wie der Bot bei Beitritt und Abschied sendet; Ereignisse und Partial, die Discord-Schicht mit Mitglied und Textkanal, Einstellungen aus dem Cache, die Bremse, höchstens zwei Banner zugleich, Prüfung der Rechte im Kanal, Platzhalter, Erwähnungen, die Testnachricht, was ins Log geht.
 code:
   - bot/src/module/begruessung/senden.ts
   - bot/src/module/begruessung/begruessung.ts
   - bot/src/index.ts
+  - bot/src/discord/nachrichten.ts
 ---
 
 # Begrüssung senden
@@ -16,6 +17,26 @@ Seite sagt, wie `begruesse` in `bot/src/module/begruessung/senden.ts` das tut. E
 `GuildMembers`, der Abschied für Mitglieder ausserhalb des Caches nur mit
 `Partials.GuildMember`, siehe [Intents](intents.md).
 
+## Discord-Schicht
+
+Das Modul Begrüssung importiert kein discord.js. Was es von Discord
+braucht, kommt aus `bot/src/discord/nachrichten.ts`, mit eigenen Typen,
+siehe [Struktur von Bot und Oberfläche](../entwicklung/struktur.md), „Die
+Discord-Schicht“:
+
+| Funktion oder Typ | Inhalt |
+|---|---|
+| `Mitglied`, `alsMitglied` | ID, Anzeigename, URL des Avatars als PNG mit 256 px, Server mit ID, Name und Zahl der Mitglieder; auch aus einem Partial |
+| `Textkanal`, `textkanal` | ein Text- oder Ankündigungskanal, in dem der Bot sehen und senden darf, mit `anhaengen` für „Dateien anhängen“; sonst `undefined` |
+| `textkanalAuf` | dasselbe über die IDs von Server und Kanal, für Ereignisse und die Bremse |
+| `Nachricht`, `Textkanal#sende` | Text, Datei, `pingt`; daraus `allowedMentions`, siehe „Platzhalter und Erwähnungen“ |
+| `DiscordFehler` | was `sende` wirft: `kein_recht` (50001, 50013), `nicht_gefunden` (10003), `zu_schnell` (RateLimitError), sonst `anderes`; die Meldung bleibt die von Discord |
+
+`bot/src/index.ts` wandelt jedes Mitglied aus `guildMemberAdd` und
+`guildMemberRemove` mit `alsMitglied` und gibt `begruesse` den Kanal über
+`textkanalAuf`. Die Seiten in `bot/src/module/begruessung/seiten.ts`
+nehmen `alsMitglied` und `textkanal` für Vorschau und Testnachricht.
+
 ## Ablauf
 
 1. Die Einstellungen des Servers kommen aus dem Cache `einstellungen`
@@ -24,16 +45,16 @@ Seite sagt, wie `begruesse` in `bot/src/module/begruessung/senden.ts` das tut. E
 2. Ist die Art aus oder ohne Kanal, endet es still.
 3. Die Bremse zählt das Ereignis, siehe „Bremse“. Greift sie, endet es.
 4. Der Kanal muss ein Text- oder Ankündigungskanal sein, in dem der Bot
-   sehen und senden darf (`permissionsFor` mit dem Bot). Sonst endet es mit
-   einer Logzeile.
+   sehen und senden darf (`textkanal`, siehe „Discord-Schicht“). Sonst
+   endet es mit einer Logzeile.
 5. Der Text bekommt die Platzhalter (`ersetze`, siehe unten).
 6. Mit `banner` und gespeichertem Bild zeichnet `banner` das PNG. Fehlt im
    Kanal „Dateien anhängen“ oder scheitert das Zeichnen, geht nur der Text,
    mit einer Logzeile.
 7. Ist der Text leer, nur aus Leerzeichen, und es gibt kein Banner, geht
    nichts.
-8. `send` mit Text, Datei `beitritt.png` oder `abschied.png` und
-   `allowedMentions`. Scheitert es, eine Logzeile.
+8. `sende` mit Text, Datei `beitritt.png` oder `abschied.png` und `pingt`.
+   Scheitert es, eine Logzeile mit der Meldung von Discord.
 
 ## Bremse
 
@@ -42,15 +63,18 @@ Was die Bremse tut, steht in
 „Bremse“. Gebaut ist sie so:
 
 - `Bremse` in `bot/src/module/begruessung/senden.ts` hält je Schlüssel `<Server>/<Art>` die
+  ID des Servers, die
   Zeiten der letzten Ereignisse und die Zahl der gezählten. `zaehle` gibt
   `einzeln`, `an` (das erste gezählte) oder `gezaehlt` zurück.
 - Ab dem ersten gezählten Ereignis läuft ein Timer über 30 s; jedes weitere
   setzt ihn neu. Läuft er ab, fällt der Schlüssel weg, und `loese` bekommt
   die Zahl.
 - `erstelleBremse` verbindet `loese` mit `fasseZusammen`. Das liest die
-  Einstellungen neu und schickt die Zusammenfassung (`zusammenfassung`)
-  nur, wenn die Art noch an ist und der Bot im Kanal darf, mit
-  `allowedMentions: { parse: [] }` und ohne Banner.
+  Einstellungen neu, sucht den Kanal neu über `textkanalAuf` und schickt
+  die Zusammenfassung (`zusammenfassung`) nur, wenn die Art noch an ist
+  und der Bot im Kanal darf, ohne Ping und ohne Banner. In den 30 s können
+  sich Einstellung und Rechte ändern; fehlt der Kanal dann, steht eine
+  Logzeile da, und nichts wirft.
 - `bot/src/index.ts` legt eine Bremse für alle Server an. Sie lebt im
   Speicher; ein Neustart vergisst sie.
 
@@ -71,16 +95,16 @@ liest danach nichts davon als Markdown, als Erwähnung (`<@…>`) oder als
 Emoji (`:…:`); jedes Zeichen wird höchstens doppelt so lang, wie die
 längsten Werte es annehmen. Im Banner bleiben Namen roh.
 
-| Art | `allowedMentions` | Wirkung |
-|---|---|---|
-| Beitritt | `{ parse: [], users: [<ID des Mitglieds>] }` | nur das neue Mitglied pingt |
-| Abschied | `{ parse: [] }` | niemand pingt |
-| Zusammenfassung, Testnachricht | `{ parse: [] }` | niemand pingt |
+| Art | `pingt` | `allowedMentions` | Wirkung |
+|---|---|---|---|
+| Beitritt | `[<ID des Mitglieds>]` | `{ parse: [], users: [<ID des Mitglieds>] }` | nur das neue Mitglied pingt |
+| Abschied | `[]` | `{ parse: [] }` | niemand pingt |
+| Zusammenfassung, Testnachricht | ohne | `{ parse: [] }` | niemand pingt |
 
 Beleg: [Allowed Mentions](https://docs.discord.com/developers/resources/message#allowed-mentions-object).
 
-Der Name ist `displayName` von discord.js: Spitzname, sonst globaler
-Anzeigename, sonst Nutzername. Ein Partial-Mitglied beim Abschied kennt
+Der Name ist `displayName` von discord.js, über `alsMitglied`: Spitzname,
+sonst globaler Anzeigename, sonst Nutzername. Ein Partial-Mitglied beim Abschied kennt
 keinen Spitznamen.
 
 ## Testnachricht
@@ -91,7 +115,7 @@ keinen Spitznamen.
 die Grenze je Server und ruft dann `sendeTest` in
 `bot/src/module/begruessung/senden.ts`, siehe [API im Bot](dashboard-api.md).
 `sendeTest` baut Text und Banner wie `begruesse`, mit der angemeldeten
-Person als Mitglied, und setzt die Zeile `testZeile` davor, ausser die
+Person als Mitglied und dem Kanal, den `loeseAus` mit `textkanal` sucht, und setzt die Zeile `testZeile` davor, ausser die
 Nachricht würde damit länger als 2000 Zeichen. `an` und die Bremse zählen
 nicht. Geht nichts raus, weil der Text leer ist und das Banner scheitert,
 wirft es; die API antwortet dann `503`.

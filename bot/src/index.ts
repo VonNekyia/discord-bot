@@ -9,6 +9,7 @@ import { behalteNur, vergiss } from './kern/aufraeumen.js';
 import { lese } from './module/begruessung/begruessung.js';
 import { ladeCache } from './kern/cache.js';
 import { erstelleClient } from './discord/client.js';
+import { alsMitglied, textkanalAuf } from './discord/nachrichten.js';
 import { zaehleAnfragen } from './discord/zaehlen.js';
 import { migriere, oeffne, verbindung } from './kern/datenbank.js';
 import { Zaehlung } from './kern/zaehlung.js';
@@ -106,9 +107,11 @@ client.on(Events.GuildDelete, (guild) => {
 });
 
 // Eine Bremse für alle Server, im Speicher. Siehe docs/benutzung/begruessung.md, „Bremse“.
-const senden = { db, einstellungen, bremse: erstelleBremse({ einstellungen }), zaehlung };
-client.on(Events.GuildMemberAdd, (mitglied) => void begruesse(mitglied, 'beitritt', senden));
-client.on(Events.GuildMemberRemove, (mitglied) => void begruesse(mitglied, 'abschied', senden));
+// Die Begrüssung sieht Mitglieder und Kanäle nur über die Discord-Schicht.
+const textkanalVon = textkanalAuf(client);
+const senden = { db, einstellungen, kanal: textkanalVon, bremse: erstelleBremse({ einstellungen, kanal: textkanalVon }), zaehlung };
+client.on(Events.GuildMemberAdd, (mitglied) => void begruesse(alsMitglied(mitglied), 'beitritt', senden));
+client.on(Events.GuildMemberRemove, (mitglied) => void begruesse(alsMitglied(mitglied), 'abschied', senden));
 
 // Siehe docs/benutzung/sprachraeume.md.
 client.on(Events.VoiceStateUpdate, (vorher, nachher) => {
