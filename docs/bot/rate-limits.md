@@ -67,12 +67,17 @@ Anfrage.
 
 Sie haben eine eigene REST-Instanz mit derselben Basis wie `client.rest`,
 ohne Token des Bots, und `zaehleAnfragen` hängt an ihr mit derselben
-`Zaehlung`. `@discordjs/rest` führt die Buckets dieser Routen für alle
-Tokens zusammen (`majorParameter` `global`), Discord rechnet sie aber je
-Token der Person. Mit dem Client des Bots liesse ein `Remaining: 0` von
-Person A Person B warten, und ein 429 mit `X-RateLimit-Global` auf dem
-Token einer Person hielte den ganzen Bot an. Der Test „ein globales 429
-der Anmeldung bremst den Bot nicht …“ prüft das.
+`Zaehlung`. Die Instanz schützt den Bot: Ein 429 mit `X-RateLimit-Global`
+auf dem Token einer Person gilt nur für sie, nicht für Begrüssung, Räume
+und Knöpfe. Der Test „ein globales 429 der Anmeldung bremst den Bot nicht
+…“ prüft das.
+
+Zwischen Personen bleibt das Warten geteilt. `@discordjs/rest` führt die
+Buckets dieser Routen für alle Tokens zusammen (`majorParameter`
+`global`), Discord rechnet sie aber je Token der Person. Meldet die
+Anmeldung von Person A `Remaining: 0`, wartet Person B bis zum Reset. Das
+nehmen wir hin: Anmeldungen sind selten, B wartet höchstens bis zur Frist
+von 10 s, und danach scheitert die Anmeldung mit `?fehler=anmeldung`.
 
 - Mit `auth: false` und eigenem Header `Authorization`: `Basic` mit ID und
   Secret der Anwendung für Tausch und Widerruf, `Bearer` mit dem Token der

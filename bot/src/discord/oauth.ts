@@ -33,10 +33,12 @@ function grund(fehler: unknown): string {
 }
 
 // Eine `OAuthFrage` über eine eigene REST-Instanz mit der Basis von
-// `basis`, ohne Token des Bots. Eigene Instanz, weil `@discordjs/rest` die
-// Buckets dieser Routen für alle Tokens zusammen führt und ein globales 429
-// für die ganze Instanz gilt: Eine Person soll weder andere Anmeldungen noch
-// den Bot bremsen. `zaehlung` zählt sie mit wie den Bot.
+// `basis`, ohne Token des Bots. Eigene Instanz, weil ein 429 mit
+// `X-RateLimit-Global` für die ganze Instanz gilt: Das Token einer Person
+// soll den Bot nicht anhalten. Zwischen Personen bleibt das Warten geteilt,
+// denn `@discordjs/rest` führt die Buckets dieser Routen für alle Tokens
+// zusammen; das nehmen wir hin, siehe docs/bot/rate-limits.md, „Anmeldung“.
+// `zaehlung` zählt sie mit wie den Bot.
 // Ein kurzes Retry-After wartet die Bibliothek ab; eins ab der Frist wirft
 // sie gleich. Die Frist gilt auch, wenn die Bibliothek gerade wartet: Ihr
 // Schlaf hört nicht auf `signal`, das Rennen schon.
