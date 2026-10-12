@@ -10,7 +10,8 @@ export interface Mitglied {
   id: string;
   // Anzeigename auf dem Server: Spitzname, sonst globaler Name, sonst Nutzername.
   name: string;
-  // Benutzername bei Discord: nur a–z, 0–9, `_` und `.`.
+  // Benutzername bei Discord: bei Personen nur a–z, 0–9, `_` und `.`; bei
+  // Bots kann mehr darin stehen.
   benutzername: string;
   // URL des Avatars als PNG mit 256 px; ohne eigenen der Standard von Discord.
   avatar: string;

@@ -89,8 +89,9 @@ zweimal:
 1. Auf den Werten von `{name}` und `{server}`; `{nutzer}` im Banner ist
    `@` und der Name, gilt also mit. Bleibt vom Namen nichts zu sehen,
    nimmt `nameOder` den Benutzernamen, das neue Feld `benutzername` von
-   `Mitglied` aus `alsMitglied`. Er hat nur a–z, 0–9, `_` und `.`
-   ([Users](https://docs.discord.com/developers/resources/user)).
+   `Mitglied` aus `alsMitglied`. Bei Personen hat er nur a–z, 0–9, `_`
+   und `.`; bei Bots kann mehr darin stehen, das fängt der Filter auf dem
+   Ergebnis ([Users](https://docs.discord.com/developers/resources/user)).
 2. Auf dem Ergebnis: dem Text der Begrüssung und der Zeile des Banners
    nach dem Einsetzen, dem fertigen Namen eines neuen Sprachraums und dem
    neuen Namen beim Umbenennen im Menü. So fängt der Filter auch eine

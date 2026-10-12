@@ -15,8 +15,9 @@ export function ohneHasszeichen(text: string): string {
   return text.replaceAll(hakenkreuze, '').replaceAll(runen, '');
 }
 
-// `name`, ausser es bleibt nichts zu sehen; dann `benutzername`. Der
-// Benutzername von Discord hat nur a–z, 0–9, `_` und `.`.
+// `name`, ausser es bleibt nichts zu sehen; dann `benutzername`. Der hat
+// bei Personen nur a–z, 0–9, `_` und `.`; bei Bots kann mehr darin stehen,
+// das fängt der Filter auf dem Ergebnis.
 export function nameOder(name: string, benutzername: string): string {
   return unsichtbar.test(name) ? benutzername : name;
 }

@@ -15,6 +15,10 @@ code:
 
 # 0010: Ersatzschriften im Banner für Emoji und CJK
 
+Teilweise abgelöst durch [0018](0018-zierbuchstaben-und-filter.md):
+Zeichen, die keine der drei Schriften hat, bleiben keine Kästchen mehr;
+das Banner zeichnet ihre Form nach NFKC oder lässt sie weg.
+
 Löst [0009](0009-banner-mit-napi-rs-canvas.md) in einem Teil ab: Emoji
 und CJK erscheinen im Banner nicht mehr als Kästchen.
 
