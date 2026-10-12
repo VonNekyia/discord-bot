@@ -92,8 +92,6 @@ export type Seite = {
   fund: Fund | null;
 };
 
-// Ein Fehler der API mit Status, festem Code und, bei 400, dem Feld.
-// Ohne Antwort oder ohne Code im Body gilt nicht_erreichbar ab 500.
 // Die Debug-Seite, siehe docs/schnittstelle/debug.md, „Typen“.
 export type DebugRoute = {
   methode: string;
@@ -115,6 +113,8 @@ export type Debug = {
   eigene: { name: string; gegriffen: number }[];
 };
 
+// Ein Fehler der API mit Status, festem Code und, bei 400, dem Feld.
+// Ohne Antwort oder ohne Code im Body gilt nicht_erreichbar ab 500.
 export class ApiFehler extends Error {
   constructor(
     readonly status: number,
