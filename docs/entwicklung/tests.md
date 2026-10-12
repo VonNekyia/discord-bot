@@ -18,6 +18,9 @@ code:
   - bot/src/discord/zaehlen.test.ts
   - bot/src/discord/oauth.test.ts
   - bot/src/discord/nachrichten.test.ts
+  - bot/src/discord/fehler.test.ts
+  - bot/src/discord/sprachkanaele.test.ts
+  - bot/src/discord/menue.test.ts
   - bot/package.json
   - .github/workflows/backend.yml
 ---
@@ -73,8 +76,8 @@ gegen `mockDiscord`. Die Tests der API und der Schicht nutzen
   `PATCH /webhooks/{id}/{token}/messages/@original`). Er merkt sich jede
   Anfrage, Nachricht, Anlage, Änderung mit dem Grund im Audit-Log,
   Verschiebung, Löschung und Antwort; je Test lässt sich die Antwort für
-  Person und Mitglieder ändern, Anlegen, Ändern, Verschieben und Senden
-  können mit einem Code von Discord scheitern, und Umbenennen kann mit 429
+  Person und Mitglieder ändern, Anlegen, Ändern, Verschieben, Löschen und
+  Senden können mit einem Code von Discord scheitern, und Umbenennen kann mit 429
   und `Retry-After` antworten. Mit `tauschWarten` antwortet
   `POST /oauth2/token` mit 429 und den Sekunden in `Retry-After`, einmal je
   Eintrag. `GET /applications/@me` liefert `anwendung`: eine Anwendung aus
@@ -226,11 +229,12 @@ Millisekunden. Darum:
 | ein Erzeuger legt den Raum … in einem Aufruf an | eine private Kategorie: Name aus der Vorlage, Kategorie, Limit; die Einträge der Kategorie, @everyone ohne „Kanal ansehen“, der Besitzer zusammengeführt, der Bot; verschoben mit Grund; Zeile in `raeume` |
 | nach dem Anlegen kommt das Menü in den Textchat des Raums … | eine Nachricht im Raum, „## Dein Sprachraum“, `allowed_mentions` leer, drei Reihen mit je vier Knöpfen, jede `custom_id` mit `sprachraum:`, die zwölf Namen der Tabelle |
 | scheitert das Menü, bleibt der Raum ohne Knöpfe … | Senden mit 50013: Zeile bleibt, nichts gelöscht, eine Logzeile ohne ID |
-| ohne Kategorie hat der Raum nur die Einträge von Besitzer und Bot | kein `parent_id`, zwei Einträge |
+| ohne Kategorie hat der Raum nur die Einträge von Besitzer und Bot | kein `parent_id`, zwei Einträge für Personen (Typ 1) mit ihren Rechten |
 | wer schon einen Raum hat, kommt zurück in den eigenen … | kein zweites Anlegen, Verschieben in den eigenen Raum |
 | höchstens ein neuer Raum je 30 s und Mitglied | mit der Uhr aus `RaumKontext`: nach 29 s nichts, nach 30 s neu |
 | ein Raum je Mitglied … | zwei gleichzeitige Beitritte legen einen Raum an; `UNIQUE (server, besitzer)` weist eine zweite Zeile ab |
 | ein leerer Raum geht nach der Wartezeit … | kommt jemand in der Wartezeit, bleibt er; sonst gehen Kanal und Zeile |
+| ist ein leerer Raum bei Discord schon weg (10003) … | Löschen mit 10003: Zeile weg, keine Logzeile |
 | geht das Mitglied, bevor das Verschieben klappt (40032) … | der neue Raum geht wieder, keine Zeile, kein Log |
 | fehlt dem Bot ein Recht (50013) … | nichts angelegt, nicht verschoben, eine Logzeile ohne ID |
 | ist die Art aus oder der Kanal kein Erzeuger … | nichts angelegt |
@@ -266,6 +270,16 @@ Millisekunden. Darum:
 | fehlt dem Bot ein Recht (50013) … / ein anderer Fehler … | Hinweis oder „Das hat nicht geklappt.“, je eine Logzeile ohne ID und Token |
 | dauer: Sekunden unter einer Minute … | 50 ms, 12 s, 5 und 6 min |
 | Rechte im Raum: … | `raumrechte` ohne Discord: Sperren und Verstecken hin und zurück ergeben die Einträge vom Anlegen; ohne Kategorie; Zeigen bei gesperrtem Raum; Bann und Entbannen; Gebannte bleiben gebannt; Kategorie-Sperre ist kein Bann; Besitzer und Bot behalten ihre Rechte; neuer Besitzer; der alte behält seinen Eintrag bis Entsperren oder Zeigen, dann wie in der Kategorie |
+| jeder Code, den ein Modul unterscheidet, hat seinen eigenen … | `fehler.test.ts`: 50001 und 50013 `kein_recht`, 10003 `nicht_gefunden`, 40032 `nicht_verbunden`, 30060 `zu_viele_eintraege`, 10007 und 30013 `anderes`; die Meldung bleibt |
+| ein RateLimitError wird zu_schnell mit der Wartezeit … | `warten` aus `retryAfter`; andere Fehler und Nicht-Fehler `anderes`; ein `DiscordFehler` bleibt, wie er ist |
+| uebersetzt wirft DiscordFehler … | das Ergebnis geht durch, 40032 wird `nicht_verbunden` |
+| der Griff trägt ID und Name … | `sprachkanaele.test.ts`: eingefroren, `guildVon` gibt die Guild; eine Kopie des Griffs hat keine |
+| kontextVon gibt Griff und Mitglied … | ID des Servers, Mitglied mit Name und Zahl |
+| eintraegeVon: die Einträge einer Kategorie mit art … | Rolle und Person mit ihren Bits; Sprach-, Text- und unbekannter Kanal ohne Ergebnis; `kategorieVon` |
+| alsOverwrite macht aus art wieder den Typ … | `rolle` Typ 0, `person` Typ 1 |
+| das Menü: Text, drei Reihen … | `menue.test.ts`: `alsNachricht`: Überschrift, `allowedMentions` leer, 3 × 4 Knöpfe mit Präfix, rot nur Rauswerfen und Bannen |
+| die Auswahl: die Frage und genau ein Mitglied | `alsAuswahl`: Typ 5 mit `custom_id`, Platzhalter, 1 bis 1 |
+| das Formular: Label (Typ 18) … | `alsModal`: Titel, Label mit Beschreibung, Textfeld `wert` mit Grenzen und Wert von jetzt |
 | textkanal: nur Text- und Ankündigungskanäle … | `nachrichten.test.ts`: Text und Ankündigung ja; ohne Senden, ohne Sehen, Sprachkanal, unbekannt nicht; `anhaengen` nur mit „Dateien anhängen“ |
 | textkanalAuf findet den Kanal über die IDs … | auf einem fremden Server nichts |
 | sende: Text, der nur die genannten pingt … | `allowed_mentions` `{ parse: [], users: [ID] }`, ohne `pingt` `{ parse: [] }`, auch bei `@everyone` im Text |

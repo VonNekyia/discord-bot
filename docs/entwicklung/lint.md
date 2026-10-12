@@ -103,7 +103,7 @@ In `**/*.test.ts` und `bot/src/testhilfe.ts` gilt anders:
 Was beim Einführen schon da war und nicht schnell geht, ist eine Warnung
 statt eines Fehlers: je Datei unter `overrides` in `bot/.oxlintrc.json`
 und `web/.oxlintrc.json`. `maxWarnings` ist die Zahl dieser Warnungen,
-im Bot zusammen mit den 8 Grenzverletzungen aus
+im Bot zusammen mit den 4 Grenzverletzungen aus
 [Struktur von Bot und Oberfläche](struktur.md), „Was noch fehlt“. Eine
 neue Warnung lässt die Prüfung scheitern.
 

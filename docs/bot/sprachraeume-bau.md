@@ -6,6 +6,8 @@ code:
   - bot/src/module/sprachraeume/sprachraeume.ts
   - bot/src/kern/aufraeumen.ts
   - bot/src/discord/client.ts
+  - bot/src/discord/sprachkanaele.ts
+  - bot/src/discord/server.ts
   - bot/src/index.ts
 ---
 
@@ -22,25 +24,28 @@ Code nicht brechen darf. Das Menü im Chat jedes Raums steht in
 
 | Datei | Inhalt |
 |---|---|
-| `bot/src/module/sprachraeume/sprachraeume.ts` | Einstellungen, `liste` mit `bereit`, `pruefe` mit den Regeln beim Speichern |
-| `bot/src/module/sprachraeume/raeume.ts` | `Raeume`: Erzeuger betreten, anlegen, verschieben, Menü posten, leere löschen, Abgleich beim Start; `belegung`, `eintraege`, `besitzerVon` |
+| `bot/src/module/sprachraeume/sprachraeume.ts` | Einstellungen, `pruefe` mit den Regeln beim Speichern |
+| `bot/src/module/sprachraeume/raeume.ts` | `Raeume`: Erzeuger betreten, anlegen, verschieben, Menü posten, leere löschen, Abgleich beim Start; `eintraege`, `besitzerVon` |
+| `bot/src/discord/sprachkanaele.ts` | die Discord-Schicht für die Sprachräume: `sprachListe` mit `bereit`, `belegung`, `hatKanal`, `kategorieVon`, `eintraegeVon`, `holeMitglied`, `legeSprachkanalAn`, `verschiebe`, `loescheKanal`, `sendeMenue`; alles über den Griff `Server`, Fehler als `DiscordFehler` |
+| `bot/src/discord/rechte.ts` | `Eintrag` mit `art` (`rolle` oder `person`) und `Recht` mit den Bits, die das Modul braucht |
 | `bot/src/module/sprachraeume/menue.ts`, `bot/src/module/sprachraeume/knoepfe.ts`, `bot/src/module/sprachraeume/raumrechte.ts` | das Menü, siehe [Menü der Sprachräume im Bot](sprachraeume-menue.md) |
 | `bot/src/kern/aufraeumen.ts` | `vergiss` und `behalteNur` für alle Tabellen je Server |
 | `bot/src/discord/ordnung.ts` | `wieDiscord`: Kanäle sortieren wie Discord |
 
-`bot/src/index.ts` ruft bei `voiceStateUpdate` `Raeume#aenderung` mit den
-Kanälen vorher und nachher, bei `channelDelete` `Raeume#geloescht`. Die
+`bot/src/index.ts` ruft bei `voiceStateUpdate` `Raeume#aenderung` mit dem
+Griff des Servers (`serverVon`) und den Kanälen vorher und nachher, bei `channelDelete` `Raeume#geloescht`. Die
 Einstellungen liest `Raeume` aus einem eigenen Cache (`ladeCache`), den die
 API nach jedem Speichern leert, siehe [Cache](cache.md).
 
 ## Belegung
 
 Wer in einem Kanal ist, kommt nur aus `guild.voiceStates.cache`, als IDs
-(`belegung`). Nie aus `VoiceChannel#members` oder `VoiceState#member`: Beide
+(`belegung` in `bot/src/discord/sprachkanaele.ts`). Nie aus `VoiceChannel#members` oder `VoiceState#member`: Beide
 lesen den Cache der Mitglieder, und der hält nur den Bot, siehe
 [Datenschutz](datenschutz.md), „Was der Bot speichert“. Dann wären sie
 leer oder `null`. Braucht der Bot den Namen eines Mitglieds, holt er es mit
-`guild.members.fetch({ user, force: true })`; das kommt nicht in den Cache.
+`holeMitglied`, also `guild.members.fetch({ user, force: true })`; das kommt
+nicht in den Cache.
 
 Voice States ohne Kanal räumt ein Sweeper alle 10 Minuten weg
 (`erstelleClient` in `bot/src/discord/client.ts`).
@@ -53,13 +58,13 @@ Voice States ohne Kanal räumt ein Sweeper alle 10 Minuten weg
    an.
 3. Höchstens ein neuer Raum je 30 s und Mitglied; die Zeit merkt sich
    `Raeume` im Speicher, und ein Timer vergisst sie nach 30 s.
-4. `guild.channels.create` mit Name, Kategorie, Limit und den Einträgen aus
-   `eintraege`, in einem Aufruf: die der Kategorie, dazu der Besitzer mit
+4. `legeSprachkanalAn` mit Name, Kategorie, Limit und den Einträgen aus
+   `eintraege`, in einem Aufruf (`guild.channels.create`): die der Kategorie, dazu der Besitzer mit
    „Kanal ansehen“, „Verbinden“ und „Nachrichtenverlauf anzeigen“ und der
    Bot mit „Kanal ansehen“, „Verbinden“ und „Nachrichten senden“. Für
    dieselbe ID führt `eintraege` die Rechte zusammen; unsere sind erlaubt
    und nicht verboten.
-5. Die Zeile in `raeume`, dann `guild.members.edit` mit `channel`.
+5. Die Zeile in `raeume`, dann `verschiebe` (`guild.members.edit` mit `channel`).
    Scheitert eins davon, geht der neue Raum wieder.
 6. Das Menü in den Textchat des Raums (`menue` aus `bot/src/module/sprachraeume/menue.ts`).
    Scheitert es, bleibt der Raum ohne Knöpfe, mit einer Logzeile; bei
@@ -77,10 +82,14 @@ an: Der zweite findet den Raum des ersten und verschiebt nur.
 
 ## Erwartete Fehler
 
+`erwartet` in `bot/src/module/sprachraeume/raeume.ts` liest den Code von
+`DiscordFehler`, siehe [Struktur von Bot und Oberfläche](../entwicklung/struktur.md),
+„Die Discord-Schicht“.
+
 | Code | Wann | Was der Bot tut |
 |---|---|---|
-| 40032 | das Mitglied ist nicht mehr verbunden, bevor das Verschieben klappt | den neuen Raum löschen, ohne Logzeile |
-| 10003 | der Kanal ist schon weg | nichts, ohne Logzeile |
+| 40032 (`nicht_verbunden`) | das Mitglied ist nicht mehr verbunden, bevor das Verschieben klappt | den neuen Raum löschen, ohne Logzeile |
+| 10003 (`nicht_gefunden`) | der Kanal ist schon weg, auch beim Löschen | nichts, ohne Logzeile |
 | 50013 | dem Bot fehlt ein Recht, auch eins aus den Einträgen der Kategorie | nichts anlegen, eine Logzeile |
 | 30013 | der Server hat 500 Kanäle | nichts anlegen, eine Logzeile |
 

@@ -15,7 +15,11 @@ import {
 import type { Pool } from 'pg';
 import { text as fehlertext } from '../../kern/fehler.js';
 import { aktionen, auswahl, formular, mitAuswahl, mitFormular, praefix, type Aktion, type MitAuswahl } from './menue.js';
-import { belegung, besitzerVon } from './raeume.js';
+import { besitzerVon } from './raeume.js';
+import { alsAuswahl, alsModal } from '../../discord/menue.js';
+import { alsEintrag, alsOverwrite } from '../../discord/rechte.js';
+import { serverVon } from '../../discord/server.js';
+import { belegung } from '../../discord/sprachkanaele.js';
 import * as rechte from './raumrechte.js';
 
 // Was die Knöpfe des Menüs bedienen: Knöpfe, die Nutzerauswahl und die Formulare.
@@ -64,8 +68,10 @@ interface Lage {
   bot: string;
 }
 
-const alsEintraege = (cache: Iterable<PermissionOverwrites>): rechte.Eintrag[] =>
-  [...cache].map((e) => ({ id: e.id, type: e.type, allow: e.allow.bitfield, deny: e.deny.bitfield }));
+const alsEintraege = (cache: Iterable<PermissionOverwrites>): rechte.Eintrag[] => [...cache].map(alsEintrag);
+
+// Setzt alle Einträge des Raums in einem PATCH.
+const setze = (l: Lage, eintraege: rechte.Eintrag[], warum: string) => l.raum.permissionOverwrites.set(eintraege.map(alsOverwrite), warum);
 
 function stand(l: Lage): rechte.Raum {
   return {
@@ -78,7 +84,7 @@ function stand(l: Lage): rechte.Raum {
 }
 
 // Wer im Raum ist, ohne den Bot.
-const drin = (l: Lage) => belegung(l.guild, l.raum.id).filter((id) => id !== l.bot);
+const drin = (l: Lage) => belegung(serverVon(l.guild), l.raum.id).filter((id) => id !== l.bot);
 
 const ja = (wert: boolean) => (wert ? 'ja' : 'nein');
 
@@ -109,9 +115,9 @@ export class Knoepfe {
           const hinweis = typeof l === 'string' ? l : nurBesitzer(l.besitzer);
           await i.reply({ content: hinweis, flags: MessageFlags.Ephemeral, allowedMentions: ohneErwaehnung });
         } else if (mitFormular(aktion)) {
-          await i.showModal(formular(aktion, l.raum));
+          await i.showModal(alsModal(formular(aktion, { name: l.raum.name, limit: l.raum.userLimit })));
         } else {
-          await i.reply({ ...auswahl(aktion), flags: MessageFlags.Ephemeral });
+          await i.reply({ ...alsAuswahl(auswahl(aktion)), flags: MessageFlags.Ephemeral });
         }
         return;
       }
@@ -192,7 +198,7 @@ export class Knoepfe {
     }[aktion];
     if (was.schon) return was.hinweis;
     // Alle Einträge in einem PATCH; ohne `name` gilt das Sublimit nicht.
-    await l.raum.permissionOverwrites.set(was.neu(), grund[aktion]);
+    await setze(l, was.neu(), grund[aktion]);
     return was.fertig;
   }
 
@@ -231,7 +237,7 @@ export class Knoepfe {
     }
     if (aktion === 'bannen') {
       if (rechte.gebannt(r).includes(ziel)) return `${wer} ist schon gebannt.`;
-      await l.raum.permissionOverwrites.set(rechte.banne(r, ziel), grund.bannen);
+      await setze(l, rechte.banne(r, ziel), grund.bannen);
       if (istDrin) {
         await l.guild.members.edit(ziel, { channel: null, reason: grund.bannen }).catch((fehler: unknown) => {
           if (!nichtVerbunden(fehler)) throw fehler;
@@ -241,7 +247,7 @@ export class Knoepfe {
     }
     if (aktion === 'entbannen') {
       if (!rechte.gebannt(r).includes(ziel)) return `${wer} ist nicht gebannt.`;
-      await l.raum.permissionOverwrites.set(rechte.entbanne(r, ziel), grund.entbannen);
+      await setze(l, rechte.entbanne(r, ziel), grund.entbannen);
       return `${wer} ist nicht mehr gebannt.`;
     }
     // Kein Bot wird Besitzer: Bliebe er im Raum, ginge auch „Übernehmen“ nicht mehr.
@@ -270,9 +276,7 @@ export class Knoepfe {
       throw fehler;
     }
     // Der Besitz gilt schon; scheitern die Rechte, steht nur eine Logzeile da.
-    await l.raum.permissionOverwrites
-      .set(rechte.mitBesitzer(stand(l), neu), warum)
-      .catch((fehler: unknown) => console.error(`Sprachraum-Menü: Rechte des Besitzers nicht gesetzt: ${fehlertext(fehler)}`));
+    await setze(l, rechte.mitBesitzer(stand(l), neu), warum).catch((fehler: unknown) => console.error(`Sprachraum-Menü: Rechte des Besitzers nicht gesetzt: ${fehlertext(fehler)}`));
     return fertig;
   }
 

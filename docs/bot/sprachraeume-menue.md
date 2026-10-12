@@ -5,6 +5,8 @@ code:
   - bot/src/module/sprachraeume/knoepfe.ts
   - bot/src/module/sprachraeume/menue.ts
   - bot/src/module/sprachraeume/raumrechte.ts
+  - bot/src/discord/menue.ts
+  - bot/src/discord/rechte.ts
   - bot/src/index.ts
 ---
 
@@ -20,9 +22,10 @@ brechen darf. Wie Räume entstehen und gehen, steht in
 
 | Datei | Inhalt |
 |---|---|
-| `bot/src/module/sprachraeume/menue.ts` | `menue`: die Nachricht mit den zwölf Knöpfen; `auswahl`, `formular`, das Präfix |
+| `bot/src/module/sprachraeume/menue.ts` | `menue`, `auswahl`, `formular` mit eigenen Typen; das Präfix |
+| `bot/src/discord/menue.ts` | die Discord-Schicht baut daraus Components: `alsNachricht`, `alsAuswahl`, `alsModal` |
 | `bot/src/module/sprachraeume/knoepfe.ts` | `Knoepfe#bediene`: Prüfungen, Antworten, Aufrufe an Discord; `istMenue` |
-| `bot/src/module/sprachraeume/raumrechte.ts` | Sperren, Verstecken, Bann und neuer Besitzer als reine Rechnung auf den Rechte-Einträgen |
+| `bot/src/module/sprachraeume/raumrechte.ts` | Sperren, Verstecken, Bann und neuer Besitzer als reine Rechnung auf den Rechte-Einträgen (`Eintrag` mit `art`, `Recht` aus `bot/src/discord/rechte.ts`) |
 
 `Raeume` postet das Menü nach dem Anlegen, siehe
 [Sprachräume im Bot](sprachraeume-bau.md), „Anlegen“. `bot/src/index.ts`

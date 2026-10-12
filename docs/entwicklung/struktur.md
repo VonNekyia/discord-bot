@@ -29,7 +29,7 @@ Linter. Warum so, steht in
 |---|---|---|
 | `bot/src/index.ts` | Einstieg: verbindet Kern, Discord-Schicht, API und Module | |
 | `bot/src/kern/` | Datenbank, Cache, Fehlertext fürs Log, Grenzen, Zählung, Aufräumen, der Vertrag des Baukastens; kennt weder Discord noch Module | `datenbank.ts`, `cache.ts`, `fehler.ts`, `grenze.ts`, `zaehlung.ts`, `aufraeumen.ts`, `baukasten.ts` |
-| `bot/src/discord/` | die einzige Schicht, die discord.js importiert | `client.ts`, `ordnung.ts`, `zaehlen.ts`, `oauth.ts`, `kanaele.ts`, `kontext.ts`, `eigentuemer.ts`, `nachrichten.ts` |
+| `bot/src/discord/` | die einzige Schicht, die discord.js importiert | `client.ts`, `ordnung.ts`, `zaehlen.ts`, `oauth.ts`, `kanaele.ts`, `kontext.ts`, `eigentuemer.ts`, `nachrichten.ts`, `server.ts`, `fehler.ts`, `rechte.ts`, `sprachkanaele.ts`, `menue.ts` |
 | `bot/src/api/` | HTTP-API des Dashboards: Server, Anmeldung, Grenzen, Fehler; die Routen der Seiten, die die Module anmelden | `server.ts`, `anmeldung.ts` |
 | `bot/src/module/befehle/` | Slash-Befehle, heute `/ping` | `befehle.ts` |
 | `bot/src/module/begruessung/` | Beitritt und Abschied: Einstellungen, Senden, Banner, Seiten im Dashboard | `begruessung.ts`, `senden.ts`, `banner.ts`, `seiten.ts` |
@@ -112,7 +112,16 @@ Module sehen nur eigene Typen, nicht die von discord.js. `bot/src/discord/`
 bietet je Bedarf eine Funktion mit eigenem Typ, etwa „Nachricht in einen
 Kanal senden“, „Sprachkanal anlegen“, „Rechte eines Kanals setzen“ oder
 „Mitglied verschieben“. Sie übersetzt Fehler von Discord in eigene Codes,
-etwa „kein Recht“, „nicht gefunden“ oder „zu schnell, mit Wartezeit“.
+etwa „kein Recht“, „nicht gefunden“ oder „zu schnell, mit Wartezeit“
+(`DiscordFehler` in `discord/fehler.ts`).
+
+Einen Server sehen Module nur als Griff `Server` aus `discord/server.ts`:
+ID und Name. Die Guild dahinter liest nur die Discord-Schicht mit
+`guildVon`; kein Modul bekommt sie heraus, und keine Funktion der Schicht
+gibt sie zurück. Der Linter verbietet Modulen den Import von `guildVon`.
+Den Griff baut nur `serverVon`; eine Guild oder ein Objekt mit ID und Name
+passt nicht, wo ein Griff verlangt ist. `Kontext` aus `discord/kontext.ts`
+gibt den Modulen Griff und `Mitglied`.
 
 - Ein Test eines Moduls braucht dann keinen nachgebauten Client von
   discord.js mehr, nur eine Fälschung der Schicht.
@@ -130,8 +139,7 @@ PR mit gleichem Verhalten und grünen Tests.
 
 | Was | Wo | Lint |
 |---|---|---|
-| discord.js direkt in Modulen | `befehle.ts`, `sprachraeume.ts`, `raeume.ts`, `menue.ts`, `knoepfe.ts`, `raumrechte.ts`; die Begrüssung nutzt schon `discord/nachrichten.ts` | 6 Warnungen |
-| `Kontext` in `discord/kontext.ts` gibt `Guild` und `GuildMember` an die Module; die Begrüssung nennt die Typen nicht und reicht sie nur an die Schicht, die Sprachräume nutzen sie direkt. Eigene Typen kommen mit Stufe 4, den Sprachräumen | `discord/kontext.ts` | – |
+| discord.js direkt in Modulen | `befehle.ts`; `knoepfe.ts` bis Stufe 4b, die Interaktionen | 2 Warnungen |
 | discord.js direkt in der API | `api/server.ts`, `api/anmeldung.ts` | 2 Warnungen |
 | Aufräumen kennt die Tabellen aller Module | `kern/aufraeumen.ts` | – |
 | Der Einstieg verdrahtet jedes Modul einzeln; nur die Seiten gehen schon als `Bereich` | `index.ts` | – |

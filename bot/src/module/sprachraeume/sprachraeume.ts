@@ -1,6 +1,5 @@
-import { ChannelType, PermissionFlagsBits as R, type CategoryChannel, type Guild, type VoiceChannel } from 'discord.js';
 import type { Pool } from 'pg';
-import { vergleiche, wieDiscord } from '../../discord/ordnung.js';
+import type { Liste } from '../../discord/sprachkanaele.js';
 
 // Siehe docs/schnittstelle/sprachraeume.md, „Typen“.
 export type Erzeuger = {
@@ -15,54 +14,11 @@ export type Sprachraeume = {
   erzeuger: Erzeuger[];
 };
 
-export type Sprachkanal = { id: string; name: string; kategorie: { id: string; name: string } | null; bereit: boolean };
-export type Kategorie = { id: string; name: string; bereit: boolean };
-export type Liste = { sprachkanaele: Sprachkanal[]; kategorien: Kategorie[]; ohneKategorie: { bereit: boolean } };
+// Sprachkanäle und Kategorien mit `bereit` liefert `sprachListe` aus der Discord-Schicht.
+export type { Liste };
 
 export function ohneEinstellung(): Sprachraeume {
   return { an: false, erzeuger: [] };
-}
-
-// Was der Bot auf dem ganzen Server braucht.
-// Siehe docs/benutzung/sprachraeume.md, „Rechte und Intent“.
-export const noetig = [R.ManageChannels, R.ManageRoles, R.MoveMembers, R.ViewChannel, R.Connect, R.SendMessages, R.ReadMessageHistory];
-
-// Sprachkanäle und Kategorien mit `bereit`, ohne Bühnen und ohne die Räume
-// selbst (`raeume`). Eine Kategorie ist bereit, wenn
-// der Bot auf dem Server alles hat, sie ihm nichts davon nimmt und er jedes
-// Recht ihrer Einträge selbst hat; er kopiert sie in jeden Raum.
-// Siehe docs/schnittstelle/sprachraeume.md, „Typen“.
-export function liste(guild: Guild, raeume: ReadonlySet<string> = new Set()): Liste {
-  const ich = guild.members.me;
-  const server = ich?.permissions;
-  const ohneKategorie = server?.has(noetig) ?? false;
-  const kategorien: Kategorie[] = [];
-  const sprachkanaele: VoiceChannel[] = [];
-  for (const kanal of guild.channels.cache.values()) {
-    if (kanal.type === ChannelType.GuildVoice && !raeume.has(kanal.id)) sprachkanaele.push(kanal);
-  }
-  const alleKategorien = [...guild.channels.cache.values()].filter((k): k is CategoryChannel => k.type === ChannelType.GuildCategory);
-  for (const kategorie of alleKategorien.toSorted(vergleiche)) {
-    kategorien.push({ id: kategorie.id, name: kategorie.name, bereit: Boolean(ich && server && kategorieBereit(kategorie, ohneKategorie)) });
-  }
-  return {
-    sprachkanaele: wieDiscord(sprachkanaele).map((kanal) => ({
-      id: kanal.id,
-      name: kanal.name,
-      kategorie: kanal.parent && { id: kanal.parent.id, name: kanal.parent.name },
-      bereit: Boolean(ich && kanal.permissionsFor(ich).has([R.ViewChannel, R.Connect, R.MoveMembers])),
-    })),
-    kategorien,
-    ohneKategorie: { bereit: ohneKategorie },
-  };
-}
-
-function kategorieBereit(kategorie: CategoryChannel, ohneKategorie: boolean): boolean {
-  const ich = kategorie.guild.members.me;
-  if (!ohneKategorie || !ich || !kategorie.permissionsFor(ich).has(noetig)) return false;
-  return [...kategorie.permissionOverwrites.cache.values()].every((eintrag) =>
-    ich.permissions.has(eintrag.allow.bitfield | eintrag.deny.bitfield),
-  );
 }
 
 // Wie lang die Vorlage höchstens wird, wenn `{name}` 32 Zeichen hat.

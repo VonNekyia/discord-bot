@@ -1,8 +1,9 @@
 import type { Pool } from 'pg';
 import { BausteinFehler, type Baustein, type Bereich, type Option, type Satz } from '../../kern/baukasten.js';
 import type { Kontext } from '../../discord/kontext.js';
+import { sprachListe } from '../../discord/sprachkanaele.js';
 import { raeumeVon } from './raeume.js';
-import { liesSprachraeume, liste, pruefe, speichereSprachraeume, type Liste } from './sprachraeume.js';
+import { liesSprachraeume, pruefe, speichereSprachraeume, type Liste } from './sprachraeume.js';
 
 export interface SprachraeumeOptionen {
   db: Pool;
@@ -127,7 +128,7 @@ function bausteine(l: Liste): Baustein[] {
 // Die Sprachräume als eine Seite des Dashboards.
 // Siehe docs/schnittstelle/sprachraeume.md.
 export function sprachraeumeBereich(o: SprachraeumeOptionen): Bereich<Kontext> {
-  const listeVon = async (server: Kontext['server']) => liste(server, await raeumeVon(o.db, server.id));
+  const listeVon = async (server: Kontext['server']) => sprachListe(server, await raeumeVon(o.db, server.id));
 
   return {
     seiten: { sprachraeume: {} },

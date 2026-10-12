@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { after, before, beforeEach, describe, test } from 'node:test';
 import type { Client, Guild, GuildMember } from 'discord.js';
-import { alsMitglied, DiscordFehler, textkanal, textkanalAuf } from './nachrichten.js';
+import { DiscordFehler } from './fehler.js';
+import { alsMitglied, textkanal, textkanalAuf } from './nachrichten.js';
+import { serverVon } from './server.js';
 import { ChannelType, discordClient, gilde, kanal, mitglied, mockDiscord, pngBild, R, schliesse, type MockDiscord } from '../testhilfe.js';
 
 // Die Discord-Schicht für Mitglieder, Textkanäle und Nachrichten gegen die
@@ -48,7 +50,7 @@ describe('Nachrichten in der Discord-Schicht', () => {
   });
 
   const ziel = (id: string) => {
-    const k = textkanal(guild, id);
+    const k = textkanal(serverVon(guild), id);
     if (!k) throw new Error(`kein Textkanal ${id}`);
     return k;
   };
@@ -57,7 +59,7 @@ describe('Nachrichten in der Discord-Schicht', () => {
     assert.deepEqual([ziel(K.gruss).name, ziel(K.gruss).anhaengen], ['willkommen', true]);
     assert.deepEqual([ziel(K.ansage).name, ziel(K.ansage).anhaengen], ['ansagen', true]);
     assert.equal(ziel(K.ohneDateien).anhaengen, false);
-    for (const id of [K.stumm, K.geheim, K.sprache, '500000000000000099']) assert.equal(textkanal(guild, id), undefined, id);
+    for (const id of [K.stumm, K.geheim, K.sprache, '500000000000000099']) assert.equal(textkanal(serverVon(guild), id), undefined, id);
   });
 
   test('textkanalAuf findet den Kanal über die IDs, auf einem fremden Server nichts', () => {

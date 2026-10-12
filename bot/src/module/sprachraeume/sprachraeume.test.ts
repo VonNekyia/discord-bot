@@ -10,6 +10,7 @@ import { erstelleApi } from '../../api/server.js';
 import { behalteNur, vergiss } from '../../kern/aufraeumen.js';
 import { ladeCache } from '../../kern/cache.js';
 import { migriere, oeffne, verbindung } from '../../kern/datenbank.js';
+import { serverVon, type Server as Griff } from '../../discord/server.js';
 import { Raeume } from './raeume.js';
 import { sprachraeumeBereich } from './seiten.js';
 import { hoechstens, liesSprachraeume, speichereSprachraeume, type Sprachraeume } from './sprachraeume.js';
@@ -98,6 +99,8 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
   let mock: MockDiscord;
   let client: Client;
   let guild: Guild;
+  // Der Griff, mit dem der Bot das Modul aufruft.
+  let griff: Griff;
   let jetzt = Date.now();
 
   before(async () => {
@@ -107,6 +110,7 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
     mock = await mockDiscord();
     client = discordClient(mock, [server()]);
     guild = client.guilds.cache.get(SERVER) as Guild;
+    griff = serverVon(guild);
   });
 
   beforeEach(async () => {
@@ -114,6 +118,7 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
     for (const liste of [mock.angelegt, mock.verschoben, mock.geloescht, mock.nachrichten]) liste.length = 0;
     mock.anlegenFehler = undefined;
     mock.verschiebenFehler = undefined;
+    mock.loeschenFehler = undefined;
     mock.nachrichtFehler = undefined;
     guild.voiceStates.cache.clear();
     for (const id of guild.channels.cache.keys()) if (BigInt(id) >= 800000000000000000n) guild.channels.cache.delete(id);
@@ -152,7 +157,7 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
   // Betritt `kanal` und wartet, bis der Bot fertig ist.
   const betritt = async (r: Raeume, nutzer: string, kanalId: string, vorher: string | null = null) => {
     stimme(nutzer, kanalId);
-    await r.aenderung(guild, nutzer, vorher, kanalId);
+    await r.aenderung(griff, nutzer, vorher, kanalId);
   };
   const zeile = async (kanalId: string) => (await db.query('SELECT server, besitzer FROM raeume WHERE kanal = $1', [kanalId])).rows[0];
   const sortiert = <T extends { id: string }>(liste: T[]) => liste.toSorted((a, b) => a.id.localeCompare(b.id));
@@ -230,8 +235,8 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
     await betritt(raeume(), BESITZER, K.ohneKategorie);
     assert.deepEqual(mock.angelegt[0]?.parent_id ?? null, null);
     assert.deepEqual(
-      sortiert(mock.angelegt[0]?.permission_overwrites ?? []).map((e) => e.id),
-      [BESITZER, BOT].toSorted(),
+      sortiert(mock.angelegt[0]?.permission_overwrites ?? []),
+      sortiert([eintrag(BESITZER, 1, R.ViewChannel | R.Connect | R.ReadMessageHistory, 0n), eintrag(BOT, 1, R.ViewChannel | R.Connect | R.SendMessages, 0n)]),
     );
   });
 
@@ -265,7 +270,7 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
     await speichereSprachraeume(db, SERVER, standard);
     const r = raeume();
     stimme(BESITZER, K.erzeuger);
-    await Promise.all([r.aenderung(guild, BESITZER, null, K.erzeuger), r.aenderung(guild, BESITZER, null, K.erzeuger)]);
+    await Promise.all([r.aenderung(griff, BESITZER, null, K.erzeuger), r.aenderung(griff, BESITZER, null, K.erzeuger)]);
     assert.equal(mock.angelegt.length, 1);
     const raum = mock.verschoben[0]?.kanal ?? '';
     await assert.rejects(
@@ -283,15 +288,28 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
 
     // Jemand kommt, bevor die Wartezeit um ist: Der Raum bleibt.
     stimme(BESITZER, null);
-    const leer = r.aenderung(guild, BESITZER, raum, null);
+    const leer = r.aenderung(griff, BESITZER, raum, null);
     stimme(ANDERER, raum);
     await leer;
     assert.deepEqual(mock.geloescht, []);
 
     stimme(ANDERER, null);
-    await r.aenderung(guild, ANDERER, raum, null);
+    await r.aenderung(griff, ANDERER, raum, null);
     assert.deepEqual(mock.geloescht, [raum]);
     assert.equal(await zeile(raum), undefined);
+  });
+
+  test('ist ein leerer Raum bei Discord schon weg (10003), vergisst der Bot ihn ohne Logzeile', async (t) => {
+    const log = t.mock.method(console, 'error', () => {});
+    await speichereSprachraeume(db, SERVER, standard);
+    const r = raeume();
+    await betritt(r, BESITZER, K.erzeuger);
+    const raum = mock.verschoben[0]?.kanal ?? '';
+    mock.loeschenFehler = [404, 10003];
+    stimme(BESITZER, null);
+    await r.aenderung(griff, BESITZER, raum, null);
+    assert.equal(await zeile(raum), undefined);
+    assert.equal(log.mock.callCount(), 0);
   });
 
   test('geht das Mitglied, bevor das Verschieben klappt (40032), geht der neue Raum wieder, ohne Logzeile', async (t) => {
@@ -333,7 +351,7 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
       await db.query('INSERT INTO raeume (kanal, server, besitzer) VALUES ($1, $2, $3)', [id, SERVER, `20000000000000003${i}`]);
     }
     stimme(ANDERER, voll);
-    await raeume().gleicheAb([guild]);
+    await raeume().gleicheAb([griff]);
     assert.deepEqual(mock.geloescht, [leer]);
     const uebrig = (await db.query<{ kanal: string }>('SELECT kanal FROM raeume WHERE server = $1', [SERVER])).rows.map((z) => z.kanal);
     assert.deepEqual(uebrig, [voll]);

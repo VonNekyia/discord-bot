@@ -23,7 +23,7 @@ import { text } from '../kern/fehler.js';
 import { Grenze } from '../kern/grenze.js';
 import { Zaehlung } from '../kern/zaehlung.js';
 import { Berechtigte } from '../discord/eigentuemer.js';
-import type { Kontext } from '../discord/kontext.js';
+import { kontextVon, type Kontext } from '../discord/kontext.js';
 import { oauthUeber } from '../discord/oauth.js';
 import { debugStand } from '../discord/zaehlen.js';
 
@@ -157,7 +157,7 @@ interface Route {
 // Server und Person einer Route mit {id}, nach der Prüfung der Rechte.
 function kontext(a: Anfrage): Kontext {
   if (!a.server || !a.mitglied) throw new Error('Route ohne geprüften Server');
-  return { server: a.server, mitglied: a.mitglied };
+  return kontextVon(a.server, a.mitglied);
 }
 
 // Jede Antwort trägt diese Header. Liegt noch ungelesener Body an, schliesst

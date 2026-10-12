@@ -9,7 +9,8 @@ import { migriere, oeffne, verbindung } from '../../kern/datenbank.js';
 import { Zaehlung } from '../../kern/zaehlung.js';
 import { begruesse, Bremse, erstelleBremse, Plaetze, zusammenfassung } from './senden.js';
 import { pngBild } from '../../testhilfe.js';
-import { DiscordFehler, type Mitglied, type Nachricht, type Textkanal } from '../../discord/nachrichten.js';
+import { DiscordFehler } from '../../discord/fehler.js';
+import type { Mitglied, Nachricht, Textkanal } from '../../discord/nachrichten.js';
 
 // Gegen eine Fälschung der Discord-Schicht und eine echte PostgreSQL; ohne
 // DB_HOST übersprungen, in der CI immer dabei. Alle IDs sind erfunden.

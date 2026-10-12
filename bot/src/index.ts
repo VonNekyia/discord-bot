@@ -10,6 +10,7 @@ import { lese } from './module/begruessung/begruessung.js';
 import { ladeCache } from './kern/cache.js';
 import { erstelleClient } from './discord/client.js';
 import { alsMitglied, textkanalAuf } from './discord/nachrichten.js';
+import { serverVon } from './discord/server.js';
 import { zaehleAnfragen } from './discord/zaehlen.js';
 import { migriere, oeffne, verbindung } from './kern/datenbank.js';
 import { Zaehlung } from './kern/zaehlung.js';
@@ -77,7 +78,7 @@ async function nachDemVerbinden(bereit: Client<true>): Promise<void> {
   );
   // Räume, die es nicht mehr gibt, vergessen; leere löschen.
   // Siehe docs/bot/sprachraeume-bau.md, „Abgleich beim Start“.
-  await raeume.gleicheAb(bereit.guilds.cache.values()).catch((e: unknown) => console.error(`Abgleich der Räume fehlgeschlagen: ${text(e)}`));
+  await raeume.gleicheAb(bereit.guilds.cache.map(serverVon)).catch((e: unknown) => console.error(`Abgleich der Räume fehlgeschlagen: ${text(e)}`));
   if (!umgebung) return;
   // Nur auf 127.0.0.1; von aussen kommt man über serve.mjs oder den Reverse Proxy.
   // Siehe docs/schnittstelle/api.md, „Lokal“.
@@ -115,7 +116,7 @@ client.on(Events.GuildMemberRemove, (mitglied) => void begruesse(alsMitglied(mit
 
 // Siehe docs/benutzung/sprachraeume.md.
 client.on(Events.VoiceStateUpdate, (vorher, nachher) => {
-  void raeume.aenderung(nachher.guild, nachher.id, vorher.channelId, nachher.channelId);
+  void raeume.aenderung(serverVon(nachher.guild), nachher.id, vorher.channelId, nachher.channelId);
 });
 client.on(Events.ChannelDelete, (kanal) => {
   if (!kanal.isDMBased()) void raeume.geloescht(kanal.id).catch((e: unknown) => console.error(`Sprachraum: nicht vergessen: ${text(e)}`));

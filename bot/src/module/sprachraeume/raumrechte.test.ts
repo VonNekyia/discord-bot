@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
-import { OverwriteType, PermissionFlagsBits as R } from 'discord.js';
+import { PermissionFlagsBits as R } from 'discord.js';
 import {
   banne,
   besitzerRechte,
@@ -26,9 +26,10 @@ const BESITZER = '200000000000000041';
 const GAST = '200000000000000042';
 const DRITTER = '200000000000000043';
 const ROLLE = '400000000000000011';
-const { Role: rolle, Member: person } = OverwriteType;
+const rolle = 'rolle';
+const person = 'person';
 
-const e = (id: string, type: OverwriteType, allow: bigint, deny: bigint): Eintrag => ({ id, type, allow, deny });
+const e = (id: string, art: Eintrag['art'], allow: bigint, deny: bigint): Eintrag => ({ id, art, allow, deny });
 // Eine übliche Kategorie: @everyone sieht nichts, eine Rolle sieht und darf sich verbinden.
 const kategorie = [e(SERVER, rolle, 0n, R.ViewChannel), e(ROLLE, rolle, R.ViewChannel | R.Connect, 0n)];
 // Der Raum, wie `eintraege` ihn anlegt.

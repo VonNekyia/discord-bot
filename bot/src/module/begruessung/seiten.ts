@@ -3,7 +3,7 @@ import { BausteinFehler, type Baustein, type Bereich, type Option, type Satz, ty
 import { Grenze } from '../../kern/grenze.js';
 import type { Zaehlung } from '../../kern/zaehlung.js';
 import { kanaele, type Kanal } from '../../discord/kanaele.js';
-import { alsMitglied, textkanal } from '../../discord/nachrichten.js';
+import { textkanal } from '../../discord/nachrichten.js';
 import type { Kontext } from '../../discord/kontext.js';
 import { BildFehler, bereiteVor, breite, hoehe } from './banner.js';
 import { laengste, lese, loescheBild, pruefe, speichere, speichereBild, type Art, type Einstellung } from './begruessung.js';
@@ -219,7 +219,7 @@ export function begruessungsBereich(o: BegruessungOptionen): Bereich<Kontext> {
     async zeichne({ server, mitglied }, seite) {
       const a = art(seite);
       const { bannerText } = (await lese(o.db, server.id))[a];
-      const png = await banner(alsMitglied(mitglied), a, bannerText, { db: o.db, avatar: o.avatar });
+      const png = await banner(mitglied, a, bannerText, { db: o.db, avatar: o.avatar });
       if (!png) throw new BausteinFehler(404, 'kein_bild');
       return png;
     },
@@ -239,7 +239,7 @@ export function begruessungsBereich(o: BegruessungOptionen): Bereich<Kontext> {
       if (warten > 0) throw new BausteinFehler(429, 'zu_viele', undefined, warten);
       const ziel = textkanal(server, e.kanal);
       if (!ziel) throw new Error('Kanal fehlt oder der Bot darf dort nicht senden');
-      const gesendet = await sendeTest(alsMitglied(mitglied), ziel, a, e, { db: o.db, avatar: o.avatar });
+      const gesendet = await sendeTest(mitglied, ziel, a, e, { db: o.db, avatar: o.avatar });
       return {
         titel: e.banner && !gesendet.banner ? 'Gesendet, ohne Banner.' : 'Gesendet.',
         text: `Die Testnachricht steht in #${kanal.name}.`,

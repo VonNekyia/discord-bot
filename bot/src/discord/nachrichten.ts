@@ -1,14 +1,6 @@
-import {
-  ChannelType,
-  DiscordAPIError,
-  PermissionFlagsBits as R,
-  RateLimitError,
-  RESTJSONErrorCodes as Code,
-  type Client,
-  type Guild,
-  type GuildMember,
-  type PartialGuildMember,
-} from 'discord.js';
+import { ChannelType, PermissionFlagsBits as R, type Client, type GuildMember, type PartialGuildMember } from 'discord.js';
+import { alsDiscordFehler } from './fehler.js';
+import { guildVon, serverVon, type Server } from './server.js';
 
 // Mitglieder, Textkanäle und Nachrichten mit eigenen Typen, damit Module
 // kein discord.js brauchen. Siehe docs/entwicklung/struktur.md, „Die Discord-Schicht“.
@@ -40,40 +32,19 @@ export interface Nachricht {
   pingt?: string[];
 }
 
-export type FehlerCode = 'kein_recht' | 'nicht_gefunden' | 'zu_schnell' | 'anderes';
-
-// Ein Fehler von Discord mit eigenem Code. Die Meldung bleibt die von Discord.
-export class DiscordFehler extends Error {
-  constructor(
-    readonly code: FehlerCode,
-    meldung: string,
-    optionen?: ErrorOptions,
-  ) {
-    super(meldung, optionen);
-    this.name = 'DiscordFehler';
-  }
-}
-
-function fehlerCode(fehler: unknown): FehlerCode {
-  if (fehler instanceof RateLimitError) return 'zu_schnell';
-  if (!(fehler instanceof DiscordAPIError)) return 'anderes';
-  if (fehler.code === Code.MissingAccess || fehler.code === Code.MissingPermissions) return 'kein_recht';
-  if (fehler.code === Code.UnknownChannel) return 'nicht_gefunden';
-  return 'anderes';
-}
-
 // Ein Textkanal, in dem der Bot sehen und senden darf.
 export interface Textkanal {
   name: string;
   // Darf der Bot dort Dateien anhängen?
   anhaengen: boolean;
-  // Wirft `DiscordFehler`.
+  // Wirft `DiscordFehler` aus bot/src/discord/fehler.ts.
   sende(n: Nachricht): Promise<void>;
 }
 
 // Der Text- oder Ankündigungskanal mit dieser ID, wenn der Bot dort sehen
 // und senden darf; sonst undefined.
-export function textkanal(guild: Guild, id: string): Textkanal | undefined {
+export function textkanal(server: Server, id: string): Textkanal | undefined {
+  const guild = guildVon(server);
   const kanal = guild.channels.cache.get(id);
   const ich = guild.members.me;
   if (!ich || (kanal?.type !== ChannelType.GuildText && kanal?.type !== ChannelType.GuildAnnouncement)) return undefined;
@@ -90,7 +61,7 @@ export function textkanal(guild: Guild, id: string): Textkanal | undefined {
           allowedMentions: pingt.length > 0 ? { parse: [], users: pingt } : { parse: [] },
         });
       } catch (fehler) {
-        throw new DiscordFehler(fehlerCode(fehler), fehler instanceof Error ? fehler.message : String(fehler), { cause: fehler });
+        throw alsDiscordFehler(fehler);
       }
     },
   };
@@ -101,6 +72,6 @@ export function textkanal(guild: Guild, id: string): Textkanal | undefined {
 export function textkanalAuf(client: Client): (server: string, kanal: string) => Textkanal | undefined {
   return (server, kanal) => {
     const guild = client.guilds.cache.get(server);
-    return guild && textkanal(guild, kanal);
+    return guild && textkanal(serverVon(guild), kanal);
   };
 }
