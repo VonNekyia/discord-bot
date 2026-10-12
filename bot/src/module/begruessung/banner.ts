@@ -25,7 +25,7 @@ const rand = '#f1d58d';
 const ohneAvatar = '#25352b';
 
 // Ein Bild, das nicht passt, mit Status und Code aus dem Vertrag.
-// Siehe docs/schnittstelle/api.md, „Bild“.
+// Siehe docs/schnittstelle/begruessung.md, „Bild“.
 export class BildFehler extends Error {
   constructor(
     readonly status: number,

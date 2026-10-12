@@ -11,7 +11,7 @@ const bildGroesse = 4 * 1024 * 1024;
 type Feld = 'kanal' | 'text' | 'bild' | 'bannerText';
 
 // Prüft ein Bild vor dem Hochladen wie das Backend; gibt den Code des ersten Fehlers zurück.
-// Siehe docs/schnittstelle/api.md, „Bild“.
+// Siehe docs/schnittstelle/begruessung.md, „Bild“.
 async function bildPruefen(datei: File): Promise<string | null> {
   if (!bildTypen.has(datei.type)) return 'bildtyp';
   if (datei.size > bildGroesse) return 'bild_zu_gross';
@@ -99,7 +99,7 @@ export class Begruessung {
     panel.replaceChildren(inhalt);
 
     // Die Liste kommt sortiert; Kanäle einer Kategorie stehen in einer optgroup.
-    // Siehe docs/schnittstelle/api.md, „Typen“.
+    // Siehe docs/schnittstelle/begruessung.md, „Bausteine“.
     let gruppe: HTMLOptGroupElement | null = null;
     for (const k of kanaele) {
       const option = new Option(`#${k.name}`, k.id);
@@ -165,7 +165,7 @@ export class Begruessung {
     const bekannt = e.kanal !== null && this.kanaele.some((k) => k.id === e.kanal);
     this.kanal.value = bekannt ? (e.kanal ?? '') : '';
     // Eine gespeicherte ID, die es nicht mehr gibt, kommt so, wie sie ist.
-    // Siehe docs/schnittstelle/api.md, „Typen“.
+    // Siehe docs/schnittstelle/begruessung.md, „Wert“.
     this.feldFehler('kanal', e.kanal !== null && !bekannt ? satz('kanal_unbekannt') : null);
     this.text.value = e.text;
     this.banner.checked = e.banner;
@@ -263,7 +263,7 @@ export class Begruessung {
     this.entfernen.disabled = true;
     try {
       await api.bildLoeschen(this.serverId, this.art);
-      // Das Backend setzt banner dabei auf false. Siehe docs/schnittstelle/api.md, „Bild“.
+      // Das Backend setzt banner dabei auf false. Siehe docs/schnittstelle/begruessung.md, „Bild“.
       this.einstellung.bild = false;
       this.einstellung.banner = false;
       this.bannerPruefen();
@@ -277,7 +277,7 @@ export class Begruessung {
   }
 
   // Prüft in der Reihenfolge des Backends; zeigt alle Fehler an ihren Feldern.
-  // Siehe docs/schnittstelle/api.md, „Einstellung speichern“.
+  // Siehe docs/schnittstelle/begruessung.md, „Einstellung speichern“.
   private pruefen(daten: Omit<Einstellung, 'bild'>): boolean {
     let gut = true;
     // Je Textfeld ein Fehler: erst NUL, das das Backend als ungueltig ablehnt, dann die Länge.
@@ -328,7 +328,7 @@ export class Begruessung {
   }
 
   // Schickt die Testnachricht mit dem gespeicherten Stand. Fehler mit Feld stehen am Feld,
-  // alle anderen unter dem Knopf. Siehe docs/schnittstelle/api.md, „Testnachricht“.
+  // alle anderen unter dem Knopf. Siehe docs/schnittstelle/begruessung.md, „Testnachricht“.
   private async testSenden(): Promise<void> {
     this.testMeldungen.replaceChildren();
     for (const feld of ['kanal', 'text'] as const) this.feldFehler(feld, null);

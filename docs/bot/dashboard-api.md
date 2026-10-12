@@ -1,33 +1,46 @@
 ---
 title: API im Bot
-description: Wie der Bot die API des Dashboards baut; Module, Start und Ende, die Reihenfolge der Prüfungen, Grenzen und Zeitlimits im Prozess, Bilder und Vorschau, Fehler und Aufräumen.
+description: Wie der Bot die API des Dashboards baut; Dateien, Seiten der Module, Start und Ende, die Reihenfolge der Prüfungen, Grenzen und Zeitlimits im Prozess, Bilder und Vorschau, Fehler und Aufräumen.
 code:
   - bot/src/api/server.ts
   - bot/src/api/anmeldung.ts
-  - bot/src/module/begruessung/begruessung.ts
+  - bot/src/kern/baukasten.ts
+  - bot/src/kern/grenze.ts
+  - bot/src/module/begruessung/seiten.ts
   - bot/src/module/begruessung/banner.ts
+  - bot/src/module/sprachraeume/seiten.ts
   - bot/src/index.ts
 ---
 
 # API im Bot
 
-Was die API kann, steht im Vertrag: [API des Dashboards](../schnittstelle/api.md)
-und [Anmeldung am Dashboard](../schnittstelle/anmeldung.md). Diese Seite
+Was die API kann, steht im Vertrag: [API des Dashboards](../schnittstelle/api.md),
+[Anmeldung am Dashboard](../schnittstelle/anmeldung.md) und
+[Baukasten des Dashboards](../schnittstelle/baukasten.md). Diese Seite
 sagt, wie das Backend ihn baut: mit `node:http` im Prozess des Bots, ohne
 Paket dazu, siehe Entscheidung [0008](../entscheidungen/0008-api-im-bot-prozess.md).
 Bilder und Banner zeichnet `@napi-rs/canvas`, siehe Entscheidung
 [0009](../entscheidungen/0009-banner-mit-napi-rs-canvas.md).
 
-## Module
+## Dateien
 
 | Datei | Inhalt |
 |---|---|
-| `bot/src/api/server.ts` | `erstelleApi`: Routen, Origin, Grenzen, Rechte, Body; dazu `apiUmgebung`, `kanaele`, `Grenze` |
+| `bot/src/api/server.ts` | `erstelleApi`: Routen, Origin, Grenzen, Rechte, Body; die Routen der Seiten aus den Bereichen der Module; dazu `apiUmgebung` |
 | `bot/src/api/anmeldung.ts` | OAuth2 mit `fetch`, Sitzungen in PostgreSQL, Cookies |
+| `bot/src/kern/baukasten.ts` | der Vertrag: Typen der Seiten und Bausteine, `Bereich`, `BausteinFehler` |
+| `bot/src/kern/grenze.ts` | `Grenze`, das gleitende Fenster für alle Grenzen |
+| `bot/src/discord/kanaele.ts` | `kanaele`: Text- und Ankündigungskanäle, in denen der Bot senden darf |
+| `bot/src/module/begruessung/seiten.ts` | `begruessungsBereich`: die Seiten Beitritt und Abschied, Speichern, Bild, Vorschau, Testnachricht mit ihrer Grenze je Server |
 | `bot/src/module/begruessung/begruessung.ts` | Standardwerte, `pruefe` mit den Regeln beim Speichern, Platzhalter, Lesen, Speichern und Löschen von Einstellungen und Bildern |
 | `bot/src/module/begruessung/banner.ts` | `masse`, `bereiteVor` für ein hochgeladenes Bild, `zeichne` für das Banner |
-| `bot/src/module/sprachraeume/sprachraeume.ts` | Routen der Sprachräume: `liste` für `GET …/sprachkanaele`, `pruefe` für `PUT …/sprachraeume`, siehe [Sprachräume im Bot](sprachraeume-bau.md) |
 | `bot/src/module/begruessung/senden.ts` | `banner` für Vorschau und Senden, `sendeTest` für die Testnachricht; `begruesse` und die Bremse, siehe [Begrüssung senden](begruessung-senden.md) |
+| `bot/src/module/sprachraeume/seiten.ts` | `sprachraeumeBereich`: die Seite Sprachräume und ihr Speichern |
+| `bot/src/module/sprachraeume/sprachraeume.ts` | `liste` mit Sprachkanälen und Kategorien, `pruefe` für das Speichern, siehe [Sprachräume im Bot](sprachraeume-bau.md) |
+
+`bot/src/index.ts` gibt der API die Bereiche der Module, in der
+Reihenfolge der Tabs. Die API kennt kein Modul; sie findet zu einer Seite
+ihren Bereich über die IDs, die er anmeldet.
 
 ## Start und Ende
 
@@ -50,18 +63,18 @@ Jede Anfrage durchläuft diese Schritte; sie hört beim ersten Fehler auf:
 
 | Schritt | Für | Fehler |
 |---|---|---|
-| Route | alle | `404` `nicht_gefunden` |
+| Route | alle; Seite, Baustein und Methode gehören zur Route | `404` `nicht_gefunden` |
 | Origin | `PUT`, `POST`, `DELETE` | `403` `origin_falsch` |
 | Sitzung | alle ausser `/api/anmelden…` | `401` `nicht_angemeldet` |
-| Grenze | Routen mit `{id}`; `PUT …/bild` und `GET …/vorschau` auch die für Bilder | `429` `zu_viele` |
+| Grenze | Routen mit `{id}`; `PUT`, `GET` und `POST` auf einen Baustein auch die für Bilder | `429` `zu_viele` |
 | Rechte | Routen mit `{id}` | `404` `nicht_gefunden`, `403` `kein_recht` |
-| Body | `PUT …/begruessung/{art}` | `415` `kein_json`, `413` `zu_gross` |
-| Body | `PUT …/bild` | `415` `bildtyp`, `413` `bild_zu_gross` |
-| Regeln | `PUT …/begruessung/{art}` | `400` mit Code und Feld |
-| Bild | `PUT …/bild` | siehe „Bilder“ |
-| Regeln | `POST …/test` | `400` `test_ohne_kanal`, `kanal_unbekannt`, `test_ohne_inhalt` |
-| Grenze je Server | `POST …/test` | `429` `zu_viele`; erst hier, nach Rechten und Regeln |
-| Senden | `POST …/test` | `503` `nicht_erreichbar`, siehe [Begrüssung senden](begruessung-senden.md), „Testnachricht“ |
+| Body | `PUT …/seiten/{seite}` | `415` `kein_json`, `413` `zu_gross` |
+| Bereich | der Bereich der Seite: Regeln, Bild, Aktion | sein `BausteinFehler`, siehe [API der Begrüssung](../schnittstelle/begruessung.md) und [API der Sprachräume](../schnittstelle/sprachraeume.md) |
+
+Für die Testnachricht prüft der Bereich der Begrüssung zuerst ihre Regeln,
+dann die Grenze je Server und sendet erst danach; scheitert das Senden,
+`503` `nicht_erreichbar`, siehe [Begrüssung senden](begruessung-senden.md),
+„Testnachricht“.
 
 Bei den Rechten werden Unknown Member (10007) und Unknown User (10013) von
 Discord zu `403` `kein_recht`. Der Cache von discord.js hält ohnehin keine
@@ -70,8 +83,8 @@ Mitglieder, siehe [Datenschutz](datenschutz.md), „Was der Bot speichert“;
 ändert.
 
 Wer Einstellungen oder ein Bild schreibt oder löscht, ruft danach
-`einstellungen.delete` für den Server, siehe [Cache](cache.md), „So geht
-es“.
+`delete` am Cache seines Moduls für den Server, siehe [Cache](cache.md),
+„So geht es“. Die Bereiche bekommen den Cache von `bot/src/index.ts`.
 
 ## Grenzen und Zeitlimits
 
@@ -79,7 +92,7 @@ es“.
 |---|---|---|
 | Anfragen mit `{id}` je Sitzung | 60 je Minute | `Grenze`: gleitendes Fenster im Speicher, Schlüssel ist der Hash der Sitzung |
 | Bild, Vorschau und Testnachricht je Sitzung | 20 je Minute | eine zweite `Grenze`, zusätzlich zur ersten |
-| Testnachricht je Server | 3 je Minute | eine dritte `Grenze`, Schlüssel ist der Server; sie zählt erst nach Rechten und Regeln, sonst sperrte eine fremde Sitzung |
+| Testnachricht je Server | 3 je Minute | eine dritte `Grenze` im Bereich der Begrüssung, Schlüssel ist der Server; sie zählt erst nach Rechten und Regeln, sonst sperrte eine fremde Sitzung |
 | JSON-Body | 16 KiB | zuerst `Content-Length`; sonst zählt das Lesen mit und hört an der Grenze auf |
 | Bild | 4 MiB | wie beim JSON-Body |
 | Header einer Anfrage | 10 s | `headersTimeout` |
@@ -87,8 +100,9 @@ es“.
 | ein Aufruf an Discord für OAuth2 | 10 s | `AbortSignal.timeout` |
 | ein Avatar vom CDN | 5 s | `AbortSignal.timeout` in `holeAvatar` |
 
-- Ihre Uhr ist `uhr` aus `ApiOptionen`, ohne Angabe `Date.now()`; Tests
-  setzen eine eigene, um eine Minute vorzurücken.
+- Ihre Uhr ist `uhr` aus `ApiOptionen` und, für die Testnachricht, aus
+  `BegruessungOptionen`, ohne Angabe `Date.now()`; Tests setzen eine
+  eigene, um eine Minute vorzurücken.
 - Die Grenzen leben im Speicher des Prozesses. Ein Neustart setzt sie
   zurück; eine zweite Instanz hätte ihre eigenen.
 - Liegt bei der Antwort noch ungelesener Body an, schliesst die Verbindung
@@ -96,7 +110,8 @@ es“.
 
 ## Bilder
 
-`PUT …/bild` prüft und speichert in dieser Reihenfolge (`bereiteVor` in
+`PUT …/seiten/{art}/bild` prüft und speichert in dieser Reihenfolge
+(`ladeHoch` in `bot/src/module/begruessung/seiten.ts`, `bereiteVor` in
 `bot/src/module/begruessung/banner.ts`):
 
 1. `Content-Type` ist PNG, JPEG oder WebP, sonst `415` `bildtyp`.
@@ -119,10 +134,10 @@ es“.
    GPS und andere Metadaten fallen dabei weg.
 7. Das Ergebnis kommt in die Tabelle `bilder`, ein neues ersetzt das alte.
 
-`DELETE …/bild` löscht die Zeile und setzt `banner` auf `false`, in einer
-Anweisung (`loescheBild`).
+`DELETE …/seiten/{art}/bild` löscht die Zeile und setzt `banner` auf
+`false`, in einer Anweisung (`loescheBild`).
 
-`GET …/vorschau` zeichnet das Banner wie beim Senden (`banner` in
+`GET …/seiten/{art}/vorschau` zeichnet das Banner wie beim Senden (`banner` in
 `bot/src/module/begruessung/senden.ts`). Das Mitglied ist das aus der Prüfung der Rechte,
 also mit Spitzname und Avatar auf diesem Server. Ohne Bild `404`
 `kein_bild`. Die Vorschau zeichnet auch, wenn `banner` aus ist, damit das

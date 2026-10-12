@@ -173,11 +173,13 @@ mit, wie oft sie greifen (`Zaehlung#griff`):
 |---|---|---|
 | `bremse` | die Bremse der Begrüssung, siehe [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md), „Bremse“ | einmal, wenn sie greift, nicht je gezähltem Ereignis |
 | `sitzung` | 60 Anfragen je Minute und Sitzung | je `429` `zu_viele` |
-| `bilder` | 20 je Minute für Bilder und Vorschau | je `429` `zu_viele` |
+| `bilder` | 20 je Minute für Bilder, Vorschau und Aktionen | je `429` `zu_viele` |
 | `testnachricht` | 3 je Minute und Server | je `429` `zu_viele` |
 
-Die drei Grenzen der API stehen in
-[API des Dashboards](../schnittstelle/api.md), „Grenzen je Sitzung“.
+`sitzung` und `bilder` stehen in
+[API des Dashboards](../schnittstelle/api.md), „Grenzen je Sitzung“,
+`testnachricht` im Modul Begrüssung, siehe
+[API der Begrüssung](../schnittstelle/begruessung.md), „Testnachricht“.
 
 ## Was der Bot bei 5xx tut
 

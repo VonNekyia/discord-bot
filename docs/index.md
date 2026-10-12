@@ -20,9 +20,11 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 
 ## Schnittstelle
 
-- [API des Dashboards](schnittstelle/api.md): jede Route unter `/api/`, Typen, Testnachricht, Grenzen, Fehlercodes, die Weiterleitung von `serve.mjs`.
+- [API des Dashboards](schnittstelle/api.md): Grundregeln, die allgemeinen Routen unter `/api/`, `Ich` und `Server`, Grenzen je Sitzung, Fehlercodes, die Weiterleitung von `serve.mjs`.
+- [Baukasten des Dashboards](schnittstelle/baukasten.md): Seiten aus Bausteinen, die die Module anmelden; Routen unter `…/seiten`, Typen, jede Art von Baustein, Länge eines Texts, was die Oberfläche prüft, Fehler am Feld, ein Modul anmelden.
 - [Anmeldung am Dashboard](schnittstelle/anmeldung.md): Discord-Login mit OAuth2, Sitzung und Cookie, Rechte, Origin, Umgebungsvariablen.
-- [API der Sprachräume](schnittstelle/sprachraeume.md): Sprachkanäle und Kategorien, Sprachräume einstellen, Typen und Codes.
+- [API der Begrüssung](schnittstelle/begruessung.md): die Seiten Beitritt und Abschied, ihre Bausteine, Optionen des Kanals, Einstellung speichern, Bild und Vorschau, Testnachricht mit Grenze je Server.
+- [API der Sprachräume](schnittstelle/sprachraeume.md): die Seite Sprachräume, ihre Bausteine, Sprachkanäle und Kategorien mit `bereit`, Sprachräume einstellen, Codes.
 
 ## Bot
 
@@ -69,3 +71,4 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 - [0014: oxlint als Linter, moderne Sprachmittel](entscheidungen/0014-oxlint-und-moderne-sprachmittel.md): oxlint mit typbasierten Regeln über TypeScript 7, Altlasten als Warnung mit Obergrenze, ES2025 im Bot, ES2024 im Web; kein ESLint, kein Biome.
 - [0015: Feature-Module und eigene Schichten](entscheidungen/0015-feature-module-und-schichten.md): ein Ordner je Feature-Suite, nur `discord/` spricht mit discord.js, nur `web/src/api/` mit dem Bot, Grenzen per Lint, Umbau in Stufen; nicht nach Art ordnen, keine Workspaces.
 - [0016: Debug-Seite im Speicher, nur für den Eigentümer](entscheidungen/0016-debug-im-speicher-fuer-den-eigentuemer.md): Zahlen seit dem Start nur im Speicher, Zugriff für Eigentümer und Team der Anwendung, Anmeldung über `@discordjs/rest`, Warnung ab 1000 ungültigen Anfragen in 10 min; nicht für jeden mit „Server verwalten“, nicht in PostgreSQL.
+- [0017: Das Dashboard als Baukasten](entscheidungen/0017-dashboard-als-baukasten.md): Module melden Seiten aus Bausteinen an, die Oberfläche baut jede Art allgemein, Regeln über mehrere Felder nur im Bot; kein Formular je Modul, kein Schema-Standard, kein HTML vom Bot.

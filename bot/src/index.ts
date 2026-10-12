@@ -15,7 +15,9 @@ import { Zaehlung } from './kern/zaehlung.js';
 import { istMenue, Knoepfe } from './module/sprachraeume/knoepfe.js';
 import { Raeume } from './module/sprachraeume/raeume.js';
 import { begruesse, erstelleBremse } from './module/begruessung/senden.js';
+import { begruessungsBereich } from './module/begruessung/seiten.js';
 import { liesSprachraeume } from './module/sprachraeume/sprachraeume.js';
+import { sprachraeumeBereich } from './module/sprachraeume/seiten.js';
 
 const token = process.env.DISCORD_BOT_TOKEN;
 if (!token) {
@@ -79,7 +81,9 @@ async function nachDemVerbinden(bereit: Client<true>): Promise<void> {
   // Nur auf 127.0.0.1; von aussen kommt man über serve.mjs oder den Reverse Proxy.
   // Siehe docs/schnittstelle/api.md, „Lokal“.
   const { port, ...rest } = umgebung;
-  api = erstelleApi({ client: bereit, db, anwendung: bereit.application.id, einstellungen, sprachraeume, zaehlung, ...rest });
+  // Die Seiten des Dashboards, in der Reihenfolge der Tabs. Siehe docs/schnittstelle/baukasten.md.
+  const bereiche = [begruessungsBereich({ db, einstellungen, zaehlung }), sprachraeumeBereich({ db, sprachraeume })];
+  api = erstelleApi({ client: bereit, db, anwendung: bereit.application.id, zaehlung, bereiche, ...rest });
   api.once('error', (e) => console.error(`API nicht gestartet: ${text(e)}`));
   api.listen(port, '127.0.0.1', () => console.log(`API auf 127.0.0.1:${port}.`));
   // Abgelaufene Sitzungen löschen. Siehe docs/schnittstelle/anmeldung.md, „Sitzung“.

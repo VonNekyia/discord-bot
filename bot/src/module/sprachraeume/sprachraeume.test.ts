@@ -11,6 +11,7 @@ import { behalteNur, vergiss } from '../../kern/aufraeumen.js';
 import { ladeCache } from '../../kern/cache.js';
 import { migriere, oeffne, verbindung } from '../../kern/datenbank.js';
 import { Raeume } from './raeume.js';
+import { sprachraeumeBereich } from './seiten.js';
 import { hoechstens, liesSprachraeume, speichereSprachraeume, type Sprachraeume } from './sprachraeume.js';
 import {
   ANWENDUNG,
@@ -390,7 +391,7 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
         anwendung: ANWENDUNG,
         geheimnis: GEHEIMNIS,
         dashboard: DASHBOARD,
-        sprachraeume: { delete: (s) => geleert.push(s) },
+        bereiche: [sprachraeumeBereich({ db, sprachraeume: { delete: (s) => geleert.push(s) } })],
       });
       await new Promise<void>((fertig) => api.listen(0, '127.0.0.1', fertig));
       basis = `http://127.0.0.1:${(api.address() as AddressInfo).port}`;
@@ -406,48 +407,79 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
       mock.mitglieder.set(`${SERVER}/${TEAM}`, mitglied(TEAM, [ROLLE_TEAM]));
       return legeSitzungAn(db, { nutzer: TEAM, name: 'Team', avatar: null, server: [SERVER] });
     };
+    type Baustein = { art: string; id: string; optionen?: unknown[]; bausteine?: Baustein[] };
+    type Seite = { id: string; wert: unknown; bausteine: Baustein[]; fund: unknown };
+    const seite = async (kennung: string) => {
+      const antwort = await frage(basis, `/api/server/${SERVER}/seiten`, { sitzung: kennung });
+      assert.equal(antwort.status, 200);
+      const [erste] = (await antwort.json()) as Seite[];
+      assert.equal(erste?.id, 'sprachraeume');
+      return erste;
+    };
+    // Die Optionen einer Auswahl in der Liste der Erzeuger.
+    const optionen = (s: Seite | undefined, id: string) => s?.bausteine.find((b) => b.id === 'erzeuger')?.bausteine?.find((b) => b.id === id)?.optionen;
     const put = async (kennung: string, body: unknown) =>
-      frage(basis, `/api/server/${SERVER}/sprachraeume`, {
+      frage(basis, `/api/server/${SERVER}/seiten/sprachraeume`, {
         method: 'PUT',
         sitzung: kennung,
         headers: { origin: DASHBOARD, 'content-type': 'application/json' },
         body: typeof body === 'string' ? body : JSON.stringify(body),
       });
 
-    test('sprachkanaele liefert Sprachkanäle und Kategorien mit bereit; ein Recht in der Kategorie, das der Bot nicht hat, heisst nicht bereit', async () => {
-      const antwort = await frage(basis, `/api/server/${SERVER}/sprachkanaele`, { sitzung: await sitzung() });
-      assert.equal(antwort.status, 200);
+    test('die Seite bietet Sprachkanäle und Kategorien; ohne Recht gesperrt, auch für ein Recht in der Kategorie, das der Bot nicht hat', async () => {
+      const s = await seite(await sitzung());
+      assert.deepEqual(
+        s?.bausteine.map((b) => `${b.art}:${b.id}`),
+        ['schalter:an', 'liste:erzeuger'],
+      );
+      assert.deepEqual(
+        s?.bausteine[1]?.bausteine?.map((b) => `${b.art}:${b.id}`),
+        ['auswahl:kanal', 'auswahl:kategorie', 'text:name', 'zahl:limit'],
+      );
       const privatK = { id: K.privat, name: 'Privat' };
-      assert.deepEqual(await antwort.json(), {
-        sprachkanaele: [
-          { id: K.ohneKategorie, name: '➕ Offen', kategorie: null, bereit: true },
-          { id: K.erzeuger, name: '➕ Talk', kategorie: privatK, bereit: true },
-          { id: K.ohneVerschieben, name: 'Ohne', kategorie: privatK, bereit: false },
-          { id: K.erzeugerStream, name: '➕ Stream', kategorie: { id: K.stream, name: 'Stream' }, bereit: true },
-        ],
-        kategorien: [
-          { id: K.privat, name: 'Privat', bereit: true },
-          { id: K.stream, name: 'Stream', bereit: false },
-        ],
-        ohneKategorie: { bereit: true },
-      });
+      const fehlt = (code: string) => ({ grund: 'kitty fehlt ein Recht', code });
+      assert.deepEqual(optionen(s, 'kanal'), [
+        { id: K.ohneKategorie, name: '➕ Offen', gruppe: null, merkmale: [], gesperrt: null },
+        { id: K.erzeuger, name: '➕ Talk', gruppe: privatK, merkmale: [], gesperrt: null },
+        { id: K.ohneVerschieben, name: 'Ohne', gruppe: privatK, merkmale: [], gesperrt: fehlt('erzeuger_ohne_recht') },
+        { id: K.erzeugerStream, name: '➕ Stream', gruppe: { id: K.stream, name: 'Stream' }, merkmale: [], gesperrt: null },
+      ]);
+      assert.deepEqual(optionen(s, 'kategorie'), [
+        { id: K.privat, name: 'Privat', gruppe: null, merkmale: [], gesperrt: null },
+        { id: K.stream, name: 'Stream', gruppe: null, merkmale: [], gesperrt: fehlt('kategorie_ohne_recht') },
+      ]);
     });
 
-    test('sprachraeume liefert ohne Zeile die Standardwerte und speichert, was passt', async () => {
+    test('fehlt dem Bot ein Recht auf dem Server, steht oben ein Hinweis', async () => {
+      const kitty = guild.roles.cache.get(ROLLE_BOT) as unknown as { _patch(d: unknown): void };
+      kitty._patch({ permissions: String(botRechte & ~R.ManageChannels) });
+      try {
+        const s = await seite(await sitzung());
+        assert.deepEqual(
+          s?.bausteine.map((b) => `${b.art}:${b.id}`),
+          ['hinweis:rechte', 'schalter:an', 'liste:erzeuger'],
+        );
+      } finally {
+        kitty._patch({ permissions: String(botRechte) });
+      }
+      assert.equal((await seite(await sitzung()))?.bausteine[0]?.art, 'schalter');
+    });
+
+    test('die Seite liefert ohne Zeile die Standardwerte und speichert, was passt', async () => {
       const kennung = await sitzung();
-      const leer = await frage(basis, `/api/server/${SERVER}/sprachraeume`, { sitzung: kennung });
-      assert.deepEqual(await leer.json(), { an: false, erzeuger: [] });
+      const leer = await seite(kennung);
+      assert.deepEqual(leer?.wert, { an: false, erzeuger: [] });
+      assert.equal(leer?.fund, null);
       geleert.length = 0;
       const gut = { an: true, erzeuger: [{ kanal: K.erzeuger, kategorie: null, name: `${'x'.repeat(68)}{name}`, limit: 99 }] };
       const antwort = await put(kennung, { ...gut, fremd: 1 });
       assert.equal(antwort.status, 200);
-      assert.deepEqual(await antwort.json(), gut);
+      assert.deepEqual(await antwort.json(), { wert: gut, meldung: { titel: 'Gespeichert.', text: 'Wer den Erzeuger betritt, bekommt einen Raum.' } });
       assert.deepEqual(geleert, [SERVER]);
-      const gelesen = await frage(basis, `/api/server/${SERVER}/sprachraeume`, { sitzung: kennung });
-      assert.deepEqual(await gelesen.json(), gut);
+      assert.deepEqual((await seite(kennung))?.wert, gut);
     });
 
-    test('Räume stehen nicht in sprachkanaele und lassen sich nicht als Erzeuger speichern', async () => {
+    test('Räume stehen nicht unter den Optionen und lassen sich nicht als Erzeuger speichern', async () => {
       const raum = '880000000000000011';
       (client.channels as unknown as { _add(d: unknown, g: Guild): unknown })._add(
         { id: raum, type: ChannelType.GuildVoice, name: 'Mias Raum', position: 5, parent_id: null, permission_overwrites: [] },
@@ -455,11 +487,9 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
       );
       await db.query('INSERT INTO raeume (kanal, server, besitzer) VALUES ($1, $2, $3)', [raum, SERVER, BESITZER]);
       const kennung = await sitzung();
-      const liste = (await (await frage(basis, `/api/server/${SERVER}/sprachkanaele`, { sitzung: kennung })).json()) as {
-        sprachkanaele: { id: string }[];
-      };
-      assert.ok(liste.sprachkanaele.length > 0);
-      assert.ok(!liste.sprachkanaele.some((k) => k.id === raum));
+      const liste = (optionen(await seite(kennung), 'kanal') ?? []) as { id: string }[];
+      assert.ok(liste.length > 0);
+      assert.ok(!liste.some((k) => k.id === raum));
       const antwort = await put(kennung, { an: true, erzeuger: [{ kanal: raum, kategorie: null, name: 'Raum', limit: 0 }] });
       assert.deepEqual(await antwort.json(), { code: 'erzeuger_unbekannt', feld: 'erzeuger.0.kanal' });
     });
@@ -494,6 +524,12 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
         assert.deepEqual(await antwort.json(), { code, feld });
       }
       assert.equal(hoechstens(`${'x'.repeat(68)}{name}`), 100);
+    });
+
+    test('ein gespeicherter Erzeuger, der nicht mehr geht, steht als fund in der Seite', async () => {
+      const kennung = await sitzung();
+      await speichereSprachraeume(db, SERVER, { an: true, erzeuger: [{ kanal: K.erzeuger, kategorie: K.stream, name: 'Raum', limit: 0 }] });
+      assert.deepEqual((await seite(kennung))?.fund, { code: 'kategorie_ohne_recht', feld: 'erzeuger.0.kategorie' });
     });
   });
 });

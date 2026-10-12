@@ -131,7 +131,7 @@ Art zählt er die Ereignisse der letzten 10 s:
 - Ins Log kommen „Bremse an“ und „Bremse aus“ mit der Zahl, ohne IDs und
   Namen.
 - Testnachrichten aus dem Dashboard zählen nicht, siehe
-  [API des Dashboards](../schnittstelle/api.md), „Testnachricht“.
+  [API der Begrüssung](../schnittstelle/begruessung.md), „Testnachricht“.
 
 ## Wenn etwas fehlt
 

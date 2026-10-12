@@ -85,9 +85,11 @@ keinen Spitznamen.
 
 ## Testnachricht
 
-`POST …/test` ruft `sendeTest` in `bot/src/module/begruessung/senden.ts`, nachdem die API die
-Regeln aus [API des Dashboards](../schnittstelle/api.md), „Testnachricht“,
-und die Grenze je Server geprüft hat, siehe [API im Bot](dashboard-api.md).
+`POST …/seiten/{art}/test` ruft `loeseAus` in
+`bot/src/module/begruessung/seiten.ts`. Es prüft die Regeln aus
+[API der Begrüssung](../schnittstelle/begruessung.md), „Testnachricht“, und
+die Grenze je Server und ruft dann `sendeTest` in
+`bot/src/module/begruessung/senden.ts`, siehe [API im Bot](dashboard-api.md).
 `sendeTest` baut Text und Banner wie `begruesse`, mit der angemeldeten
 Person als Mitglied, und setzt die Zeile `testZeile` davor, ausser die
 Nachricht würde damit länger als 2000 Zeichen. `an` und die Bremse zählen

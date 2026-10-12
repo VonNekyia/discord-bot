@@ -126,11 +126,11 @@ am Feld steht. Das Backend prüft trotzdem.
 
 | Regel | wie | Quelle |
 |---|---|---|
-| kein NUL (`\0`) in Text und Text auf dem Banner | Fehler am Feld, vor der Länge; das Backend lehnt NUL als `ungueltig` ab, weil PostgreSQL es in Text nicht nimmt | `bot/src/module/begruessung/begruessung.ts`, `pruefe`; [API des Dashboards](../schnittstelle/api.md), „Einstellung speichern“ |
-| Länge von Text und Text auf dem Banner | jeder Platzhalter mit seinem längsten Wert, ein Zeichen ist eine UTF-16-Einheit; `web/src/kern/platzhalter.ts` | [API des Dashboards](../schnittstelle/api.md), „Einstellung speichern“; [Begrüssung](../benutzung/begruessung.md), „Platzhalter“ |
+| kein NUL (`\0`) in Text und Text auf dem Banner | Fehler am Feld, vor der Länge; das Backend lehnt NUL als `ungueltig` ab, weil PostgreSQL es in Text nicht nimmt | `bot/src/module/begruessung/begruessung.ts`, `pruefe`; [API der Begrüssung](../schnittstelle/begruessung.md), „Einstellung speichern“ |
+| Länge von Text und Text auf dem Banner | jeder Platzhalter mit seinem längsten Wert, ein Zeichen ist eine UTF-16-Einheit; `web/src/kern/platzhalter.ts` | [API der Begrüssung](../schnittstelle/begruessung.md), „Einstellung speichern“; [Begrüssung](../benutzung/begruessung.md), „Platzhalter“ |
 | Aktiv braucht einen Kanal | Fehler am Kanal | ebenda |
 | Aktiv braucht Text oder Banner | Meldung unter dem Knopf | ebenda |
-| Bild: Typ, Grösse, Pixel je Seite, lesbar | Typ und Grösse aus der Datei, Pixel mit `createImageBitmap` | [API des Dashboards](../schnittstelle/api.md), „Bild“ |
+| Bild: Typ, Grösse, Pixel je Seite, lesbar | Typ und Grösse aus der Datei, Pixel mit `createImageBitmap` | [API der Begrüssung](../schnittstelle/begruessung.md), „Bild“ |
 | Sprachräume, je Eintrag: Sprachkanal gewählt, bekannt, `bereit`, nicht doppelt; Kategorie bekannt und `bereit`, bei `null` die des Erzeugers oder `ohneKategorie`; Name ohne NUL, nicht leer, nicht zu lang (`{name}` mit 32 Zeichen); Limit ganze Zahl von 0 bis 99 | je Feld der erste Fehler am Eintrag, in der Reihenfolge des Backends; alle Einträge auf einmal | [API der Sprachräume](../schnittstelle/sprachraeume.md), „Sprachräume einstellen“ |
 | Sprachräume: Aktiv braucht einen Erzeuger | Meldung unter dem Knopf | ebenda |
 

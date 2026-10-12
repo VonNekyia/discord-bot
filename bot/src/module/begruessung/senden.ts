@@ -191,12 +191,12 @@ export async function begruesse(mitglied: Mitglied, art: Art, k: SendeKontext): 
 }
 
 // Die Zeile vor jeder Testnachricht, als Untertext in Discord.
-// Siehe docs/schnittstelle/api.md, „Testnachricht“.
+// Siehe docs/schnittstelle/begruessung.md, „Testnachricht“.
 export const testZeile = '-# Testnachricht aus dem Dashboard';
 
 // Schickt eine Testnachricht mit `mitglied` als Mitglied, ohne Ping, auch wenn
 // `an` aus ist. Die Regeln der API sind schon geprüft. Wirft, wenn nichts
-// gesendet wurde. Siehe docs/schnittstelle/api.md, „Testnachricht“.
+// gesendet wurde. Siehe docs/schnittstelle/begruessung.md, „Testnachricht“.
 export async function sendeTest(
   mitglied: GuildMember,
   art: Art,
