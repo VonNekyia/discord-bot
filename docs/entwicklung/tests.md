@@ -176,7 +176,7 @@ und prüft dort die Anmeldung und die eigenen Grenzen.
 | nach 60 Anfragen je Minute kommt 429 … | `Retry-After` 1 bis 60, die 61. Anfrage fragt Discord nicht; `sitzung` zählt eins mehr |
 | antwortet Discord nicht, gibt es 503 … | eine Logzeile mit dem Namen der Route, ohne ID |
 | seiten liefert Beitritt, Abschied und Sprachräume … | Reihenfolge der Seiten und ihrer Bausteine, die Vorschau daneben; Optionen des Kanals: ohne Kategorie zuerst, Kategorien und Kanäle nach Position, bei gleicher nach ID; ohne Sehen keine Option, ohne Anhängen kein Merkmal `banner` |
-| eine Seite liefert Standardwerte, speichert … | Standardwerte in `wert`, `PUT` mit `meldung`, wieder lesen |
+| eine Seite liefert Standardwerte, speichert … | Standardwerte in `wert`, `PUT` mit `meldung`, Cache der Einstellungen für den Server geleert, wieder lesen |
 | Speichern prüft Origin, Content-Type und Regeln | `403`, `415`, kaputtes JSON, Regeln mit Code und Feld |
 | ein Body über 16 KiB gibt 413, ohne ihn ganz zu lesen | `Content-Length` zu gross ohne Body; chunked ohne Ende; danach `Connection: close` |
 | verlässt der Bot einen Server, gehen Einstellungen und Bilder … | `vergiss` und `behalteNur` für beide Tabellen |

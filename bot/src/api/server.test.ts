@@ -476,9 +476,12 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
       });
       const neu = { an: true, kanal: K.willkommen, text: `{server}${'x'.repeat(1800)}`, banner: false, bannerText: 'Hallo {name}' };
       const kopf = { origin: DASHBOARD, 'content-type': 'application/json' };
+      geleert.length = 0;
       const antwort = await frage(basis, `/api/server/${SERVER}/seiten/abschied`, { method: 'PUT', sitzung: kennung, headers: kopf, body: JSON.stringify(neu) });
       assert.equal(antwort.status, 200);
       assert.deepEqual(await antwort.json(), { wert: { ...neu, bild: false }, meldung: gespeichert('kitty schreibt ab jetzt in #willkommen.') });
+      // Wer speichert, leert den Cache der Einstellungen für diesen Server.
+      assert.deepEqual(geleert, [SERVER]);
       assert.deepEqual((await seite(kennung, 'abschied'))?.wert, { ...neu, bild: false });
     });
 

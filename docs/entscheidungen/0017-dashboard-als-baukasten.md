@@ -72,6 +72,6 @@ Vertrag und dann in die Oberfläche, für alle Module.
   etwa „Aktiv braucht einen Kanal“, meldet jetzt der Bot nach dem
   Speichern, am selben Feld.
 - Das Dashboard hat höchstens 6 Tabs, siehe
-  [Design der Oberfläche](../frontend/design.md).
+  [Baukasten des Dashboards](../schnittstelle/baukasten.md), „Routen“.
 - Die PR des Backends entfernt die alten Routen; die alte Oberfläche geht
   damit nicht mehr. Die PR des Frontends wird direkt danach gemergt.
