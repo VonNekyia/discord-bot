@@ -25,6 +25,7 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 - [Anmeldung am Dashboard](schnittstelle/anmeldung.md): Discord-Login mit OAuth2, Sitzung und Cookie, Rechte, Origin, Umgebungsvariablen.
 - [API der Begrüssung](schnittstelle/begruessung.md): die Seiten Beitritt und Abschied, ihre Bausteine, Optionen des Kanals, Einstellung speichern, Bild und Vorschau, Testnachricht mit Grenze je Server.
 - [API der Sprachräume](schnittstelle/sprachraeume.md): die Seite Sprachräume, ihre Bausteine, Sprachkanäle und Kategorien mit `bereit`, Sprachräume einstellen, Codes.
+- [API der Debug-Seite](schnittstelle/debug.md): Anfragen an Discord je Route, 429, ungültige Anfragen, eigene Grenzen; eine feste Ansicht ausserhalb des Baukastens, nur für Eigentümer und Team der Anwendung, nie IDs oder Tokens.
 
 ## Bot
 

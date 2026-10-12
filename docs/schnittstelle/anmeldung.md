@@ -95,6 +95,10 @@ Jede solche Prüfung kostet einen Aufruf an Discord. Darum zählt jede Route
 mit `{id}` zur Grenze je Sitzung, siehe [API des Dashboards](api.md),
 „Grenzen je Sitzung“, und die Grenze wird vor den Rechten geprüft.
 
+`GET /api/debug` hängt an keinem Server. Dort zählt statt dessen, ob die
+Person der Anwendung gehört, siehe [API der Debug-Seite](debug.md), „Wer
+sie sehen darf“.
+
 ## Origin
 
 `PUT`, `POST` und `DELETE` brauchen den Header `Origin` gleich dem Origin

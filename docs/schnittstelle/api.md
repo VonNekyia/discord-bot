@@ -40,6 +40,7 @@ melden die Module als Seiten an, siehe [Baukasten des Dashboards](baukasten.md).
 | `GET /api/ich` | `200` `Ich` |
 | `GET /api/server` | `200` `Server[]` |
 | `… /api/server/{id}/seiten…` | siehe [Baukasten des Dashboards](baukasten.md), „Routen“ |
+| `GET /api/debug` | siehe [API der Debug-Seite](debug.md) |
 
 Jede Route mit `{id}` prüft zuerst die Rechte, siehe
 [Anmeldung am Dashboard](anmeldung.md), „Rechte“. Den Ablauf der beiden
@@ -49,11 +50,13 @@ Routen unter `/api/anmelden` beschreibt [Anmeldung am Dashboard](anmeldung.md),
 ## Typen
 
 ```ts
-type Ich = { id: string; name: string; avatar: string | null };
+type Ich = { id: string; name: string; avatar: string | null; debug: boolean };
 type Server = { id: string; name: string; icon: string | null };
 ```
 
 - `Ich.name` ist der Anzeigename bei Discord, sonst der Nutzername.
+- `Ich.debug` ist `true`, wenn die Person die Debug-Seite sehen darf,
+  siehe [API der Debug-Seite](debug.md), „Wer sie sehen darf“.
 - `avatar` und `icon` sind volle URLs unter `https://cdn.discordapp.com/`
   mit `size=128`, oder `null`. 128 px reichen für 56 px auf einem
   Bildschirm mit doppelter Dichte. Die Oberfläche nutzt die URL, wie sie
@@ -68,7 +71,7 @@ type Server = { id: string; name: string; icon: string | null };
 
 | Was | Höchstens | Warum |
 |---|---|---|
-| alle Routen mit `{id}` zusammen | 60 je Minute und Sitzung | jede prüft die Rechte mit einem Aufruf an Discord; eine Sitzung soll nicht das Budget des Bots verbrauchen, das er für Interaktionen braucht |
+| alle Routen mit `{id}` und `GET /api/debug` zusammen | 60 je Minute und Sitzung | jede prüft die Rechte mit einem Aufruf an Discord; eine Sitzung soll nicht das Budget des Bots verbrauchen, das er für Interaktionen braucht |
 | `PUT`, `GET` und `POST` auf einen Baustein, siehe [Baukasten](baukasten.md), „Routen“ | 20 je Minute und Sitzung | sie dekodieren oder zeichnen Bilder oder lösen etwas in Discord aus |
 
 Darüber `429` `zu_viele` mit `Retry-After` in Sekunden. Ein Aufruf zählt zu
@@ -89,7 +92,7 @@ selbst.
 |---|---|---|
 | `400` | `ungueltig` und die Codes der Module, siehe [API der Begrüssung](begruessung.md) und [API der Sprachräume](sprachraeume.md) | Eingabe ungültig, oder für eine Aktion fehlt etwas |
 | `401` | `nicht_angemeldet` | keine oder abgelaufene Sitzung; die Oberfläche zeigt die Anmeldung |
-| `403` | `kein_recht` | kein „Server verwalten“ auf diesem Server |
+| `403` | `kein_recht` | kein „Server verwalten“ auf diesem Server; bei `GET /api/debug` nicht Eigentümer der Anwendung und nicht in ihrem Team |
 | `403` | `origin_falsch` | `Origin` fehlt oder passt nicht |
 | `404` | `nicht_gefunden` | Route, Server, Seite oder Baustein unbekannt, oder der Bot ist nicht auf dem Server |
 | `413` | `zu_gross` | JSON-Body zu gross |
