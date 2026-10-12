@@ -137,8 +137,10 @@ type Baustein =
 Die Oberfläche baut die Bausteine einer Seite in ihrer Reihenfolge, nur
 `aktion` steht unter „Speichern“. Welches Element des Design-Guides zu
 welcher Art gehört, steht in [Dashboard](../frontend/dashboard.md). Eine
-Art, die die Oberfläche nicht kennt, zeigt sie als Warnung an ihrer
-Stelle.
+Art, die die Oberfläche nicht kennt, oder einen Baustein, der nicht zu
+seiner Beschreibung oben passt, zeigt sie als Warnung an seiner Stelle;
+die übrigen Bausteine der Seite bleiben. Passt der äussere Aufbau einer
+Seite nicht, gilt die ganze Antwort als `nicht_erreichbar`.
 
 ## Länge eines Texts
 
