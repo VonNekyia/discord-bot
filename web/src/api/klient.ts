@@ -2,7 +2,7 @@
 // Typen, Routen und Fehlercodes wie in docs/schnittstelle/api.md und
 // docs/schnittstelle/baukasten.md.
 
-export type Ich = { id: string; name: string; avatar: string | null };
+export type Ich = { id: string; name: string; avatar: string | null; debug: boolean };
 export type Server = { id: string; name: string; icon: string | null };
 
 // Der Baukasten. Siehe docs/schnittstelle/baukasten.md, „Typen“.
@@ -94,6 +94,27 @@ export type Seite = {
 
 // Ein Fehler der API mit Status, festem Code und, bei 400, dem Feld.
 // Ohne Antwort oder ohne Code im Body gilt nicht_erreichbar ab 500.
+// Die Debug-Seite, siehe docs/schnittstelle/debug.md, „Typen“.
+export type DebugRoute = {
+  methode: string;
+  route: string;
+  anfragen: number;
+  rateLimits: number;
+  limit: number | null;
+  remaining: number | null;
+  resetAfter: number | null;
+  zuletzt: string;
+};
+export type Debug = {
+  seit: string;
+  jetzt: string;
+  shards: number[];
+  routen: DebugRoute[];
+  rateLimits: { anzahl: number; global: number; scope: { user: number; global: number; shared: number } };
+  ungueltig: { letzte10min: number; warnung: number; grenze: number };
+  eigene: { name: string; gegriffen: number }[];
+};
+
 export class ApiFehler extends Error {
   constructor(
     readonly status: number,
@@ -130,6 +151,7 @@ export const api = {
     await senden('POST', '/api/abmelden');
   },
   server: async () => json<Server[]>(await senden('GET', '/api/server')),
+  debug: async () => json<Debug>(await senden('GET', '/api/debug')),
   seiten: async (id: string) => json<Seite[]>(await senden('GET', seiten(id))),
   speichern: async (id: string, seite: string, wert: Eintrag) =>
     json<{ wert: Eintrag; meldung: Satz }>(
