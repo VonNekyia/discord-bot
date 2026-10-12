@@ -154,7 +154,7 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
     await r.aenderung(guild, nutzer, vorher, kanalId);
   };
   const zeile = async (kanalId: string) => (await db.query('SELECT server, besitzer FROM raeume WHERE kanal = $1', [kanalId])).rows[0];
-  const sortiert = <T extends { id: string }>(liste: T[]) => [...liste].sort((a, b) => a.id.localeCompare(b.id));
+  const sortiert = <T extends { id: string }>(liste: T[]) => liste.toSorted((a, b) => a.id.localeCompare(b.id));
 
   test('ein Erzeuger legt den Raum mit den Einträgen der Kategorie, des Besitzers und des Bots in einem Aufruf an', async () => {
     await speichereSprachraeume(db, SERVER, standard);
@@ -194,7 +194,7 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
     );
     const knoepfe = reihen.flatMap((r) => r.components);
     assert.ok(knoepfe.every((k) => k.type === 2 && k.custom_id?.startsWith('sprachraum:')));
-    assert.deepEqual(knoepfe.map((k) => k.label).sort(), [
+    assert.deepEqual(knoepfe.map((k) => k.label).toSorted(), [
       'Bannen',
       'Besitz übergeben',
       'Entbannen',
@@ -230,7 +230,7 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
     assert.deepEqual(mock.angelegt[0]?.parent_id ?? null, null);
     assert.deepEqual(
       sortiert(mock.angelegt[0]?.permission_overwrites ?? []).map((e) => e.id),
-      [BESITZER, BOT].sort(),
+      [BESITZER, BOT].toSorted(),
     );
   });
 

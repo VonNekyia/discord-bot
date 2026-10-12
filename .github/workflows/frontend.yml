@@ -33,7 +33,15 @@ jobs:
 
       - run: npm ci
 
-      # tsc ist Build und Lint zugleich: strict und ohne Unbenutztes.
+      # Funde stehen als Anmerkung an ihrer Zeile in der PR; oxlint nennt
+      # Pfade ab web/, GitHub braucht sie ab der Wurzel.
+      # Siehe docs/entwicklung/lint.md, „Aufrufen“.
+      - name: Lint
+        timeout-minutes: 5
+        run: |
+          set -o pipefail
+          npm run lint --silent -- --format=github | sed 's|^\(::[a-z]* file=\)|\1web/|'
+
       - name: Build
         timeout-minutes: 5
         run: npm run build

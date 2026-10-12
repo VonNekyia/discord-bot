@@ -80,6 +80,7 @@ es ist kein Secret, die Datenbank lebt nur für den Lauf.
 
 | Schritt | Befehl | rot, wenn |
 |---|---|---|
+| Lint | `npm run lint -- --format=github` | oxlint einen Fehler findet oder mehr Warnungen als `maxWarnings`, siehe [Lint mit oxlint](lint.md) |
 | Build und Tests | `npm test` | `tsc` einen Fehler findet oder ein Test fällt, siehe [Tests](tests.md) |
 | Sicherheitslücken | `npm audit --omit=dev --audit-level=high` | eine Laufzeit-Abhängigkeit eine Lücke ab „high“ hat |
 | Lizenzen | `node ../.github/pruefe-lizenzen.mjs package-lock.json` | siehe unten |
@@ -91,6 +92,7 @@ Die Schwellen sind die der Website.
 
 | Schritt | Befehl | rot, wenn |
 |---|---|---|
+| Lint | wie beim Backend | wie beim Backend |
 | Build | `npm run build` | `tsc` einen Fehler findet |
 | Sicherheitslücken | `npm audit --omit=dev --audit-level=high` | eine Laufzeit-Abhängigkeit eine Lücke ab „high“ hat |
 | Lizenzen | wie beim Backend | siehe unten |

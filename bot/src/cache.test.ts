@@ -27,5 +27,5 @@ test('mehr als max Schlüssel verdrängen den ältesten', async () => {
   await cache.fetch('1');
   await cache.fetch('2');
   await cache.fetch('3');
-  assert.deepEqual([...cache.keys()].sort(), ['2', '3']);
+  assert.deepEqual([...cache.keys()].toSorted(), ['2', '3']);
 });

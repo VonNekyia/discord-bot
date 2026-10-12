@@ -46,6 +46,7 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 ## Entwicklung
 
 - [CI und Ablauf einer PR](entwicklung/ci.md): Ruleset von `main`, „Basis aktuell“, Rebase, die Prüfung der Doku, Backend, Frontend mit Lighthouse, Header, Lizenzen als SPDX-Ausdruck, Actions und Images fest an SHA und Digest.
+- [Lint mit oxlint](entwicklung/lint.md): `npm run lint`, die Regeln und warum, moderne Sprachmittel mit ES2025 im Bot und ES2024 im Web, Tests, Altlasten mit `maxWarnings`, eine Regel begründet abschalten.
 - [Updates mit Renovate](entwicklung/renovate.md): was Renovate wann aktualisiert, Automerge für Minor, Patch und Digest, Bewertung durch den Orchestrator, Konflikte, Labels, Einrichten.
 - [Tests](entwicklung/tests.md): `node --test`, die gemockte Discord-API, was abgedeckt ist, Tests gegen PostgreSQL.
 
@@ -53,7 +54,7 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 
 - [0001: Nur PRs mit aktueller Basis auf main](entscheidungen/0001-nur-prs-mit-aktueller-basis.md): Ruleset ohne Ausnahme, Check im Modus strict, keine Pflicht-Freigabe.
 - [0002: Der Bot in TypeScript mit discord.js](entscheidungen/0002-typescript-mit-discord-js.md): Node 24, discord.js als einzige Laufzeit-Abhängigkeit, `--env-file` statt dotenv; teilweise abgelöst durch 0006 und 0007.
-- [0003: Nur tsc und node:test als Werkzeuge](entscheidungen/0003-tsc-und-node-test.md): `tsc` als Lint, kein ESLint, Prettier, Jest oder Vitest; teilweise abgelöst durch 0007.
+- [0003: Nur tsc und node:test als Werkzeuge](entscheidungen/0003-tsc-und-node-test.md): `tsc` als Lint, kein ESLint, Prettier, Jest oder Vitest; teilweise abgelöst durch 0007 und 0014.
 - [0004: Die Oberfläche ohne Bundler](entscheidungen/0004-frontend-ohne-bundler.md): statisches HTML mit `tsc`, eigener kleiner Server für die Header, Vite erst bei Paketen.
 - [0005: MariaDB über mysql2 mit eingebautem Pool](entscheidungen/0005-mysql2-mit-eingebautem-pool.md): `mysql2` statt des LGPL-Connectors, kein eigenes Pool-Paket, kein ORM. Abgelöst durch 0007.
 - [0006: lru-cache als Cache](entscheidungen/0006-lru-cache.md): Grösse, Ablaufzeit, Laden bei Bedarf; keine eigene Map, kein Redis.
@@ -64,3 +65,4 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 - [0011: Sprachräume mit Knöpfen statt Befehlen](entscheidungen/0011-sprachraeume-mit-knoepfen.md): Erzeuger, ein Menü im Textchat jedes Raums, Zustand in den Rechten des Kanals, nur der Besitzer in PostgreSQL; keine Slash-Befehle, kein gemeinsamer Menü-Kanal.
 - [0012: Actions und Images in der CI fest an Commit und Digest](entscheidungen/0012-actions-und-images-fest.md): voller Commit-SHA je Action, Digest für PostgreSQL, `persist-credentials: false`; keine Tags; teilweise abgelöst durch 0013.
 - [0013: Updates mit Renovate](entscheidungen/0013-renovate.md): Renovate als GitHub-App, wöchentlich, npm erst nach 3 Tagen; Automerge für Minor, Patch und Digest stabiler Pakete, alles andere bewertet der Orchestrator, ein Konflikt wird ein Issue für den Maintainer; nicht Dependabot, kein Automerge für Hauptversionen.
+- [0014: oxlint als Linter, moderne Sprachmittel](entscheidungen/0014-oxlint-und-moderne-sprachmittel.md): oxlint mit typbasierten Regeln über TypeScript 7, Altlasten als Warnung mit Obergrenze, ES2025 im Bot, ES2024 im Web; kein ESLint, kein Biome.

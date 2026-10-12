@@ -24,8 +24,8 @@ description: Fügt dem Bot einen Slash-Befehl hinzu oder ändert einen, mit Test
    Der Test fällt, wenn der Befehl fehlt.
 6. **Doku:** eine Zeile in der Tabelle auf der Seite Befehle; Skill
    `doku-pflegen`.
-7. **Prüfen:** `npm test` in `bot/`, `bash .github/pruefe-doku.sh` in der
-   Wurzel.
+7. **Prüfen:** `npm run lint` und `npm test` in `bot/`,
+   `bash .github/pruefe-doku.sh` in der Wurzel.
 8. **Ausprobieren** nur mit dem Test-Bot auf dem Test-Server, siehe
    [Einrichtung und Betrieb](../../docs/benutzung/einrichtung.md).
 

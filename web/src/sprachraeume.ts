@@ -193,13 +193,13 @@ export class SprachraeumeFormular {
 
   // Nummern, Orte, Zähler, gesperrte Optionen und der Knopf zum Hinzufügen.
   private aktualisieren(): void {
-    const gewaehlt = this.eintraege.map((e) => e.kanal.value);
+    const gewaehlt = new Set(this.eintraege.map((e) => e.kanal.value));
     for (const [i, eintrag] of this.eintraege.entries()) {
       const sprachkanal = this.daten.sprachkanaele.find((k) => k.id === eintrag.kanal.value);
       eintrag.kopf.textContent = sprachkanal ? `Erzeuger ${i + 1} · ${sprachkanal.name}` : `Erzeuger ${i + 1}`;
       for (const option of eintrag.kanal.querySelectorAll<HTMLOptionElement>('option[data-name]')) {
         const k = this.daten.sprachkanaele.find((x) => x.id === option.value);
-        const woanders = option.value !== eintrag.kanal.value && gewaehlt.includes(option.value);
+        const woanders = option.value !== eintrag.kanal.value && gewaehlt.has(option.value);
         option.disabled = !k?.bereit || woanders;
         option.textContent = !k?.bereit ? `${option.dataset.name} – kitty fehlt ein Recht` : woanders ? `${option.dataset.name} – schon gewählt` : (option.dataset.name ?? '');
       }

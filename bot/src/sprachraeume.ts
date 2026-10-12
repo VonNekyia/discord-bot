@@ -42,7 +42,7 @@ export function liste(guild: Guild, raeume: ReadonlySet<string> = new Set()): Li
     if (kanal.type === ChannelType.GuildVoice && !raeume.has(kanal.id)) sprachkanaele.push(kanal);
   }
   const alleKategorien = [...guild.channels.cache.values()].filter((k): k is CategoryChannel => k.type === ChannelType.GuildCategory);
-  for (const kategorie of alleKategorien.sort(vergleiche)) {
+  for (const kategorie of alleKategorien.toSorted(vergleiche)) {
     kategorien.push({ id: kategorie.id, name: kategorie.name, bereit: Boolean(ich && server && kategorieBereit(kategorie, ohneKategorie)) });
   }
   return {
@@ -73,12 +73,18 @@ export function hoechstens(vorlage: string): number {
 
 export type Geprueft = { sprachraeume: Sprachraeume } | { code: string; feld: string };
 
+function istObjekt(x: unknown): x is Record<string, unknown> {
+  return typeof x === 'object' && x !== null && !Array.isArray(x);
+}
+
+function ohneNul(x: unknown): boolean {
+  return typeof x === 'string' && !x.includes('\0');
+}
+
 // Prüft Regel für Regel in der Reihenfolge der Tabelle; bei den Erzeugern je
 // Regel alle Einträge der Reihe nach. Siehe docs/schnittstelle/sprachraeume.md,
 // „Sprachräume einstellen“.
 export function pruefe(eingabe: unknown, l: Liste): Geprueft {
-  const istObjekt = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
-  const ohneNul = (x: unknown) => typeof x === 'string' && !x.includes('\0');
   if (!istObjekt(eingabe) || typeof eingabe.an !== 'boolean') return { code: 'ungueltig', feld: 'an' };
   if (!Array.isArray(eingabe.erzeuger)) return { code: 'ungueltig', feld: 'erzeuger' };
   const roh: unknown[] = eingabe.erzeuger;

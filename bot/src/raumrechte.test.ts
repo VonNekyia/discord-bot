@@ -41,7 +41,7 @@ const raum = (eintraege: Eintrag[] = start, k: Eintrag[] = kategorie): Raum => (
   besitzer: BESITZER,
   bot: BOT,
 });
-const sortiert = (liste: Eintrag[]) => [...liste].sort((a, b) => a.id.localeCompare(b.id));
+const sortiert = (liste: Eintrag[]) => liste.toSorted((a, b) => a.id.localeCompare(b.id));
 const von = (liste: Eintrag[], id: string) => liste.find((x) => x.id === id);
 
 describe('Rechte im Raum', () => {

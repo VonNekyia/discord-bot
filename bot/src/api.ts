@@ -165,7 +165,10 @@ function liesBody(req: IncomingMessage, grenze: number, code = 'zu_gross'): Prom
     let groesse = 0;
     const daten = (teil: Buffer) => {
       groesse += teil.length;
-      if (groesse <= grenze) return void teile.push(teil);
+      if (groesse <= grenze) {
+        teile.push(teil);
+        return;
+      }
       req.off('data', daten).off('end', ende).pause();
       scheitern(new ApiFehler(413, code));
     };
@@ -321,7 +324,7 @@ export function erstelleApi(o: ApiOptionen): Server {
           .map((id) => o.client.guilds.cache.get(id))
           .filter((guild): guild is Guild => guild?.available === true)
           .map((guild) => ({ id: guild.id, name: guild.name, icon: guild.iconURL({ size: 128 }) }))
-          .sort((x, y) => sortierer.compare(x.name, y.name));
+          .toSorted((x, y) => sortierer.compare(x.name, y.name));
         json(a, 200, liste);
       },
     },

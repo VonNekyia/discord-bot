@@ -26,6 +26,7 @@ cd bot
 cp .env.example .env
 docker compose up -d
 npm ci
+npm run lint
 npm test
 npm start
 ```
@@ -38,6 +39,7 @@ Die Oberfläche:
 ```bash
 cd web
 npm ci
+npm run lint
 npm run build
 npm run serve
 ```

@@ -6,14 +6,14 @@ import { grenzeBanner, grenzeText, laengeImBanner, laengeImText } from './platzh
 import { meldung, satz, type Satz } from './texte.js';
 
 const artName: Record<Art, string> = { beitritt: 'Beitritt', abschied: 'Abschied' };
-const bildTypen = ['image/png', 'image/jpeg', 'image/webp'];
+const bildTypen = new Set(['image/png', 'image/jpeg', 'image/webp']);
 const bildGroesse = 4 * 1024 * 1024;
 type Feld = 'kanal' | 'text' | 'bild' | 'bannerText';
 
 // Prüft ein Bild vor dem Hochladen wie das Backend; gibt den Code des ersten Fehlers zurück.
 // Siehe docs/schnittstelle/api.md, „Bild“.
 async function bildPruefen(datei: File): Promise<string | null> {
-  if (!bildTypen.includes(datei.type)) return 'bildtyp';
+  if (!bildTypen.has(datei.type)) return 'bildtyp';
   if (datei.size > bildGroesse) return 'bild_zu_gross';
   let bild: ImageBitmap;
   try {

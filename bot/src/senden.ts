@@ -3,9 +3,7 @@ import {
   PermissionFlagsBits,
   type Guild,
   type GuildMember,
-  type NewsChannel,
   type PartialGuildMember,
-  type TextChannel,
 } from 'discord.js';
 import type { Pool } from 'pg';
 import { holeAvatar, zeichne } from './banner.js';
@@ -59,7 +57,7 @@ function textkanal(guild: Guild, id: string) {
   if (!ich || (kanal?.type !== ChannelType.GuildText && kanal?.type !== ChannelType.GuildAnnouncement)) return undefined;
   const rechte = kanal.permissionsFor(ich);
   if (!rechte.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) return undefined;
-  return { kanal: kanal as TextChannel | NewsChannel, anhaengen: rechte.has(PermissionFlagsBits.AttachFiles) };
+  return { kanal, anhaengen: rechte.has(PermissionFlagsBits.AttachFiles) };
 }
 
 // Das Banner für ein Mitglied; undefined ohne gespeichertes Bild.

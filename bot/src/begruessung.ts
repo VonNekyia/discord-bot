@@ -78,7 +78,7 @@ export interface Werte {
 // keins davon als Markdown, als Erwähnung oder als Emoji; jedes Zeichen wird
 // höchstens doppelt so lang. Siehe docs/benutzung/begruessung.md, „Platzhalter“.
 export function maskiere(text: string): string {
-  return text.replace(/[!-/:-@[-`{-~]/g, '\\$&');
+  return text.replaceAll(/[!-/:-@[-`{-~]/g, '\\$&');
 }
 
 // Ersetzt die Platzhalter in einem Durchgang; ein eingesetzter Wert wird
@@ -92,7 +92,7 @@ export function ersetze(vorlage: string, w: Werte, wo: 'text' | 'banner'): strin
     '{server}': imText ? maskiere(w.server) : w.server,
     '{anzahl}': String(w.anzahl),
   };
-  return vorlage.replace(/\{(?:nutzer|name|server|anzahl)\}/g, (platzhalter) => werte[platzhalter] ?? platzhalter);
+  return vorlage.replaceAll(/\{(?:nutzer|name|server|anzahl)\}/g, (platzhalter) => werte[platzhalter] ?? platzhalter);
 }
 
 interface Zeile {

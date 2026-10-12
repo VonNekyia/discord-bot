@@ -1,4 +1,4 @@
-import { MessageFlags, REST, Routes, SlashCommandBuilder, type ChatInputCommandInteraction } from 'discord.js';
+import { MessageFlags, Routes, SlashCommandBuilder, type ChatInputCommandInteraction, type REST } from 'discord.js';
 import type { Pool } from 'pg';
 import { misse } from './datenbank.js';
 
