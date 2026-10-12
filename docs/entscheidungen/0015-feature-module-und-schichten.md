@@ -3,7 +3,7 @@ title: "0015: Feature-Module und eigene Schichten"
 description: Warum bot/ und web/ in Feature-Module und Schichten geteilt sind, mit einer eigenen Schicht über discord.js und der API als einziger Verbindung zum Bot, und warum der Umbau in Stufen geht.
 status: gilt
 date: 2026-10-12
-issues: []
+issues: [28]
 code:
   - bot/.oxlintrc.json
   - web/.oxlintrc.json
