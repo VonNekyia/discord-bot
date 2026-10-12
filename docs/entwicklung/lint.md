@@ -112,7 +112,7 @@ Stand 2026-10-12:
 | Paket | Regel | Funde | wo |
 |---|---|---|---|
 | `bot/` | `no-non-null-assertion` | 30 | `api/server.ts`: `a.sitzung!` und `a.server!` in den Routen |
-| `bot/` | `no-unsafe-type-assertion` | 15 | Antworten von Discord in `api/anmeldung.ts`, Pfadteile wie `a.teile[2] as Art` in `api/server.ts`, `custom_id` in `module/sprachraeume/knoepfe.ts`, Zeilen der Datenbank |
+| `bot/` | `no-unsafe-type-assertion` | 11 | Pfadteile wie `a.teile[2] as Art` in `api/server.ts`, `custom_id` in `module/sprachraeume/knoepfe.ts`, Zeilen der Datenbank |
 | `web/` | `no-unsafe-type-assertion` | 22 | `querySelector(…) as T` und Antworten der API |
 | `web/` | `no-unnecessary-type-parameters` | 4 | die Helfer `finde` und `element` |
 | `web/` | `no-new` | 2 | Formulare, die sich im Konstruktor selbst anhängen |

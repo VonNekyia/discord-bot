@@ -7,6 +7,7 @@ import { bereiteVor, masse } from './banner.js';
 import { lese, speichere, speichereBild, standard, type Art, type Einstellung } from './begruessung.js';
 import { ladeCache } from '../../kern/cache.js';
 import { migriere, oeffne, verbindung } from '../../kern/datenbank.js';
+import { Zaehlung } from '../../kern/zaehlung.js';
 import { begruesse, Bremse, erstelleBremse, Plaetze, zusammenfassung } from './senden.js';
 import { ChannelType, discordClient, gilde, kanal, mitglied, mockDiscord, pngBild, R, schliesse, type MockDiscord } from '../../testhilfe.js';
 
@@ -221,8 +222,11 @@ describe('Senden bei Beitritt und Abschied', { skip: ziel ? false : 'keine Daten
     const zeilen = alleZeilen(t);
     await stelle('beitritt', { an: true, kanal: K.gruss, text: 'Hallo {nutzer}', banner: true });
     await speichereBild(db, SERVER, 'beitritt', await bereiteVor(pngBild(400, 300)));
-    const k = mitBremse();
+    const zaehlung = new Zaehlung({ log: () => {} });
+    const k = { ...mitBremse(), zaehlung };
     for (let i = 0; i < 7; i++) await begruesse(neu({ global_name: `Gast ${i}` }), 'beitritt', k);
+    // Die Bremse greift einmal, nicht je gezähltem Beitritt.
+    assert.equal(zaehlung.stand([0]).eigene.find((e) => e.name === 'bremse')?.gegriffen, 1);
     assert.equal(mock.nachrichten.length, 5);
     assert.ok(mock.nachrichten.every((n) => n.dateien.length === 1));
 

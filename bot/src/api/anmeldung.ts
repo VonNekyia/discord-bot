@@ -1,6 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { PermissionFlagsBits } from 'discord.js';
 import type { Pool } from 'pg';
+import type { OAuthFrage } from '../discord/oauth.js';
 
 // Wie lange das Cookie `anmeldung` gilt, in Sekunden.
 // Siehe docs/schnittstelle/anmeldung.md, „Ablauf“.
@@ -9,10 +10,10 @@ export const anmeldeFrist = 10 * 60;
 // Siehe docs/schnittstelle/anmeldung.md, „Sitzung“.
 export const laufzeit = 7 * 24 * 60 * 60;
 
-// Was der Bot für OAuth2 von Discord braucht. `discord` ist die Basis der
-// REST-API, in Tests die gemockte.
+// Was der Bot für OAuth2 von Discord braucht. `frage` schickt die Aufrufe,
+// im Bot über `@discordjs/rest` (`oauthUeber` in `bot/src/discord/oauth.ts`).
 export interface OAuth {
-  discord: string;
+  frage: OAuthFrage;
   anwendung: string;
   geheimnis: string;
   zurueck: string;
@@ -49,65 +50,66 @@ export function zuDiscord(o: OAuth, state: string): string {
   return ziel.href;
 }
 
-// Ruft Discord auf. Ein Fehler nennt nur den Schritt und den Status, nie
-// den Body der Antwort, den Code oder den Token.
-async function frage(schritt: string, url: string, init: RequestInit): Promise<Response> {
-  let antwort: Response;
-  try {
-    antwort = await fetch(url, { ...init, signal: AbortSignal.timeout(10_000) });
-  } catch (fehler) {
-    throw new Error(`${schritt}: ${fehler instanceof Error ? fehler.message : String(fehler)}`, { cause: fehler });
-  }
-  if (!antwort.ok) throw new Error(`${schritt}: Discord antwortet ${antwort.status}`);
-  return antwort;
+// Ein Feld aus einer Antwort von Discord, ohne Annahme über ihre Form.
+function feld(wert: unknown, name: string): unknown {
+  if (typeof wert !== 'object' || wert === null) return undefined;
+  const inhalt: unknown = Reflect.get(wert, name);
+  return inhalt;
 }
 
-function anwendungsKopf(o: OAuth): Record<string, string> {
-  return { authorization: `Basic ${Buffer.from(`${o.anwendung}:${o.geheimnis}`).toString('base64')}` };
+function anwendungsKopf(o: OAuth): string {
+  return `Basic ${Buffer.from(`${o.anwendung}:${o.geheimnis}`).toString('base64')}`;
 }
 
 // Tauscht den Code gegen einen Access Token.
 export async function tausche(o: OAuth, code: string): Promise<string> {
-  const antwort = await frage('Tausch', `${o.discord}/oauth2/token`, {
-    method: 'POST',
-    headers: anwendungsKopf(o),
-    body: new URLSearchParams({ grant_type: 'authorization_code', code, redirect_uri: o.zurueck }),
+  const antwort = await o.frage({
+    schritt: 'Tausch',
+    methode: 'POST',
+    pfad: '/oauth2/token',
+    kopf: anwendungsKopf(o),
+    form: { grant_type: 'authorization_code', code, redirect_uri: o.zurueck },
   });
-  const { access_token: token } = (await antwort.json()) as { access_token?: unknown };
+  const token = feld(antwort, 'access_token');
   if (typeof token !== 'string') throw new Error('Tausch: kein Token in der Antwort');
   return token;
 }
 
 export async function widerrufe(o: OAuth, token: string): Promise<void> {
-  await frage('Widerruf', `${o.discord}/oauth2/token/revoke`, {
-    method: 'POST',
-    headers: anwendungsKopf(o),
-    body: new URLSearchParams({ token, token_type_hint: 'access_token' }),
+  await o.frage({
+    schritt: 'Widerruf',
+    methode: 'POST',
+    pfad: '/oauth2/token/revoke',
+    kopf: anwendungsKopf(o),
+    form: { token, token_type_hint: 'access_token' },
   });
 }
 
 // Person und die Server, die sie verwalten darf: Eigentümer, „Server
 // verwalten“ oder „Administrator“. Siehe docs/schnittstelle/anmeldung.md, „Ablauf“.
 export async function liesPerson(o: OAuth, token: string): Promise<Omit<Sitzung, 'kennung'>> {
-  const kopf = { authorization: `Bearer ${token}` };
-  const ich = (await (await frage('Person', `${o.discord}/users/@me`, { headers: kopf })).json()) as {
-    id?: unknown;
-    username?: unknown;
-    global_name?: unknown;
-    avatar?: unknown;
-  };
-  if (typeof ich.id !== 'string' || typeof ich.username !== 'string') throw new Error('Person: Antwort unvollständig');
-  const liste = (await (await frage('Server', `${o.discord}/users/@me/guilds`, { headers: kopf })).json()) as unknown;
+  const kopf = `Bearer ${token}`;
+  const ich = await o.frage({ schritt: 'Person', methode: 'GET', pfad: '/users/@me', kopf });
+  const id = feld(ich, 'id');
+  const nutzername = feld(ich, 'username');
+  if (typeof id !== 'string' || typeof nutzername !== 'string') throw new Error('Person: Antwort unvollständig');
+  const liste = await o.frage({ schritt: 'Server', methode: 'GET', pfad: '/users/@me/guilds', kopf });
   if (!Array.isArray(liste)) throw new Error('Server: Antwort ist keine Liste');
   const verwalten = PermissionFlagsBits.ManageGuild | PermissionFlagsBits.Administrator;
-  const server = (liste as { id?: unknown; owner?: unknown; permissions?: unknown }[])
-    .filter((s) => typeof s.id === 'string' && /^\d{1,20}$/.test(s.id))
-    .filter((s) => s.owner === true || (typeof s.permissions === 'string' && (BigInt(s.permissions) & verwalten) !== 0n))
-    .map((s) => s.id as string);
+  const server: string[] = [];
+  const eintraege: unknown[] = liste;
+  for (const s of eintraege) {
+    const serverId = feld(s, 'id');
+    const rechte = feld(s, 'permissions');
+    if (typeof serverId !== 'string' || !/^\d{1,20}$/.test(serverId)) continue;
+    if (feld(s, 'owner') === true || (typeof rechte === 'string' && (BigInt(rechte) & verwalten) !== 0n)) server.push(serverId);
+  }
+  const globalerName = feld(ich, 'global_name');
+  const avatar = feld(ich, 'avatar');
   return {
-    nutzer: ich.id,
-    name: typeof ich.global_name === 'string' ? ich.global_name : ich.username,
-    avatar: typeof ich.avatar === 'string' ? ich.avatar : null,
+    nutzer: id,
+    name: typeof globalerName === 'string' ? globalerName : nutzername,
+    avatar: typeof avatar === 'string' ? avatar : null,
     server,
   };
 }

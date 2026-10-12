@@ -8,6 +8,7 @@ import {
 import type { Pool } from 'pg';
 import { holeAvatar, zeichne } from './banner.js';
 import { text as fehlertext } from '../../kern/fehler.js';
+import type { Zaehlung } from '../../kern/zaehlung.js';
 import { ersetze, liesBild, type Art, type Einstellung, type Werte } from './begruessung.js';
 
 type Mitglied = GuildMember | PartialGuildMember;
@@ -19,6 +20,8 @@ export interface SendeKontext {
   einstellungen: { fetch(server: string): Promise<Record<Art, Einstellung> | undefined> };
   avatar?: (url: string) => Promise<Buffer | undefined>;
   bremse?: Bremse<{ guild: Guild; art: Art }>;
+  // Zählt, wie oft die Bremse greift. Siehe docs/bot/rate-limits.md, „Eigene Grenzen“.
+  zaehlung?: Pick<Zaehlung, 'griff'>;
 }
 
 // Lässt höchstens `anzahl` Aufgaben zugleich laufen; weitere warten der Reihe nach.
@@ -150,7 +153,10 @@ export async function begruesse(mitglied: Mitglied, art: Art, k: SendeKontext): 
   if (!e?.an || !e.kanal) return;
   // Die Bremse zählt erst hier, also nur, solange die Art an ist.
   const stand = k.bremse?.zaehle(`${guild.id}/${art}`, { guild, art }) ?? 'einzeln';
-  if (stand === 'an') console.log(`Begrüssung ${art}: Bremse an.`);
+  if (stand === 'an') {
+    console.log(`Begrüssung ${art}: Bremse an.`);
+    k.zaehlung?.griff('bremse');
+  }
   if (stand !== 'einzeln') return;
 
   const ziel = textkanal(guild, e.kanal);

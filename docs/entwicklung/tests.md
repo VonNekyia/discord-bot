@@ -14,6 +14,9 @@ code:
   - bot/src/module/sprachraeume/sprachraeume.test.ts
   - bot/src/module/sprachraeume/knoepfe.test.ts
   - bot/src/module/sprachraeume/raumrechte.test.ts
+  - bot/src/kern/zaehlung.test.ts
+  - bot/src/discord/zaehlen.test.ts
+  - bot/src/discord/oauth.test.ts
   - bot/package.json
   - .github/workflows/backend.yml
 ---
@@ -29,8 +32,11 @@ cd bot
 npm test
 ```
 
-`npm test` baut mit `tsc` nach `bot/dist/` und startet
-`node --test dist/**/*.test.js`. Gibt es `bot/.env`, liest `npm test` sie mit
+`npm test` baut mit `npm run build` nach `bot/dist/` und startet
+`node --test dist/**/*.test.js`. `build` leert `bot/dist/` vorher mit
+`fs.rmSync` aus Node, ohne `rm`, damit es auch unter Windows geht: `tsc`
+löscht keine alten Ausgaben, und eine Testdatei, die es in `src/` nicht
+mehr gibt, liefe sonst mit. Gibt es `bot/.env`, liest `npm test` sie mit
 `--env-file-if-exists`; kein Test gibt die Umgebung aus.
 
 ## Die gemockte API
@@ -66,7 +72,9 @@ Bremse ohne Netz, mit `t.mock.timers`. Beide nutzen
   Verschiebung, Löschung und Antwort; je Test lässt sich die Antwort für
   Person und Mitglieder ändern, Anlegen, Ändern, Verschieben und Senden
   können mit einem Code von Discord scheitern, und Umbenennen kann mit 429
-  und `Retry-After` antworten.
+  und `Retry-After` antworten. Mit `tauschWarten` antwortet
+  `POST /oauth2/token` mit 429 und den Sekunden in `Retry-After`, einmal je
+  Eintrag.
 - `bot/src/module/sprachraeume/sprachraeume.test.ts` setzt Voice States über den Cache von
   discord.js, wie Discord sie meldet, und ruft dann `Raeume#aenderung`.
   Es nutzt einen eigenen Server und eine eigene Person, weil die
@@ -97,6 +105,17 @@ der Test mit der Action `ChannelUpdate`, wer drin ist, über die Voice
 States. Die Datei nutzt einen eigenen Server und eigene Personen.
 `bot/src/module/sprachraeume/raumrechte.test.ts` prüft die Rechnung der Rechte ohne Discord.
 
+## Rate-Limits zählen
+
+`bot/src/kern/zaehlung.test.ts` prüft `Zaehlung` und `route` ohne Netz;
+das Fenster von 10 min und die Warnung mit `t.mock.timers` und falschem
+`Date`. `bot/src/discord/zaehlen.test.ts` und `bot/src/discord/oauth.test.ts`
+starten je Test einen kleinen `node:http`-Server, der je Pfad zuerst ein
+429 mit den Headern des Tests schickt, nie antwortet oder immer 429 gibt,
+und hängen `zaehleAnfragen` oder `oauthUeber` an den REST eines Clients
+aus `erstelleClient`. `bot/src/api/server.test.ts` zählt wie im Bot mit
+und prüft dort die Anmeldung und die eigenen Grenzen.
+
 ## Was abgedeckt ist
 
 | Test | prüft |
@@ -118,6 +137,17 @@ States. Die Datei nutzt einen eigenen Server und eigene Personen.
 | der Pool überlebt, wenn die Datenbank eine freie Verbindung trennt | PostgreSQL: `pg_terminate_backend`; genau eine Logzeile `Datenbank: …`, die nächste Anfrage geht |
 | misse misst eine Anfrage an die Datenbank | PostgreSQL: `SELECT 1` |
 | der Cache hält Mitglieder und Nutzer nur für den Bot selbst | `erstelleClient`: nach `GUILD_CREATE` mit drei Mitgliedern nur der Bot in beiden Caches |
+| ein 429 mit Headern gibt genau eine Logzeile ohne ID und Token … | gegen den Mock: zuerst 429 mit `Limit`, `Remaining`, `Reset-After`, dann 200; genau eine Zeile `Rate-Limit: 429 bei POST /channels/:id/messages, …`; zwei Anfragen, ein 429, die Header der letzten Antwort, `user`, ein ungültiger |
+| Tokens von Interaktionen und Webhooks stehen weder im Stand noch im Log … | Callback mit 429 `shared`, `@original` mit 429 `global`: Routen mit `:token`, `global` 1, `shared` zählt nicht als ungültig; kein Token und keine ID in Stand und Log |
+| ein Aufruf trägt den eigenen Authorization-Header, nicht den Token des Bots | `oauthUeber`: alle rohen Header `Authorization` der Anfrage, nur `Bearer` der Person |
+| antwortet Discord nicht, scheitert der Aufruf nach der Frist | Frist 200 ms: „Person: Frist abgelaufen“ |
+| die Frist gilt auch, während @discordjs/rest ein Retry-After abwartet | 429 mit `Retry-After: 1`, Frist 200 ms: Fehler vor 900 ms, eine Anfrage |
+| Route ohne IDs und Tokens | `route`: Zahlen, Tokens nach `webhooks` und `interactions`, `%40original`, Query, unbekannte Segmente |
+| ohne Antworten: alle vier eigenen Grenzen mit 0 … | `stand` mit falscher Uhr: `seit`, `jetzt`, leere Routen, `warnung` 1000, `grenze` 10000 |
+| je Methode und Route: Anfragen, 429, die letzten Header … | Methode gross, nach Anfragen sortiert, `global` und Scopes, `griff`; ein Stand ändert sich danach nicht |
+| ungültig sind 401, 403 und 429, nicht 429 mit Scope shared … | 404 und 500 zählen nicht; nach 10 min − 1 ms noch drei, nach 10 min keiner |
+| die Warnung kommt einmal beim Erreichen von 1000 … | 999 ohne, die 1000. mit genau einer Zeile, 500 weitere ohne; nach 10 min und wieder 1000 die zweite |
+| je 429 genau eine Logzeile … | Webhook mit Token: die Zeile mit `:token`, kein Token im Stand |
 | nur PATCH /channels/:id wartet nicht auf ein Rate-Limit … | je Route zuerst 429 mit `Retry-After: 0`: `PATCH /channels/:id` wirft `RateLimitError` ohne zweiten Versuch, `POST /channels/:id/messages` und `DELETE /channels/:id` versuchen es noch einmal |
 | hoechstens rechnet jeden Platzhalter … | längste Werte im Text und im Banner, Emoji zählt zwei |
 | der Text darf mit den längsten Werten genau 2000 Zeichen haben … | Grenze genau, ein Zeichen mehr gibt den Code |
@@ -132,13 +162,15 @@ States. Die Datei nutzt einen eigenen Server und eigene Personen.
 | Grenze lässt 60 Anfragen je Minute zu … | mit falscher Uhr: 61. Anfrage, Sekunden bis zur nächsten, gleitendes Fenster |
 | anmelden setzt ein state-Cookie und leitet zu Discord | Parameter der Weiterleitung, Cookie mit `HttpOnly`, `SameSite=Lax`, ohne `Secure` bei http |
 | ohne state-Cookie oder mit falschem state … | Weiterleitung mit Fehler, keine Anfrage an Discord |
+| bei 429 wartet die Anmeldung ein kurzes Retry-After ab … | `Retry-After: 0`: zweimal `POST /oauth2/token`, dann Erfolg; alle vier Routen zählen mit, eine Zeile `Rate-Limit: 429 bei POST /oauth2/token, …` |
+| verlangt Discord länger als die Frist, scheitert die Anmeldung gleich … | `Retry-After: 60`: unter 2 s `?fehler=anmeldung`, ein Aufruf; Log nur „Anmeldung: Tausch: Discord antwortet 429, Retry-After 60 s“ und die Zeile der Zählung, ohne Code, Token, state und ID |
 | die Anmeldung tauscht den Code, widerruft den Token … | Reihenfolge der Aufrufe, Basic-Auth, Widerruf mit dem Token, in der Datenbank nur der SHA-256, nur verwaltbare Server, 7 Tage; danach `ich` und `server` |
 | der Token wird auch widerrufen, wenn das Lesen der Person scheitert | Widerruf als letzter Aufruf, keine Sitzung, eine Logzeile |
 | mit https tragen die Cookies Secure | `Secure` hinten am Cookie |
 | abmelden braucht den Origin des Dashboards … | ohne und mit falschem Origin `403`, sonst `204`, Cookie gelöscht, danach `401` |
 | eine abgelaufene Sitzung gilt nicht … | `401`, `raeumeAuf` löscht die Zeile |
 | Bot nicht auf dem Server gibt 404 … | `404` ohne Aufruf an Discord, Unknown Member `403`, Recht entzogen `403`, Eigentümer ohne Rolle darf |
-| nach 60 Anfragen je Minute kommt 429 … | `Retry-After` 1 bis 60, die 61. Anfrage fragt Discord nicht |
+| nach 60 Anfragen je Minute kommt 429 … | `Retry-After` 1 bis 60, die 61. Anfrage fragt Discord nicht; `sitzung` zählt eins mehr |
 | antwortet Discord nicht, gibt es 503 … | eine Logzeile mit dem Namen der Route, ohne ID |
 | kanaele liefert Text- und Ankündigungskanäle … | ohne Kategorie zuerst, Kategorien und Kanäle nach Position, bei gleicher nach ID; ohne Sehen kein Kanal, ohne Anhängen `banner: false` |
 | begruessung liefert Standardwerte, speichert … | Standardwerte, `PUT` und wieder lesen |
@@ -151,13 +183,13 @@ States. Die Datei nutzt einen eigenen Server und eigene Personen.
 | ein Bild über 4 MiB gibt 413, ohne es zu lesen | `Content-Length` über 4 MiB ohne Body |
 | ein JPEG mit GPS wird gedreht … | WebP mit 1100 × 440, ohne `Exif`, ohne Beschreibung; Drehung 6 an den Farben; danach `bild: true`, `banner_ohne_recht` |
 | Vorschau: 404 ohne Bild, sonst ein PNG … | `kein_bild`, PNG mit 1100 × 440, Avatar vom CDN; `DELETE` löscht Bild und `banner` |
-| Bild und Vorschau zusammen höchstens 20 je Minute … | die 21. Anfrage `429` ohne Aufruf an Discord; `kanaele` geht weiter |
+| Bild und Vorschau zusammen höchstens 20 je Minute … | die 21. Anfrage `429` ohne Aufruf an Discord; `kanaele` geht weiter; `bilder` zählt eins mehr |
 | die Regeln der Testnachricht gelten in ihrer Reihenfolge | `test_ohne_kanal`, `kanal_unbekannt`, `test_ohne_inhalt` mit Leerzeichen, ohne Bild und im Kanal ohne „Dateien anhängen“; keine Nachricht |
 | die Testnachricht geht auch, wenn an aus ist … | `200` `{ banner: false }`, Zeile `-# Testnachricht aus dem Dashboard` vorn, `allowed_mentions` leer trotz `{nutzer}` |
 | würde die Nachricht mit der Zeile länger als 2000 Zeichen … | bei 1990 Zeichen Text geht nur der Text |
 | mit Banner antwortet sie banner: true … | Datei `beitritt.png`, nur die Zeile als Text; im Kanal ohne Dateien `{ banner: false }` |
 | ist der Text leer und scheitert das Banner … | `503`, keine Nachricht |
-| die Grenze je Server zählt erst nach den Rechten … | fünfmal `403` für eine fremde Sitzung, danach dreimal `200` und `429` mit `Retry-After: 60` |
+| die Grenze je Server zählt erst nach den Rechten … | fünfmal `403` für eine fremde Sitzung, danach dreimal `200` und `429` mit `Retry-After: 60`; `testnachricht` zählt eins mehr |
 | kein Code, Token, Cookie, state und keine ID im Log | Anmeldung mit Erfolg und drei Fehlern, eine Route mit `503`; keine Zeile enthält einen der Werte |
 | ein Erzeuger legt den Raum … in einem Aufruf an | eine private Kategorie: Name aus der Vorlage, Kategorie, Limit; die Einträge der Kategorie, @everyone ohne „Kanal ansehen“, der Besitzer zusammengeführt, der Bot; verschoben mit Grund; Zeile in `raeume` |
 | nach dem Anlegen kommt das Menü in den Textchat des Raums … | eine Nachricht im Raum, „## Dein Sprachraum“, `allowed_mentions` leer, drei Reihen mit je vier Knöpfen, jede `custom_id` mit `sprachraum:`, die zwölf Namen der Tabelle |
@@ -210,7 +242,7 @@ States. Die Datei nutzt einen eigenen Server und eigene Personen.
 | die Bremse greift beim 6. Ereignis in 10 s … | mit falschen Uhren: 5 einzeln, `an`, `gezaehlt`; ein Ereignis nach 20 s setzt die Ruhe neu; nach 29 999 ms nichts, nach 30 000 ms `loese` mit 3; danach wieder einzeln |
 | die Bremse zählt im Fenster von 10 s … | acht Ereignisse im Abstand von 2,1 s gehen einzeln |
 | die Zusammenfassung sagt eins oder mehrere | Singular und Plural für beide Arten |
-| beim Raid gehen 5 einzeln, dann zählt die Bremse … | gegen den Mock: 5 Nachrichten mit Banner, dann die Zusammenfassung „Willkommen an die 2 neuen Mitglieder!“ ohne Ping und Banner; Logzeilen „Bremse an“ und „Bremse aus“; danach wieder einzeln |
+| beim Raid gehen 5 einzeln, dann zählt die Bremse … | gegen den Mock: 5 Nachrichten mit Banner, dann die Zusammenfassung „Willkommen an die 2 neuen Mitglieder!“ ohne Ping und Banner; Logzeilen „Bremse an“ und „Bremse aus“; `bremse` zählt einmal; danach wieder einzeln |
 | ein gezählter Abschied gibt die Zusammenfassung im Singular | „1 Mitglied hat den Server verlassen.“ |
 | bei ausgeschalteter Art zählt die Bremse nicht | zehn Ereignisse bei `an: false`, danach eingeschaltet geht das nächste einzeln |
 

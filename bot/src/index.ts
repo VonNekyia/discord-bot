@@ -9,7 +9,9 @@ import { behalteNur, vergiss } from './kern/aufraeumen.js';
 import { lese } from './module/begruessung/begruessung.js';
 import { ladeCache } from './kern/cache.js';
 import { erstelleClient } from './discord/client.js';
+import { zaehleAnfragen } from './discord/zaehlen.js';
 import { migriere, oeffne, verbindung } from './kern/datenbank.js';
+import { Zaehlung } from './kern/zaehlung.js';
 import { istMenue, Knoepfe } from './module/sprachraeume/knoepfe.js';
 import { Raeume } from './module/sprachraeume/raeume.js';
 import { begruesse, erstelleBremse } from './module/begruessung/senden.js';
@@ -50,7 +52,10 @@ const sprachraeume = ladeCache((server: string) => liesSprachraeume(db, server))
 const raeume = new Raeume({ db, einstellungen: sprachraeume });
 const knoepfe = new Knoepfe({ db });
 
+// Zählt jede Anfrage an Discord, nur im Speicher. Siehe docs/bot/rate-limits.md, „Zählen“.
+const zaehlung = new Zaehlung();
 const client = erstelleClient();
+zaehleAnfragen(client.rest, zaehlung);
 let api: Server | undefined;
 
 // Was nach dem Verbinden läuft. Scheitert es unerwartet, endet der Prozess,
@@ -74,7 +79,7 @@ async function nachDemVerbinden(bereit: Client<true>): Promise<void> {
   // Nur auf 127.0.0.1; von aussen kommt man über serve.mjs oder den Reverse Proxy.
   // Siehe docs/schnittstelle/api.md, „Lokal“.
   const { port, ...rest } = umgebung;
-  api = erstelleApi({ client: bereit, db, anwendung: bereit.application.id, einstellungen, sprachraeume, ...rest });
+  api = erstelleApi({ client: bereit, db, anwendung: bereit.application.id, einstellungen, sprachraeume, zaehlung, ...rest });
   api.once('error', (e) => console.error(`API nicht gestartet: ${text(e)}`));
   api.listen(port, '127.0.0.1', () => console.log(`API auf 127.0.0.1:${port}.`));
   // Abgelaufene Sitzungen löschen. Siehe docs/schnittstelle/anmeldung.md, „Sitzung“.
@@ -97,7 +102,7 @@ client.on(Events.GuildDelete, (guild) => {
 });
 
 // Eine Bremse für alle Server, im Speicher. Siehe docs/benutzung/begruessung.md, „Bremse“.
-const senden = { db, einstellungen, bremse: erstelleBremse({ einstellungen }) };
+const senden = { db, einstellungen, bremse: erstelleBremse({ einstellungen }), zaehlung };
 client.on(Events.GuildMemberAdd, (mitglied) => void begruesse(mitglied, 'beitritt', senden));
 client.on(Events.GuildMemberRemove, (mitglied) => void begruesse(mitglied, 'abschied', senden));
 

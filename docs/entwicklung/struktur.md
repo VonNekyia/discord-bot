@@ -23,8 +23,8 @@ so, steht in [0015](../entscheidungen/0015-feature-module-und-schichten.md).
 | Pfad | Inhalt | Dateien, Stand 2026-10-12 |
 |---|---|---|
 | `bot/src/index.ts` | Einstieg: verbindet Kern, Discord-Schicht, API und Module | |
-| `bot/src/kern/` | Datenbank, Cache, Fehlertext fürs Log, Aufräumen; kennt weder Discord noch Module | `datenbank.ts`, `cache.ts`, `fehler.ts`, `aufraeumen.ts` |
-| `bot/src/discord/` | die einzige Schicht, die discord.js importiert | `client.ts`, `ordnung.ts` |
+| `bot/src/kern/` | Datenbank, Cache, Fehlertext fürs Log, Aufräumen; kennt weder Discord noch Module | `datenbank.ts`, `cache.ts`, `fehler.ts`, `aufraeumen.ts`, `zaehlung.ts` |
+| `bot/src/discord/` | die einzige Schicht, die discord.js importiert | `client.ts`, `ordnung.ts`, `zaehlen.ts`, `oauth.ts` |
 | `bot/src/api/` | HTTP-API des Dashboards: Server, Anmeldung, Grenzen, Fehler | `server.ts`, `anmeldung.ts` |
 | `bot/src/module/befehle/` | Slash-Befehle, heute `/ping` | `befehle.ts` |
 | `bot/src/module/begruessung/` | Beitritt und Abschied: Einstellungen, Senden, Banner | `begruessung.ts`, `senden.ts`, `banner.ts` |
@@ -108,8 +108,11 @@ etwa „kein Recht“, „nicht gefunden“ oder „zu schnell, mit Wartezeit“
 - Ein Test eines Moduls braucht dann keinen nachgebauten Client von
   discord.js mehr, nur eine Fälschung der Schicht.
 - Ein Update von discord.js trifft nur `bot/src/discord/`.
-- An dieser einen Stelle lassen sich Anfragen an Discord und ihre
-  Rate-Limits zählen und loggen, siehe [Rate-Limits](../bot/rate-limits.md).
+- An dieser einen Stelle zählt und loggt der Bot Anfragen an Discord und
+  ihre Rate-Limits: `discord/zaehlen.ts` hört auf `client.rest`, die Zahlen
+  hält `kern/zaehlung.ts`, siehe [Rate-Limits](../bot/rate-limits.md),
+  „Zählen“. Auch die Anmeldung fragt Discord über diese Schicht
+  (`discord/oauth.ts`).
 
 ## Was noch fehlt
 

@@ -1,19 +1,24 @@
 ---
 title: Rate-Limits
-description: Was der Bot tut, wenn Discord mit 429 oder 5xx antwortet, wie oft er Befehle registriert, und warum nur das Ändern von Kanälen nicht wartet.
+description: Was der Bot tut, wenn Discord mit 429 oder 5xx antwortet, wie oft er Befehle registriert, warum das Ändern von Kanälen und lange Wartezeiten der Anmeldung nicht warten, wie er Anfragen, 429, ungültige Anfragen und eigene Grenzen zählt und loggt.
 code:
   - bot/src/module/befehle/befehle.ts
   - bot/src/module/befehle/befehle.test.ts
   - bot/src/discord/client.ts
   - bot/src/discord/client.test.ts
+  - bot/src/discord/oauth.ts
+  - bot/src/discord/zaehlen.ts
+  - bot/src/kern/zaehlung.ts
 ---
 
 # Rate-Limits
 
 Jede Anfrage an die REST-API geht über `@discordjs/rest` 2.6, das mit
-discord.js 14 kommt. Es hält die Limits von Discord selbst ein. Eigenen
-Code dafür hat der Bot nicht. Die Regeln von Discord stehen in der
-[Doku zu Rate-Limits](https://discord.com/developers/docs/topics/rate-limits).
+discord.js 14 kommt, auch die vier Aufrufe der Anmeldung. Die Bibliothek
+liest die Header und hält die Limits von Discord selbst ein; der Bot baut
+keine Grenze von Discord nach. Er zählt aber jede Anfrage und jedes 429 mit
+und loggt sie. Die Regeln von Discord stehen in der
+[Doku zu Rate-Limits](https://docs.discord.com/developers/topics/rate-limits).
 
 ## Befehle registrieren
 
@@ -27,8 +32,9 @@ sagt „Befehle nicht registriert“.
 
 `@discordjs/rest` wartet so lange, wie `Retry-After` verlangt, plus 50 ms
 (`offset`), und schickt die Anfrage noch einmal. Der Test „registriere
-wartet nach 429“ prüft das gegen die gemockte API. Nur `PATCH /channels/:id`
-wartet nicht, siehe „Kanäle ändern“.
+wartet nach 429“ prüft das gegen die gemockte API. Nicht warten
+`PATCH /channels/:id`, siehe „Kanäle ändern“, und die Anmeldung, wenn das
+Warten länger als ihre Frist wäre, siehe „Anmeldung“.
 
 ## Kanäle ändern
 
@@ -36,7 +42,7 @@ wartet nicht, siehe „Kanäle ändern“.
 einem Sublimit (`hasSublimit`) und wartet bei 429 still, so lange Discord
 es verlangt; beim Umbenennen sind das Minuten. Die Interaktion des Menüs
 bliebe so lange ohne Antwort. Darum setzt `erstelleClient` in
-`bot/src/discord/client.ts` `rejectOnRateLimit` auf `wartetNicht`: Nur
+`bot/src/discord/client.ts` `rejectOnRateLimit` auf `wartetNicht`:
 `PATCH /channels/:id` wirft bei einem Rate-Limit einen `RateLimitError`
 mit `retryAfter` in ms, statt zu warten. Das Menü nennt dann die
 Wartezeit, siehe [Menü der Sprachräume im Bot](sprachraeume-menue.md),
@@ -49,6 +55,113 @@ Test „nur PATCH /channels/:id wartet nicht auf ein Rate-Limit; Nachrichten
 und Löschen warten weiter“ prüft das gegen die gemockte API, der Test
 „Umbenennen bei 429 …“ die Wartezeit im Menü. Stand `@discordjs/rest`
 2.6.3.
+
+## Anmeldung
+
+Die vier Aufrufe der Anmeldung (`/oauth2/token`, `/oauth2/token/revoke`,
+`/users/@me`, `/users/@me/guilds`) laufen über `oauthUeber` in
+`bot/src/discord/oauth.ts` und `client.rest`, siehe Entscheidung
+[0016](../entscheidungen/0016-debug-im-speicher-fuer-den-eigentuemer.md).
+So zählen sie mit, und 429 behandelt die Bibliothek wie bei jeder anderen
+Anfrage.
+
+- Mit `auth: false` und eigenem Header `Authorization`: `Basic` mit ID und
+  Secret der Anwendung für Tausch und Widerruf, `Bearer` mit dem Token der
+  Person für die beiden `GET`. Den Token des Bots tragen sie nicht. Ohne
+  `auth` löschte `@discordjs/rest` bei einem 401 den Token des Bots.
+- Tausch und Widerruf schicken ihren Body als
+  `application/x-www-form-urlencoded` (`passThroughBody`).
+- Jeder Aufruf hat eine Frist von 10 s (`oauthFrist`), Warten auf ein
+  Rate-Limit eingeschlossen. `signal` bricht Warteschlange und Anfrage ab;
+  das Warten auf `Retry-After` hört nicht darauf, darum läuft der Aufruf
+  zusätzlich gegen die Frist um die Wette.
+- Ein kurzes `Retry-After` wartet die Bibliothek ab. Verlangt Discord
+  10 s oder mehr, wirft sie gleich einen `RateLimitError` (`wartetNicht`).
+  Die Anmeldung scheitert dann sofort mit `?fehler=anmeldung` und der
+  Zeile `Anmeldung: Tausch: Discord antwortet 429, Retry-After 60 s`.
+
+Die Tests „bei 429 wartet die Anmeldung ein kurzes Retry-After ab …“ und
+„verlangt Discord länger als die Frist, scheitert die Anmeldung gleich …“
+prüfen das gegen die gemockte API, „die Frist gilt auch, während
+@discordjs/rest ein Retry-After abwartet“ das Rennen.
+
+## Zählen
+
+`zaehleAnfragen` in `bot/src/discord/zaehlen.ts` hört auf das Ereignis
+`response` von `client.rest`. Es kommt nach jeder Antwort von Discord,
+auch bei 429, 5xx und jedem neuen Versuch. Was der Bot über das Gateway
+schickt, zählt nicht. Der Bot liest nur Status und Header; den Body teilt
+das Ereignis mit der Anfrage.
+
+`Zaehlung` in `bot/src/kern/zaehlung.ts` zählt nur im Speicher, seit dem
+Start des Prozesses (Entscheidung
+[0016](../entscheidungen/0016-debug-im-speicher-fuer-den-eigentuemer.md)):
+
+- je Methode und Route: Anfragen, davon 429, und die letzten Werte von
+  `X-RateLimit-Limit`, `X-RateLimit-Remaining` und
+  `X-RateLimit-Reset-After`; fehlt ein Header, ist der Wert `null`
+  ([Header Format](https://docs.discord.com/developers/topics/rate-limits#header-format));
+- jedes 429 nach `X-RateLimit-Scope` (`user`, `global`, `shared`; ohne
+  Header `user`, wie bei `@discordjs/rest`) und mit `X-RateLimit-Global`;
+- die ungültigen Anfragen, siehe „Ungültige Anfragen“;
+- die eigenen Grenzen, siehe „Eigene Grenzen“.
+
+Die Route rechnet `route` selbst aus dem Pfad: Zahlen werden `:id`, das
+Segment nach `/webhooks/:id` und `/interactions/:id` wird `:token`, und
+jedes Segment, das kein kurzes Wort wie `messages`, `@me` oder `@original`
+ist, auch. Vorher entschlüsselt sie Segmente wie `%40original`. Route und
+`majorParameter` von `@discordjs/rest` nimmt sie nicht: `majorParameter`
+trägt bei Webhooks den Token.
+
+`debugStand` gibt den Stand in der Form, die eine Debug-Seite später nur
+noch ausliefert: Routen nach Anfragen absteigend, alle vier eigenen
+Grenzen auch mit 0, die Shards dieses Prozesses.
+
+Je 429 kommt eine Zeile ins Log, nur mit Methode, Route, Scope, `global`
+und Zahlen; fehlt ein Wert, steht `-`:
+
+```text
+Rate-Limit: 429 bei PATCH /channels/:id, Scope user, global nein, Retry-After 300 s, Limit 2, Remaining 0, Reset-After 300 s.
+```
+
+Die Tests „ein 429 mit Headern gibt genau eine Logzeile ohne ID und Token
+…“ und „Tokens von Interaktionen und Webhooks stehen weder im Stand noch
+im Log …“ prüfen das gegen die gemockte API.
+
+## Ungültige Anfragen
+
+401, 403 und 429 zählen in einem gleitenden Fenster von 10 min; ein 429
+mit `X-RateLimit-Scope: shared` zählt nicht, so wie bei Discord. Ab
+10 000 in 10 min sperrt Cloudflare die IP für eine Weile
+([Invalid Request Limit](https://docs.discord.com/developers/topics/rate-limits#invalid-request-limit-aka-cloudflare-bans)).
+
+Erreicht das Fenster 1000, also 10 % davon (Entscheidung
+[0016](../entscheidungen/0016-debug-im-speicher-fuer-den-eigentuemer.md)),
+steht einmal eine Warnung im Log:
+
+```text
+Rate-Limit: 1000 ungültige Anfragen in 10 min; Warnung ab 1000, Cloudflare sperrt ab 10000.
+```
+
+Eine weitere kommt erst, wenn das Fenster unter 1000 gefallen ist und sie
+wieder erreicht. `invalidRequestWarning` von `@discordjs/rest` nutzt der
+Bot nicht: Es zählt in festen 10 min statt gleitend und zählt auch
+`shared` mit.
+
+## Eigene Grenzen
+
+Grenzen, die der Bot selbst setzt, sind keine von Discord. Sie zählen
+mit, wie oft sie greifen (`Zaehlung#griff`):
+
+| Name | Grenze | zählt |
+|---|---|---|
+| `bremse` | die Bremse der Begrüssung, siehe [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md), „Bremse“ | einmal, wenn sie greift, nicht je gezähltem Ereignis |
+| `sitzung` | 60 Anfragen je Minute und Sitzung | je `429` `zu_viele` |
+| `bilder` | 20 je Minute für Bilder und Vorschau | je `429` `zu_viele` |
+| `testnachricht` | 3 je Minute und Server | je `429` `zu_viele` |
+
+Die drei Grenzen der API stehen in
+[API des Dashboards](../schnittstelle/api.md), „Grenzen je Sitzung“.
 
 ## Was der Bot bei 5xx tut
 
