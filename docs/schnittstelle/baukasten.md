@@ -15,7 +15,7 @@ an. Eine Seite ist ein Tab aus Bausteinen wie Schalter, Auswahl oder Text,
 mit Werten, Optionen und Texten. Die Oberfläche kennt jede Art von
 Baustein und baut die Seiten so, wie sie kommen; ein Modul kennt sie
 nicht. Warum, steht in
-[0016](../entscheidungen/0016-dashboard-als-baukasten.md). Grundregeln,
+[0017](../entscheidungen/0017-dashboard-als-baukasten.md). Grundregeln,
 Anmeldung, Grenzen und das Format der Fehler gelten wie in
 [API des Dashboards](api.md).
 
@@ -195,3 +195,10 @@ bei `429`, den Sekunden für `Retry-After`. `bot/src/index.ts` reicht die
 Bereiche der API in der Reihenfolge der Tabs. Ein neues Modul mit
 Oberfläche beschreibt seine Seiten zuerst auf einer eigenen Seite hier
 unter `docs/schnittstelle/` (`AGENTS.md`, „Rollen“).
+
+## Was noch fehlt
+
+- Seiten, die nicht an einem Server hängen, etwa die Debug-Seite aus
+  [0016](../entscheidungen/0016-debug-im-speicher-fuer-den-eigentuemer.md).
+  Alle Routen hier tragen `{id}` und prüfen „Server verwalten“; eine
+  solche Seite braucht eigene Routen und eigene Rechte.

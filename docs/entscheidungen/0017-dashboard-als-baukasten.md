@@ -1,5 +1,5 @@
 ---
-title: "0016: Das Dashboard als Baukasten"
+title: "0017: Das Dashboard als Baukasten"
 description: Warum die Module des Bots ihre Seiten im Dashboard als Bausteine anmelden und die Oberfläche jede Art von Baustein allgemein baut; Texte und Regeln im Bot, Regeln über mehrere Felder nur im Bot; keine Formulare je Modul in web/, kein Schema-Standard, kein HTML vom Bot.
 status: gilt
 date: 2026-10-12
@@ -9,7 +9,7 @@ code:
   - bot/src/api/server.ts
 ---
 
-# 0016: Das Dashboard als Baukasten
+# 0017: Das Dashboard als Baukasten
 
 ## Anlass
 
