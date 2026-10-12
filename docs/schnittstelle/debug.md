@@ -45,9 +45,14 @@ Mitglied dieses Teams mit angenommener Einladung, in jeder Rolle.
   `membershipState` „angenommen“
   ([Get Current Application](https://docs.discord.com/developers/resources/application#get-current-application),
   [Team Member Object](https://docs.discord.com/developers/topics/teams#data-models-team-member-object)).
-- Das Ergebnis hält er höchstens 5 min. Wer aus dem Team fliegt, sieht die
-  Seite also spätestens 5 min später nicht mehr. Die Zahlen sind nur zum
-  Lesen und enthalten nichts über Personen.
+- Die Liste der berechtigten IDs hält er höchstens 5 min, einmal je
+  Prozess, nicht je Person. Wer aus dem Team fliegt, sieht die Seite also
+  spätestens 5 min später nicht mehr. Die Zahlen sind nur zum Lesen und
+  enthalten nichts über Personen.
+- Scheitert `client.application.fetch()`, ist `Ich.debug` `false`;
+  `GET /api/ich` scheitert daran nicht. `GET /api/debug` gibt dann `503`
+  `nicht_erreichbar`. Einen Fehlschlag hält der Bot nicht, die nächste
+  Anfrage fragt Discord neu.
 - `GET /api/debug` zählt zur Grenze von 60 je Minute und Sitzung, siehe
   [API des Dashboards](api.md), „Grenzen je Sitzung“.
 
@@ -84,7 +89,7 @@ type Route = {
 };
 
 type Eigene = {
-  name: 'bremse' | 'sitzung' | 'bilder' | 'testnachricht';
+  name: 'bremse' | 'sitzung' | 'bausteine' | 'testnachricht';
   gegriffen: number; // wie oft die Grenze seit `seit` gegriffen hat
 };
 ```
@@ -112,8 +117,12 @@ type Eigene = {
 - **`eigene`**:
   - `bremse`: die Bremse der Begrüssung, siehe
     [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md).
-  - `sitzung`, `bilder` und `testnachricht`: die drei Zeilen aus
-    [API des Dashboards](api.md), „Grenzen je Sitzung“, je `429`
+  - `sitzung` und `bausteine`: die beiden Zeilen aus
+    [API des Dashboards](api.md), „Grenzen je Sitzung“; `bausteine` zählt
+    jede Anfrage auf einen Baustein, nicht nur Bilder. Je `429`
+    `zu_viele`.
+  - `testnachricht`: die Grenze je Server aus
+    [API der Begrüssung](begruessung.md), „Testnachricht“, je `429`
     `zu_viele`.
 - **Ordnung:** `routen` nach `anfragen` absteigend, bei Gleichstand nach
   `route` und `methode`. `eigene` in der Reihenfolge des Typs, auch mit 0.
