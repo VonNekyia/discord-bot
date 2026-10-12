@@ -369,12 +369,31 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
 
   test('die Grenze von 30 s vergisst ein Mitglied nach ihrer Zeit', async () => {
     await speichereSprachraeume(db, SERVER, standard);
-    // Die Grenze läuft ab, sobald der Raum angelegt ist; `betritt` wartet danach noch auf
-    // Datenbank, Verschieben und Menü. In der CI dauert das über 100 ms, darum 1 s.
-    const r = new Raeume({ db, einstellungen: ladeCache((s: string) => liesSprachraeume(db, s)), abstand: 1000, warten: 30 });
+    // Eine falsche Uhr nur für das Vergessen: Die Zeit läuft erst mit `vor`,
+    // egal wie lange Datenbank, Verschieben und Menü in `betritt` brauchen.
+    let jetztFalsch = 0;
+    const geplant: { um: number; fn: () => void; ab: boolean }[] = [];
+    const planen = (fn: () => void, ms: number) => {
+      const eintrag = { um: jetztFalsch + ms, fn, ab: false };
+      geplant.push(eintrag);
+      return () => {
+        eintrag.ab = true;
+      };
+    };
+    const vor = (ms: number) => {
+      jetztFalsch += ms;
+      for (const e of geplant) {
+        if (e.ab || e.um > jetztFalsch) continue;
+        e.ab = true;
+        e.fn();
+      }
+    };
+    const r = new Raeume({ db, einstellungen: ladeCache((s: string) => liesSprachraeume(db, s)), warten: 30, planen });
     await betritt(r, BESITZER, K.erzeuger);
     assert.equal(r.gemerkt, 1);
-    await new Promise((weiter) => setTimeout(weiter, 1100));
+    vor(29_999);
+    assert.equal(r.gemerkt, 1);
+    vor(1);
     assert.equal(r.gemerkt, 0);
   });
 
