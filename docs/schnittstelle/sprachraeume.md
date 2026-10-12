@@ -34,7 +34,7 @@ der Bausteine und die Sätze zu den Codes stehen in
 | `rechte` | `hinweis`, `warn` | nur ohne `ohneKategorie.bereit`, siehe „Typen“; nennt die Rechte aus [Sprachräume](../benutzung/sprachraeume.md), „Rechte und Intent“ |
 | `an` | `schalter` | Aktiv |
 | `erzeuger` | `liste` | höchstens 10, Kopf „Erzeuger“ mit dem Namen des Sprachkanals; neu mit `{name}s Raum`, Limit 0, ohne Kategorie |
-| `erzeuger.<i>.kanal` | `auswahl` | die Sprachkanäle; `pflicht` `erzeuger_fehlt`, `unbekannt` `erzeuger_unbekannt`, `einmalig` `erzeuger_doppelt`; ohne `bereit` gesperrt mit `erzeuger_ohne_recht` |
+| `erzeuger.<i>.kanal` | `auswahl` | die Sprachkanäle; `pflicht` `erzeuger_fehlt`, `unbekannt` `erzeuger_unbekannt`, `einmalig` `erzeuger_doppelt` mit `vergeben` „schon gewählt“; ohne `bereit` gesperrt mit `erzeuger_ohne_recht` |
 | `erzeuger.<i>.kategorie` | `auswahl` | die Kategorien; `leer` heisst „Kategorie des Erzeugers“, `unbekannt` `kategorie_unbekannt`; ohne `bereit` gesperrt mit `kategorie_ohne_recht` |
 | `erzeuger.<i>.name` | `text` | eine Zeile, `grenze` 100, `platzhalter` `{ name: 32 }`, `pflicht` `name_leer` |
 | `erzeuger.<i>.limit` | `zahl` | 0 bis 99, `ungueltig` `limit_ungueltig` |

@@ -49,6 +49,9 @@ Anmeldung, Grenzen und das Format der Fehler gelten wie in
 - `GET …/{baustein}`: Eine Query wird ignoriert. Die Oberfläche hängt eine
   neue an, damit der Browser das Bild neu lädt.
 - `POST …/{baustein}` liest keinen Body und prüft keinen `Content-Type`.
+- `GET …/seiten` holt die Seiten aller Module in einer Anfrage. Scheitert
+  ein Modul dabei, antwortet die Route `503` `nicht_erreichbar`, auch für
+  die Seiten der anderen. Die Oberfläche zeigt so keinen halben Stand.
 - Höchstens 6 Seiten, eine je Tab. Meldet ein Modul mehr, eine ID doppelt
   oder einen Baustein mit Route ohne die Funktion dazu, endet der Bot beim
   Start mit Exit 1.
@@ -87,7 +90,7 @@ type Bedingung = { feld: string; merkmal?: string; sonst: string };
 type Baustein =
   | { art: 'schalter'; id: string; titel: string; hilfe?: string; braucht?: Bedingung[] }
   | { art: 'auswahl'; id: string; titel: string; hilfe?: string; leer: string; optionen: Option[];
-      unbekannt: string; pflicht?: string; einmalig?: string }
+      unbekannt: string; pflicht?: string; einmalig?: string; vergeben?: string }
   | { art: 'text'; id: string; titel: string; hilfe?: string; mehrzeilig: boolean; grenze: number;
       platzhalter: Record<string, number>; rechnung?: string; pflicht?: string }
   | { art: 'zahl'; id: string; titel: string; hilfe?: string; min: number; max: number; ungueltig: string }
@@ -96,7 +99,7 @@ type Baustein =
   | { art: 'vorschau'; id: string; titel: string; alt: string; breite: number; hoehe: number;
       braucht: string; leer: Satz; fehler: Satz }
   | { art: 'aktion'; id: string; titel: string; laeuft: string; hilfe?: string; ungespeichert?: string }
-  | { art: 'liste'; id: string; titel: string; eintrag: string; kopf?: string; hoechstens: number;
+  | { art: 'liste'; id: string; eintrag: string; kopf?: string; hoechstens: number;
       hinzufuegen: string; entfernen: string; voll: string; leer: Satz; neu: Eintrag;
       bausteine: Baustein[] } // nur schalter, auswahl, text und zahl
   | { art: 'hinweis'; id: string; ton: 'info' | 'warn'; satz: Satz };
@@ -122,13 +125,13 @@ type Baustein =
 | Art | Wert | Was die Oberfläche tut |
 |---|---|---|
 | `schalter` | `boolean` | Checkbox mit `titel`. Mit `braucht`: Ist eine Bedingung nicht erfüllt, ist er gesperrt und aus, und `sonst` der ersten steht als Hilfe darunter |
-| `auswahl` | `string` oder `null` | Select. `leer` ist die Option für `null`. Die Optionen kommen in ihrer Reihenfolge; Optionen mit derselben `gruppe` hintereinander stehen in einer Gruppe. Eine gesperrte Option ist nicht wählbar und nennt `grund` hinter ihrem Namen |
+| `auswahl` | `string` oder `null` | Select. `leer` ist die Option für `null`. Die Optionen kommen in ihrer Reihenfolge; Optionen mit derselben `gruppe` hintereinander stehen in einer Gruppe. Eine gesperrte Option ist nicht wählbar und nennt `grund` hinter ihrem Namen. In einer Liste mit `einmalig`: Eine Option, die ein anderer Eintrag schon gewählt hat, ist ebenso nicht wählbar und nennt `vergeben` hinter ihrem Namen; fehlt `vergeben`, ohne Text dahinter. Ist sie zugleich gesperrt, steht `grund` dahinter |
 | `text` | `string` | Textfeld, mit `mehrzeilig` eine Textarea. Die Hilfe zeigt, wie viele Zeichen frei sind, gerechnet wie unter „Länge eines Texts“, mit `rechnung` als Zusatz |
 | `zahl` | `number` | Zahlfeld von `min` bis `max` in Schritten von 1 |
 | `bild` | `boolean`, ob eine Datei da ist | Datei-Feld für `typen`. Prüft die Datei, lädt sie sofort hoch und setzt den Wert auf `true`. Darunter ein Link-Knopf `entfernen`, nur mit Datei; er löscht sie und setzt den Wert auf `false` |
 | `vorschau` | – | Bild mit `breite` und `hoehe`, `alt` und `titel` als Unterschrift. Lädt neu nach dem Speichern und nach jedem Hochladen. Ist der Wert von `braucht` nicht `true`, der leere Zustand `leer`; scheitert das Laden, `fehler` |
 | `aktion` | – | Link-Knopf unter „Speichern“. Während die Anfrage läuft, gesperrt und mit der Beschriftung `laeuft`. Die Antwort steht als Erfolg darunter. Weicht das Formular vom gespeicherten Stand ab, hängt `ungespeichert` an die Hilfe |
-| `liste` | `Eintrag[]` | Je Eintrag eine Karte mit `bausteine`. Ihr Kopf ist `eintrag` mit Nummer und, mit `kopf`, dem Namen der Option, die in der Auswahl `kopf` gewählt ist. `hinzufuegen` legt einen Eintrag mit `neu` an, bis `hoechstens`; dann ist der Knopf gesperrt, und `voll` steht darunter. `entfernen` je Karte. Ohne Eintrag der leere Zustand `leer` |
+| `liste` | `Eintrag[]` | Ohne eigene Überschrift. Je Eintrag eine Karte mit `bausteine`. Ihr Kopf ist `eintrag` mit Nummer und, mit `kopf`, dem Namen der Option, die in der Auswahl `kopf` gewählt ist. `hinzufuegen` legt einen Eintrag mit `neu` an, bis `hoechstens`; dann ist der Knopf gesperrt, und `voll` steht darunter. `entfernen` je Karte. Ohne Eintrag der leere Zustand `leer` |
 | `hinweis` | – | Meldung mit `satz`, im Ton `ton`, an ihrer Stelle im Formular |
 
 Die Oberfläche baut die Bausteine einer Seite in ihrer Reihenfolge, nur
