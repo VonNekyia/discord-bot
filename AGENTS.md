@@ -178,10 +178,11 @@ Vor dem Arbeitsschritt die `SKILL.md` ganz lesen und ihr folgen.
 
 ### Struktur
 
-32. Jede Feature-Suite ist ein Modul: ein Ordner unter `bot/src/module/`
-    und, mit Oberfläche, unter `web/src/module/`. Ein Modul importiert
-    kein anderes. Nur `bot/src/discord/` spricht mit discord.js, nur
-    `web/src/api/` mit dem Bot. Der Linter prüft die Grenzen, siehe
+32. Jede Feature-Suite ist ein Modul: ein Ordner unter `bot/src/module/`.
+    Ein Modul importiert kein anderes. Seine Oberfläche meldet es als
+    Seiten aus Bausteinen an; `web/` baut jede Art von Baustein allgemein
+    und kennt kein Modul. Nur `bot/src/discord/` spricht mit discord.js,
+    nur `web/src/api/` mit dem Bot. Der Linter prüft die Grenzen, siehe
     [Struktur von Bot und Oberfläche](docs/entwicklung/struktur.md).
 
 ## Gliederung von `docs/`

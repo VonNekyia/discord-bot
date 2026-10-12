@@ -11,6 +11,10 @@ code:
 
 # 0015: Feature-Module und eigene Schichten
 
+Teilweise abgelöst durch [0017](0017-dashboard-als-baukasten.md): Die
+Oberfläche hat keine Ordner je Modul; sie baut die Seiten, die die Module
+im Bot anmelden, aus `web/src/bausteine/`.
+
 ## Anlass
 
 Der Maintainer will auf einen Blick sehen, dass jede Feature-Suite ein

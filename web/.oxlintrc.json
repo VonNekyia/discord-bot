@@ -5,7 +5,7 @@
   "ignorePatterns": ["dist"],
   "env": { "browser": true },
   "options": {
-    "maxWarnings": 28
+    "maxWarnings": 4
   },
   "overrides": [
     {
@@ -27,40 +27,32 @@
       "rules": {
         "eslint/no-restricted-imports": [
           "error",
-          { "patterns": [{ "regex": "^\\.\\./(module/|dashboard)", "message": "Der Kern kennt keine Module und nicht das Dashboard." }] }
+          { "patterns": [{ "regex": "^\\.\\./(bausteine/|seite|dashboard|main)", "message": "Der Kern kennt keine Bausteine, keine Seite und nicht das Dashboard." }] }
         ]
       }
     },
     {
-      "files": ["src/module/**"],
+      "files": ["src/bausteine/**"],
       "rules": {
         "eslint/no-restricted-imports": [
           "error",
           {
             "patterns": [
-              { "regex": "^\\.\\./[^./][^/]*/", "message": "Ein Modul importiert kein anderes Modul." },
-              { "regex": "^\\.\\./\\.\\./(dashboard|main)", "message": "Ein Modul kennt das Dashboard nicht; das Dashboard bindet die Module ein." }
+              { "regex": "^\\./", "message": "Ein Baustein importiert keinen anderen; eine Liste baut ihre Einträge über die Umgebung." },
+              { "regex": "^\\.\\./(seite|dashboard|main)", "message": "Ein Baustein kennt die Seite nicht; die Seite bindet die Bausteine ein." }
             ]
           }
         ]
       }
     },
     {
-      // Altlasten: Casts an Antworten der API und an querySelector, und
-      // Formulare, die sich im Konstruktor selbst anhängen. Sie sind
+      // Altlasten: Casts an Antworten der API und an getElementById. Sie sind
       // Warnungen, bis der Umbau sie beseitigt; mehr als `maxWarnings`
       // dürfen es nicht werden. Siehe docs/entwicklung/lint.md, „Altlasten“.
-      "files": [
-        "src/api/klient.ts",
-        "src/dashboard.ts",
-        "src/kern/platzhalter.ts",
-        "src/module/begruessung/begruessung.ts",
-        "src/module/sprachraeume/sprachraeume.ts"
-      ],
+      "files": ["src/api/klient.ts", "src/dashboard.ts"],
       "rules": {
         "typescript/no-unsafe-type-assertion": "warn",
-        "typescript/no-unnecessary-type-parameters": "warn",
-        "eslint/no-new": "warn"
+        "typescript/no-unnecessary-type-parameters": "warn"
       }
     }
   ]

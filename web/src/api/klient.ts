@@ -1,25 +1,96 @@
 // Ruft die API des Bots unter /api/ auf, unter demselben Origin wie die Seite.
-// Typen, Routen und Fehlercodes wie in docs/schnittstelle/api.md.
+// Typen, Routen und Fehlercodes wie in docs/schnittstelle/api.md und
+// docs/schnittstelle/baukasten.md.
 
-export type Art = 'beitritt' | 'abschied';
 export type Ich = { id: string; name: string; avatar: string | null };
 export type Server = { id: string; name: string; icon: string | null };
-export type Kanal = { id: string; name: string; banner: boolean; kategorie: { id: string; name: string } | null };
-export type Einstellung = {
-  an: boolean;
-  kanal: string | null;
-  text: string;
-  banner: boolean;
-  bannerText: string;
-  bild: boolean;
-};
 
-// Sprachräume, siehe docs/schnittstelle/sprachraeume.md.
-export type Sprachkanal = { id: string; name: string; kategorie: { id: string; name: string } | null; bereit: boolean };
-export type Kategorie = { id: string; name: string; bereit: boolean };
-export type SprachDaten = { sprachkanaele: Sprachkanal[]; kategorien: Kategorie[]; ohneKategorie: { bereit: boolean } };
-export type Erzeuger = { kanal: string; kategorie: string | null; name: string; limit: number };
-export type Sprachraeume = { an: boolean; erzeuger: Erzeuger[] };
+// Der Baukasten. Siehe docs/schnittstelle/baukasten.md, „Typen“.
+export type Wert = boolean | number | string | null | Eintrag[];
+export type Eintrag = { [feld: string]: Wert };
+export type Satz = { titel: string; text: string };
+export type Fund = { code: string; feld?: string };
+export type Option = {
+  id: string;
+  name: string;
+  gruppe: { id: string; name: string } | null;
+  merkmale: string[];
+  gesperrt: { grund: string; code: string } | null;
+};
+export type Bedingung = { feld: string; merkmal?: string; sonst: string };
+
+export type Schalter = { art: 'schalter'; id: string; titel: string; hilfe?: string; braucht?: Bedingung[] };
+export type Auswahl = {
+  art: 'auswahl';
+  id: string;
+  titel: string;
+  hilfe?: string;
+  leer: string;
+  optionen: Option[];
+  unbekannt: string;
+  pflicht?: string;
+  einmalig?: string;
+};
+export type Text = {
+  art: 'text';
+  id: string;
+  titel: string;
+  hilfe?: string;
+  mehrzeilig: boolean;
+  grenze: number;
+  platzhalter: Record<string, number>;
+  rechnung?: string;
+  pflicht?: string;
+};
+export type Zahl = { art: 'zahl'; id: string; titel: string; hilfe?: string; min: number; max: number; ungueltig: string };
+export type Bild = {
+  art: 'bild';
+  id: string;
+  titel: string;
+  hilfe?: string;
+  typen: string[];
+  groesse: number;
+  pixel: { min: number; max: number };
+  entfernen: string;
+};
+export type Vorschau = {
+  art: 'vorschau';
+  id: string;
+  titel: string;
+  alt: string;
+  breite: number;
+  hoehe: number;
+  braucht: string;
+  leer: Satz;
+  fehler: Satz;
+};
+export type Aktion = { art: 'aktion'; id: string; titel: string; laeuft: string; hilfe?: string; ungespeichert?: string };
+export type Liste = {
+  art: 'liste';
+  id: string;
+  titel: string;
+  eintrag: string;
+  kopf?: string;
+  hoechstens: number;
+  hinzufuegen: string;
+  entfernen: string;
+  voll: string;
+  leer: Satz;
+  neu: Eintrag;
+  bausteine: (Schalter | Auswahl | Text | Zahl)[];
+};
+export type Hinweis = { art: 'hinweis'; id: string; ton: 'info' | 'warn'; satz: Satz };
+export type Baustein = Schalter | Auswahl | Text | Zahl | Bild | Vorschau | Aktion | Liste | Hinweis;
+
+export type Seite = {
+  id: string;
+  titel: string;
+  bausteine: Baustein[];
+  daneben: Baustein[];
+  wert: Eintrag;
+  saetze: Record<string, Satz>;
+  fund: Fund | null;
+};
 
 // Ein Fehler der API mit Status, festem Code und, bei 400, dem Feld.
 // Ohne Antwort oder ohne Code im Body gilt nicht_erreichbar ab 500.
@@ -50,7 +121,8 @@ async function senden(methode: string, pfad: string, body?: BodyInit, typ?: stri
 }
 
 const json = async <T>(antwort: Response): Promise<T> => (await antwort.json()) as T;
-const begruessung = (id: string) => `/api/server/${encodeURIComponent(id)}/begruessung`;
+const seiten = (id: string) => `/api/server/${encodeURIComponent(id)}/seiten`;
+const baustein = (id: string, seite: string, name: string) => `${seiten(id)}/${encodeURIComponent(seite)}/${encodeURIComponent(name)}`;
 
 export const api = {
   ich: async () => json<Ich>(await senden('GET', '/api/ich')),
@@ -58,23 +130,20 @@ export const api = {
     await senden('POST', '/api/abmelden');
   },
   server: async () => json<Server[]>(await senden('GET', '/api/server')),
-  kanaele: async (id: string) => json<Kanal[]>(await senden('GET', `/api/server/${encodeURIComponent(id)}/kanaele`)),
-  begruessung: async (id: string) => json<Record<Art, Einstellung>>(await senden('GET', begruessung(id))),
-  speichern: async (id: string, art: Art, einstellung: Omit<Einstellung, 'bild'>) =>
-    json<Einstellung>(await senden('PUT', `${begruessung(id)}/${art}`, JSON.stringify(einstellung), 'application/json')),
-  // Das Bild geht roh als Body, mit dem Typ der gewählten Datei.
-  bildHochladen: async (id: string, art: Art, datei: File) => {
-    await senden('PUT', `${begruessung(id)}/${art}/bild`, datei, datei.type);
+  seiten: async (id: string) => json<Seite[]>(await senden('GET', seiten(id))),
+  speichern: async (id: string, seite: string, wert: Eintrag) =>
+    json<{ wert: Eintrag; meldung: Satz }>(
+      await senden('PUT', `${seiten(id)}/${encodeURIComponent(seite)}`, JSON.stringify(wert), 'application/json'),
+    ),
+  // Die Datei geht roh als Body, mit ihrem Typ.
+  hochladen: async (id: string, seite: string, name: string, datei: File) => {
+    await senden('PUT', baustein(id, seite, name), datei, datei.type);
   },
-  bildLoeschen: async (id: string, art: Art) => {
-    await senden('DELETE', `${begruessung(id)}/${art}/bild`);
+  loeschen: async (id: string, seite: string, name: string) => {
+    await senden('DELETE', baustein(id, seite, name));
   },
-  // Ohne Body; die Testnachricht nimmt den gespeicherten Stand. `banner` sagt, ob das Banner mitging.
-  testSenden: async (id: string, art: Art) => json<{ banner: boolean }>(await senden('POST', `${begruessung(id)}/${art}/test`)),
-  sprachkanaele: async (id: string) => json<SprachDaten>(await senden('GET', `/api/server/${encodeURIComponent(id)}/sprachkanaele`)),
-  sprachraeume: async (id: string) => json<Sprachraeume>(await senden('GET', `/api/server/${encodeURIComponent(id)}/sprachraeume`)),
-  sprachraeumeSpeichern: async (id: string, wert: Sprachraeume) =>
-    json<Sprachraeume>(await senden('PUT', `/api/server/${encodeURIComponent(id)}/sprachraeume`, JSON.stringify(wert), 'application/json')),
+  // Ohne Body; die Antwort ist der Satz für die Meldung.
+  ausloesen: async (id: string, seite: string, name: string) => json<Satz>(await senden('POST', baustein(id, seite, name))),
   // Die Query ändert sich bei jedem Aufruf, damit der Browser neu lädt; die API ignoriert sie.
-  vorschau: (id: string, art: Art) => `${begruessung(id)}/${art}/vorschau?v=${Date.now()}`,
+  bild: (id: string, seite: string, name: string) => `${baustein(id, seite, name)}?v=${Date.now()}`,
 };

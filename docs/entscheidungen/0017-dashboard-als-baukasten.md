@@ -7,6 +7,7 @@ issues: [28]
 code:
   - bot/src/kern/baukasten.ts
   - bot/src/api/server.ts
+  - web/src/seite.ts
 ---
 
 # 0017: Das Dashboard als Baukasten
@@ -71,6 +72,9 @@ Vertrag und dann in die Oberfläche, für alle Module.
 - Was die Oberfläche vorher selbst prüfte und über mehrere Felder ging,
   etwa „Aktiv braucht einen Kanal“, meldet jetzt der Bot nach dem
   Speichern, am selben Feld.
+- `web/` hat keine Ordner je Modul mehr. `web/src/bausteine/` hat je Art
+  eine Datei, `web/src/seite.ts` baut daraus eine Seite. Das löst
+  [0015](0015-feature-module-und-schichten.md) für die Oberfläche ab.
 - Das Dashboard hat höchstens 6 Tabs, siehe
   [Design der Oberfläche](../frontend/design.md).
 - Die PR des Backends entfernt die alten Routen; die alte Oberfläche geht
