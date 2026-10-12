@@ -3,25 +3,17 @@ import { fileURLToPath } from 'node:url';
 import { Events, type Client } from 'discord.js';
 import { raeumeAuf } from './api/anmeldung.js';
 import { apiUmgebung, erstelleApi, type ApiUmgebung } from './api/server.js';
-import { befehle as allgemeineBefehle } from './module/befehle/befehle.js';
 import { text } from './kern/fehler.js';
 import { Aufraeumen } from './kern/aufraeumen.js';
-import { lese } from './module/begruessung/begruessung.js';
-import { ladeCache } from './kern/cache.js';
-import { beantworte, registriere } from './discord/befehle.js';
+import { registriere } from './discord/befehle.js';
 import { erstelleClient } from './discord/client.js';
 import { dashboardGriff } from './discord/dashboard.js';
-import { alsMitglied, textkanalAuf } from './discord/nachrichten.js';
-import { alsDruck } from './discord/interaktionen.js';
+import { befehleVon, haengeAn } from './discord/modul.js';
+import { textkanalAuf } from './discord/nachrichten.js';
 import { serverVon } from './discord/server.js';
 import { zaehleAnfragen } from './discord/zaehlen.js';
 import { migriere, oeffne, verbindung } from './kern/datenbank.js';
 import { Zaehlung } from './kern/zaehlung.js';
-import { Knoepfe } from './module/sprachraeume/knoepfe.js';
-import { praefix } from './module/sprachraeume/menue.js';
-import { Raeume } from './module/sprachraeume/raeume.js';
-import { begruesse, erstelleBremse } from './module/begruessung/senden.js';
-import { liesSprachraeume } from './module/sprachraeume/sprachraeume.js';
 import { alleModule } from './modulliste.js';
 
 const token = process.env.DISCORD_BOT_TOKEN;
@@ -51,32 +43,24 @@ const neu = await migriere(ziel, fileURLToPath(new URL('../migrationen', import.
 });
 if (neu.length > 0) console.log(`Migriert: ${neu.join(', ')}.`);
 const db = oeffne(ziel);
-// Die Einstellungen liest jeder Beitritt und Abschied; wer sie ändert, löscht
-// den Server hier. Siehe docs/bot/cache.md, „Wann cachen“.
-const einstellungen = ladeCache((server: string) => lese(db, server));
-// Ebenso die Sprachräume, gelesen bei jedem Betreten eines Sprachkanals.
-const sprachraeume = ladeCache((server: string) => liesSprachraeume(db, server));
-const raeume = new Raeume({ db, einstellungen: sprachraeume });
-const knoepfe = new Knoepfe({ db });
-// Die Slash-Befehle; registrieren und beantworten tut die Discord-Schicht.
-// Siehe docs/benutzung/befehle.md.
-const befehle = allgemeineBefehle({ db });
 
 // Zählt jede Anfrage an Discord, nur im Speicher. Siehe docs/bot/rate-limits.md, „Zählen“.
 const zaehlung = new Zaehlung();
-// Die Module in der Reihenfolge der Tabs; ihre Tabellen löscht `aufraeumer`,
-// wenn der Bot einen Server verlässt. Siehe docs/entwicklung/struktur.md, „Ein Modul“.
-const modulListe = alleModule({ db, zaehlung, einstellungen, sprachraeume });
-const aufraeumer = new Aufraeumen(modulListe);
 const client = erstelleClient();
 zaehleAnfragen(client.rest, zaehlung);
+// Die Module; ihre Seiten kommen in dieser Reihenfolge als Tabs ins
+// Dashboard. Die Begrüssung sieht Kanäle nur über die Discord-Schicht.
+// Siehe docs/entwicklung/struktur.md, „Ein Modul“.
+const modulListe = alleModule({ db, zaehlung, kanal: textkanalAuf(client) });
+// Ihre Tabellen löscht `aufraeumer`, wenn der Bot einen Server verlässt.
+const aufraeumer = new Aufraeumen(modulListe);
 let api: Server | undefined;
 
 // Was nach dem Verbinden läuft. Scheitert es unerwartet, endet der Prozess,
 // und der Dienst startet ihn neu. Siehe docs/bot/wiederanlauf.md, „Was der Bot loggt“.
 async function nachDemVerbinden(bereit: Client<true>): Promise<void> {
   console.log('Verbunden.');
-  await registriere(bereit.rest, bereit.application.id, befehle).catch((e: unknown) =>
+  await registriere(bereit.rest, bereit.application.id, befehleVon(modulListe)).catch((e: unknown) =>
     console.error(`Befehle nicht registriert: ${text(e)}`),
   );
   // Server, die den Bot entfernt haben, während er aus war.
@@ -86,9 +70,12 @@ async function nachDemVerbinden(bereit: Client<true>): Promise<void> {
     (n) => n > 0 && console.log(`Einstellungen von ${n} verlassenen Servern gelöscht.`),
     (e: unknown) => console.error(`Abgleich der Server fehlgeschlagen: ${text(e)}`),
   );
-  // Räume, die es nicht mehr gibt, vergessen; leere löschen.
-  // Siehe docs/bot/sprachraeume-bau.md, „Abgleich beim Start“.
-  await raeume.gleicheAb(bereit.guilds.cache.map(serverVon)).catch((e: unknown) => console.error(`Abgleich der Räume fehlgeschlagen: ${text(e)}`));
+  // Danach gleichen die Module ab, etwa die Räume, mit den Servern dieses
+  // Prozesses. Siehe docs/bot/sprachraeume-bau.md, „Abgleich beim Start“.
+  const server = bereit.guilds.cache.map(serverVon);
+  // Modul für Modul, nacheinander.
+  // oxlint-disable-next-line no-await-in-loop
+  for (const m of modulListe) await m.ereignisse?.bereit?.(server);
   if (!umgebung) return;
   // Nur auf 127.0.0.1; von aussen kommt man über serve.mjs oder den Reverse Proxy.
   // Siehe docs/schnittstelle/api.md, „Lokal“.
@@ -116,30 +103,9 @@ client.on(Events.GuildDelete, (guild) => {
   void aufraeumer.vergiss(db, guild.id).catch((e: unknown) => console.error(`Server verlassen: ${text(e)}`));
 });
 
-// Eine Bremse für alle Server, im Speicher. Siehe docs/benutzung/begruessung.md, „Bremse“.
-// Die Begrüssung sieht Mitglieder und Kanäle nur über die Discord-Schicht.
-const textkanalVon = textkanalAuf(client);
-const senden = { db, einstellungen, kanal: textkanalVon, bremse: erstelleBremse({ einstellungen, kanal: textkanalVon }), zaehlung };
-client.on(Events.GuildMemberAdd, (mitglied) => void begruesse(alsMitglied(mitglied), 'beitritt', senden));
-client.on(Events.GuildMemberRemove, (mitglied) => void begruesse(alsMitglied(mitglied), 'abschied', senden));
-
-// Siehe docs/benutzung/sprachraeume.md.
-client.on(Events.VoiceStateUpdate, (vorher, nachher) => {
-  void raeume.aenderung(serverVon(nachher.guild), nachher.id, vorher.channelId, nachher.channelId);
-});
-client.on(Events.ChannelDelete, (kanal) => {
-  if (!kanal.isDMBased()) void raeume.geloescht(kanal.id).catch((e: unknown) => console.error(`Sprachraum: nicht vergessen: ${text(e)}`));
-});
-
-client.on(Events.InteractionCreate, (interaction) => {
-  if (interaction.isChatInputCommand()) {
-    void beantworte(interaction, befehle);
-    return;
-  }
-  // Das Menü der Sprachräume, erkannt am Präfix in `custom_id`. Siehe docs/bot/sprachraeume-menue.md, „Knöpfe“.
-  const druck = alsDruck(interaction, praefix);
-  if (druck) void knoepfe.bediene(druck);
-});
+// Beitritt, Abschied, Sprachkanäle, gelöschte Kanäle, Befehle und Knöpfe
+// gehen an die Module. Siehe docs/entwicklung/struktur.md, „Ein Modul“.
+haengeAn(client, modulListe);
 
 // discord.js verbindet sich selbst neu. Gibt es auf, endet der Prozess, und
 // der Dienst startet ihn neu. Siehe docs/bot/wiederanlauf.md.

@@ -9,6 +9,8 @@ code:
   - bot/src/discord/sprachkanaele.ts
   - bot/src/discord/server.ts
   - bot/src/index.ts
+  - bot/src/module/sprachraeume/modul.ts
+  - bot/src/discord/modul.ts
 ---
 
 # Sprachräume im Bot
@@ -32,8 +34,11 @@ Code nicht brechen darf. Das Menü im Chat jedes Raums steht in
 | `bot/src/kern/aufraeumen.ts` | `Aufraeumen` mit `vergiss` und `behalteNur` für die Tabellen aller Module; die Sprachräume nennen `sprachraeume` und `raeume` in `bot/src/module/sprachraeume/modul.ts` |
 | `bot/src/discord/ordnung.ts` | `wieDiscord`: Kanäle sortieren wie Discord |
 
-`bot/src/index.ts` ruft bei `voiceStateUpdate` `Raeume#aenderung` mit dem
-Griff des Servers (`serverVon`) und den Kanälen vorher und nachher, bei `channelDelete` `Raeume#geloescht`. Die
+`haengeAn` in `bot/src/discord/modul.ts` gibt `voiceStateUpdate` mit dem
+Griff des Servers (`serverVon`) und den Kanälen vorher und nachher an
+`stimme` des Moduls in `bot/src/module/sprachraeume/modul.ts`, und
+`channelDelete` an `kanalWeg`. Das Modul ruft damit `Raeume#aenderung` und
+`Raeume#geloescht`. Die
 Einstellungen liest `Raeume` aus einem eigenen Cache (`ladeCache`), den die
 API nach jedem Speichern leert, siehe [Cache](cache.md).
 
@@ -106,8 +111,8 @@ Zeile.
 
 ## Abgleich beim Start
 
-Nach `ClientReady` ruft `bot/src/index.ts` `Raeume#gleicheAb` für die
-Server im Cache, also die Shards dieses Prozesses: Zeilen ohne Kanal fallen
+Nach `ClientReady` ruft `bot/src/index.ts` `bereit` jedes Moduls, das
+Modul Sprachräume damit `Raeume#gleicheAb` für die Server im Cache, also die Shards dieses Prozesses: Zeilen ohne Kanal fallen
 weg, leere Räume löscht der Bot, belegte bleiben. Er geht Server für Server
 und Raum für Raum vor, nacheinander. Server, die den Bot
 verlassen haben, räumt `Aufraeumen#behalteNur` ab, mit derselben Regel für Shards wie

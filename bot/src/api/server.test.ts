@@ -176,7 +176,7 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
     await migriere(ziel, fileURLToPath(new URL('../../migrationen', import.meta.url)));
     db = oeffne(ziel);
     // Wie im Bot: die Tabellen aller Module.
-    aufraeumer = new Aufraeumen(alleModule({ db, zaehlung: new Zaehlung(), einstellungen: new Map(), sprachraeume: new Map() }));
+    aufraeumer = new Aufraeumen(alleModule({ db, zaehlung: new Zaehlung(), kanal: () => undefined }));
     mock = await mockDiscord();
     mock.meineServer = meineServer;
     client = discordClient(mock, gilden);

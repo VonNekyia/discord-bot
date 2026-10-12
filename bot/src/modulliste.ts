@@ -1,24 +1,27 @@
 import type { Pool } from 'pg';
-import type { Kontext } from './discord/kontext.js';
-import type { Modul } from './kern/modul.js';
+import type { DiscordModul } from './discord/modul.js';
 import type { Zaehlung } from './kern/zaehlung.js';
-import { begruessungsModul } from './module/begruessung/modul.js';
-import { sprachraeumeModul } from './module/sprachraeume/modul.js';
+import { befehleModul } from './module/befehle/modul.js';
+import { begruessungsModul, type BegruessungUmgebung } from './module/begruessung/modul.js';
+import { sprachraeumeModul, type SprachraeumeUmgebung } from './module/sprachraeume/modul.js';
 
-// Was die Module zum Bauen brauchen. Die Caches kommen noch von
-// bot/src/index.ts, weil die Ereignisse dort hängen.
+// Was die Module zum Bauen brauchen. Die Caches bauen die Module selbst;
+// nur Tests geben eigene.
 export interface ModulUmgebung {
   db: Pool;
   zaehlung: Pick<Zaehlung, 'griff'>;
-  einstellungen: { delete(server: string): unknown };
-  sprachraeume: { delete(server: string): unknown };
+  // Der Textkanal über die IDs; im Bot `textkanalAuf` aus der Discord-Schicht.
+  kanal: BegruessungUmgebung['kanal'];
+  einstellungen?: BegruessungUmgebung['einstellungen'];
+  sprachraeume?: SprachraeumeUmgebung['sprachraeume'];
 }
 
-// Alle Module des Bots, in der Reihenfolge der Tabs im Dashboard.
-// Siehe docs/entwicklung/struktur.md, „Ein Modul“.
-export function alleModule(u: ModulUmgebung): Modul<Kontext>[] {
+// Alle Module des Bots. Ihre Seiten kommen in der Reihenfolge der Liste als
+// Tabs ins Dashboard. Siehe docs/entwicklung/struktur.md, „Ein Modul“.
+export function alleModule(u: ModulUmgebung): DiscordModul[] {
   return [
-    begruessungsModul({ db: u.db, einstellungen: u.einstellungen, zaehlung: u.zaehlung }),
-    sprachraeumeModul({ db: u.db, sprachraeume: u.sprachraeume }),
+    befehleModul({ db: u.db }),
+    begruessungsModul({ db: u.db, zaehlung: u.zaehlung, kanal: u.kanal, ...(u.einstellungen ? { einstellungen: u.einstellungen } : {}) }),
+    sprachraeumeModul({ db: u.db, ...(u.sprachraeume ? { sprachraeume: u.sprachraeume } : {}) }),
   ];
 }

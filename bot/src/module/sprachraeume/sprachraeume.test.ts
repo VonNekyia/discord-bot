@@ -14,6 +14,7 @@ import { migriere, oeffne, verbindung } from '../../kern/datenbank.js';
 import { Zaehlung } from '../../kern/zaehlung.js';
 import { dashboardGriff } from '../../discord/dashboard.js';
 import { serverVon, type Server as Griff } from '../../discord/server.js';
+import { sprachraeumeModul } from './modul.js';
 import { Raeume } from './raeume.js';
 import { sprachraeumeBereich } from './seiten.js';
 import { hoechstens, liesSprachraeume, speichereSprachraeume, type Sprachraeume } from './sprachraeume.js';
@@ -112,7 +113,7 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
     await migriere(ziel, fileURLToPath(new URL('../../../migrationen', import.meta.url)));
     db = oeffne(ziel);
     // Wie im Bot: die Tabellen aller Module.
-    aufraeumer = new Aufraeumen(alleModule({ db, zaehlung: new Zaehlung(), einstellungen: new Map(), sprachraeume: new Map() }));
+    aufraeumer = new Aufraeumen(alleModule({ db, zaehlung: new Zaehlung(), kanal: () => undefined }));
     mock = await mockDiscord();
     client = discordClient(mock, [server()]);
     guild = client.guilds.cache.get(SERVER) as Guild;
@@ -361,6 +362,24 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
     assert.deepEqual(mock.geloescht, [leer]);
     const uebrig = (await db.query<{ kanal: string }>('SELECT kanal FROM raeume WHERE server = $1', [SERVER])).rows.map((z) => z.kanal);
     assert.deepEqual(uebrig, [voll]);
+  });
+
+  test('das Modul gibt Wechsel, gelöschte Kanäle und den Abgleich beim Start an seine Räume', async () => {
+    await speichereSprachraeume(db, SERVER, standard);
+    const { ereignisse } = sprachraeumeModul({ db });
+    // Wer den Erzeuger betritt, bekommt einen Raum.
+    stimme(BESITZER, K.erzeuger);
+    await ereignisse?.stimme?.(griff, BESITZER, null, K.erzeuger);
+    const raum = mock.verschoben[0]?.kanal ?? '';
+    assert.deepEqual(await zeile(raum), { server: SERVER, besitzer: BESITZER });
+    // Ist sein Kanal gelöscht, vergisst der Bot ihn.
+    await ereignisse?.kanalWeg?.(raum);
+    assert.equal(await zeile(raum), undefined);
+    // Beim Start fällt ein Raum ohne Kanal weg.
+    const weg = '880000000000000021';
+    await db.query('INSERT INTO raeume (kanal, server, besitzer) VALUES ($1, $2, $3)', [weg, SERVER, BESITZER]);
+    await ereignisse?.bereit?.([griff]);
+    assert.equal(await zeile(weg), undefined);
   });
 
   test('channelDelete vergisst den Raum, guildDelete und der Abgleich löschen Einstellungen und Räume', async () => {
