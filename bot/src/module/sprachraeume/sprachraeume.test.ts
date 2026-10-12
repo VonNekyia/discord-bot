@@ -368,10 +368,12 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
 
   test('die Grenze von 30 s vergisst ein Mitglied nach ihrer Zeit', async () => {
     await speichereSprachraeume(db, SERVER, standard);
-    const r = new Raeume({ db, einstellungen: ladeCache((s: string) => liesSprachraeume(db, s)), abstand: 50, warten: 30 });
+    // Die Grenze läuft ab, sobald der Raum angelegt ist; `betritt` wartet danach noch auf
+    // Datenbank, Verschieben und Menü. In der CI dauert das über 100 ms, darum 1 s.
+    const r = new Raeume({ db, einstellungen: ladeCache((s: string) => liesSprachraeume(db, s)), abstand: 1000, warten: 30 });
     await betritt(r, BESITZER, K.erzeuger);
     assert.equal(r.gemerkt, 1);
-    await new Promise((weiter) => setTimeout(weiter, 100));
+    await new Promise((weiter) => setTimeout(weiter, 1100));
     assert.equal(r.gemerkt, 0);
   });
 
