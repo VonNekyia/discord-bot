@@ -125,7 +125,7 @@ type Baustein =
 | Art | Wert | Was die Oberfläche tut |
 |---|---|---|
 | `schalter` | `boolean` | Checkbox mit `titel`. Mit `braucht`: Ist eine Bedingung nicht erfüllt, ist er gesperrt und aus, und `sonst` der ersten steht als Hilfe darunter |
-| `auswahl` | `string` oder `null` | Select. `leer` ist die Option für `null`. Die Optionen kommen in ihrer Reihenfolge; Optionen mit derselben `gruppe` hintereinander stehen in einer Gruppe. Eine gesperrte Option ist nicht wählbar und nennt `grund` hinter ihrem Namen. In einer Liste mit `einmalig`: Eine Option, die ein anderer Eintrag schon gewählt hat, ist ebenso nicht wählbar und nennt `vergeben` hinter ihrem Namen |
+| `auswahl` | `string` oder `null` | Select. `leer` ist die Option für `null`. Die Optionen kommen in ihrer Reihenfolge; Optionen mit derselben `gruppe` hintereinander stehen in einer Gruppe. Eine gesperrte Option ist nicht wählbar und nennt `grund` hinter ihrem Namen. In einer Liste mit `einmalig`: Eine Option, die ein anderer Eintrag schon gewählt hat, ist ebenso nicht wählbar und nennt `vergeben` hinter ihrem Namen; fehlt `vergeben`, ohne Text dahinter. Ist sie zugleich gesperrt, steht `grund` dahinter |
 | `text` | `string` | Textfeld, mit `mehrzeilig` eine Textarea. Die Hilfe zeigt, wie viele Zeichen frei sind, gerechnet wie unter „Länge eines Texts“, mit `rechnung` als Zusatz |
 | `zahl` | `number` | Zahlfeld von `min` bis `max` in Schritten von 1 |
 | `bild` | `boolean`, ob eine Datei da ist | Datei-Feld für `typen`. Prüft die Datei, lädt sie sofort hoch und setzt den Wert auf `true`. Darunter ein Link-Knopf `entfernen`, nur mit Datei; er löscht sie und setzt den Wert auf `false` |
