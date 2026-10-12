@@ -60,8 +60,9 @@ noch einmal öffnen.
   und baut aus jeder einen Tab, siehe „Eine Seite“.
 - **Speichern:** prüft zuerst selbst, siehe „Prüfen vor dem Senden“, dann
   `PUT …/seiten/{seite}` mit den Werten aller Bausteine ausser Bildern.
-  Während die Anfrage läuft, ist der Knopf gesperrt. Danach steht
-  `meldung` aus der Antwort unter dem Knopf, und die Vorschau lädt neu.
+  Während die Anfrage läuft, ist der Knopf gesperrt. Danach gilt `wert`
+  aus der Antwort als gespeicherter Stand, nicht das Gesendete; `meldung`
+  steht unter dem Knopf, und die Vorschau lädt neu.
 - **Bild:** Sobald eine Datei gewählt ist, prüft die Seite sie und
   schickt sie mit `PUT …/{baustein}` roh, mit dem Typ der Datei. Danach
   gilt das Bild als da: Bedingungen, die es brauchen, sind erfüllt, und die
@@ -72,7 +73,9 @@ noch einmal öffnen.
   dafür nicht. Während die Anfrage läuft, ist der Knopf gesperrt und trägt
   `laeuft`. Die Antwort steht als Erfolg darunter.
 - **Vorschau:** ein `img` auf `GET …/{baustein}` mit einer neuen Query bei
-  jedem Laden, damit der Browser nicht das alte Bild zeigt. Sie zeigt den
+  jedem Laden, damit der Browser nicht das alte Bild zeigt. `breite` und
+  `hoehe` des Bausteins stehen als `width` und `height` am `img`; daraus
+  folgt sein Seitenverhältnis, auch solange es lädt. Sie zeigt den
   gespeicherten Stand. Ohne Bild steht dort der leere Zustand `leer`;
   scheitert das Laden, `fehler`, weil die Seite den Fehlercode eines `img`
   nicht sieht.
@@ -105,8 +108,10 @@ etwa ein Kanal, den es nicht mehr gibt. Geht `fund` an kein Feld, ohne
 „Speichern“.
 
 Ob das Formular vom gespeicherten Stand abweicht, vergleicht die Seite mit
-den Werten, wie sie nach dem Laden und nach dem letzten Speichern im
-Formular standen. Bilder zählen nicht; sie haben ihre eigene Route. Was
+den Werten, wie sie nach dem Laden im Formular standen, und nach dem
+Speichern mit `wert` aus der Antwort des Bots; die Reihenfolge der
+Schlüssel zählt dabei nicht. Bilder zählen nicht; sie haben ihre eigene
+Route. Was
 ein Baustein selbst ändert, etwa ein gesperrter Schalter, der ausgeht,
 zählt als gespeichert, denn der Bot hält es ebenso: Ohne Bild löscht er
 das Banner, und ohne „Dateien anhängen“ schickt er es nicht.
@@ -129,6 +134,7 @@ anderen; `seite.ts` bindet alle ein.
 | `wert` | der Wert für `PUT …/seiten/{seite}` |
 | `pruefe` | prüft, was der Baustein beschreibt, und zeigt den Fehler am Feld |
 | `melde` | zeigt den Fehler zu einem Code aus einer Antwort am Feld, auch in einer Liste |
+| `vergiss` | nimmt einen Fehler aus `melde` wieder weg und zeigt, was die eigene Prüfung findet |
 | `aktualisiere` | nach jeder Änderung: Bedingungen, gesperrte Optionen, Zähler, Hinweise |
 | `ladeNeu` | nach dem Speichern und Hochladen, etwa die Vorschau |
 | `option` | die gewählte Option, für Bedingungen und den Kopf einer Liste |
@@ -175,7 +181,10 @@ passiert ist, der zweite, was zu tun ist.
 `429` nennt die Sekunden aus `Retry-After`. Eine Antwort ohne JSON ab
 `500` gilt als nicht erreichbar, ebenso ein `fetch`, das gar keine Antwort
 bekommt. Vor einer Aktion fallen Fehler aus früheren Antworten weg; was
-die eigene Prüfung findet, bleibt.
+die eigene Prüfung findet, bleibt. Ebenso in einer Liste: Ändert sich ein
+Feld eines Eintrags, fallen die Fehler aus Antworten an diesem Eintrag weg,
+auch der `fund` beim Laden, denn sie galten für den Eintrag, wie er
+gesendet wurde. Die anderen Einträge behalten ihre.
 
 ## Was noch fehlt
 

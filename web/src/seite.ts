@@ -49,6 +49,13 @@ function baue(b: Baustein, u: Umgebung, start: Wert | undefined): Teil {
 
 const keine: Geschwister = { vorher: [], nachher: [] };
 
+// Vergleicht ohne Rücksicht auf die Reihenfolge der Schlüssel; die Antwort
+// des Bots muss sie nicht so ordnen wie das Formular.
+const kanonisch = (wert: Eintrag): string =>
+  JSON.stringify(wert, (_schluessel, w: unknown) =>
+    w !== null && typeof w === 'object' && !Array.isArray(w) ? Object.fromEntries(Object.entries(w).toSorted(([a], [b]) => (a < b ? -1 : 1))) : w,
+  );
+
 // `abgemeldet` zeigt die Anmeldung, wenn eine Anfrage 401 gibt.
 export function baueSeite(seite: Seite, server: string, abgemeldet: () => void): HTMLElement {
   const teile = new Map<string, Teil>();
@@ -69,15 +76,22 @@ export function baueSeite(seite: Seite, server: string, abgemeldet: () => void):
   // Der gespeicherte Stand, so wie das Formular ihn zeigt; ohne Bilder, die
   // ihre eigene Route haben.
   let basis: Eintrag | undefined;
+  const mitWert = () => [...seite.bausteine, ...seite.daneben].filter((b) => b.art !== 'bild' && teile.get(b.id)?.wert !== undefined);
   const werte = (): Eintrag => {
     const eintrag: Eintrag = {};
-    for (const b of [...seite.bausteine, ...seite.daneben]) {
-      const wert = b.art === 'bild' ? undefined : teile.get(b.id)?.wert?.();
+    for (const b of mitWert()) {
+      const wert = teile.get(b.id)?.wert?.();
       if (wert !== undefined) eintrag[b.id] = wert;
     }
     return eintrag;
   };
-  const ungespeichert = () => basis !== undefined && JSON.stringify(werte()) !== JSON.stringify(basis);
+  // Dieselben Felder aus einer Antwort des Bots.
+  const ausAntwort = (wert: Eintrag): Eintrag => {
+    const eintrag: Eintrag = {};
+    for (const b of mitWert()) if (b.id in wert) eintrag[b.id] = wert[b.id] ?? null;
+    return eintrag;
+  };
+  const ungespeichert = () => basis !== undefined && kanonisch(werte()) !== kanonisch(basis);
 
   // Aktionen zuletzt, damit sie den Vergleich nach allen anderen sehen. Was
   // ein Baustein selbst ändert, etwa ein gesperrter Schalter, gilt als
@@ -152,7 +166,9 @@ export function baueSeite(seite: Seite, server: string, abgemeldet: () => void):
     void (async () => {
       try {
         const antwort = await api.speichern(server, seite.id, gesendet);
-        basis = gesendet;
+        // Gespeichert ist, was der Bot zurückgibt, nicht das Gesendete.
+        // Siehe docs/schnittstelle/baukasten.md, „Routen“.
+        basis = ausAntwort(antwort.wert);
         meldung(meldungen, 'ok', antwort.meldung);
         geaendert(true);
       } catch (fehler) {

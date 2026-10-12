@@ -39,8 +39,11 @@ export const auswahl: Bauer<Auswahl> = (b, u, start) => {
   let veraltet = gespeichert !== null && !optionen.has(gespeichert);
   select.value = veraltet ? '' : (gespeichert ?? '');
 
+  // Ob der Fehler am Feld aus einer Antwort des Bots kommt.
+  let vomBot = false;
   select.addEventListener('change', () => {
     veraltet = false;
+    vomBot = false;
     feld.fehler(null);
     u.geaendert();
   });
@@ -63,6 +66,7 @@ export const auswahl: Bauer<Auswahl> = (b, u, start) => {
 
   // In der Reihenfolge des Bots. Siehe docs/schnittstelle/baukasten.md, „Prüfen in der Oberfläche“.
   const pruefe = (alles: boolean): boolean => {
+    vomBot = false;
     const o = option();
     let code: string | null = null;
     if (veraltet) code = b.unbekannt;
@@ -76,8 +80,13 @@ export const auswahl: Bauer<Auswahl> = (b, u, start) => {
 
   const melde = (code: string): boolean => {
     feld.fehler(u.satz(code));
+    vomBot = true;
     return true;
   };
 
-  return { elemente: [feld.element], wert: () => select.value || null, option, aktualisiere, pruefe, melde };
+  const vergiss = () => {
+    if (vomBot) pruefe(false);
+  };
+
+  return { elemente: [feld.element], wert: () => select.value || null, option, aktualisiere, pruefe, melde, vergiss };
 };

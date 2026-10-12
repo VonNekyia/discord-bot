@@ -13,7 +13,10 @@ export const zahl: Bauer<Zahl> = (b, u, start) => {
   eingabe.inputMode = 'numeric';
   eingabe.value = typeof start === 'number' ? String(start) : '';
   const feld = new Feld(u, b.id, b.titel, eingabe, b.hilfe);
+  // Ob der Fehler am Feld aus einer Antwort des Bots kommt.
+  let vomBot = false;
   eingabe.addEventListener('input', () => {
+    vomBot = false;
     feld.fehler(null);
     u.geaendert();
   });
@@ -25,6 +28,7 @@ export const zahl: Bauer<Zahl> = (b, u, start) => {
   };
 
   const pruefe = (): boolean => {
+    vomBot = false;
     const z = wert();
     const gut = z !== null && Number.isInteger(z) && z >= b.min && z <= b.max;
     feld.fehler(gut ? null : u.satz(b.ungueltig));
@@ -33,8 +37,13 @@ export const zahl: Bauer<Zahl> = (b, u, start) => {
 
   const melde = (code: string): boolean => {
     feld.fehler(u.satz(code));
+    vomBot = true;
     return true;
   };
 
-  return { elemente: [feld.element], wert, pruefe, melde };
+  const vergiss = () => {
+    if (vomBot) pruefe();
+  };
+
+  return { elemente: [feld.element], wert, pruefe, melde, vergiss };
 };

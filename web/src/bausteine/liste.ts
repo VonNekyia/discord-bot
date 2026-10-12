@@ -3,7 +3,7 @@
 // nennt den Eintrag, wie er gesendet wurde: `<liste>.<i>.<feld>`.
 // Siehe docs/schnittstelle/baukasten.md, „Bausteine“.
 import type { Eintrag, Liste, Wert } from '../api/klient.js';
-import type { Bauer, Geschwister, Teil } from '../kern/teil.js';
+import type { Bauer, Geschwister, Teil, Umgebung } from '../kern/teil.js';
 
 type Karte = { element: HTMLElement; kopf: HTMLElement; teile: Map<string, Teil> };
 
@@ -52,7 +52,16 @@ export const liste: Bauer<Liste> = (b, u, start) => {
     kopf.className = 'kicker';
     const teile = new Map<string, Teil>();
     const karte: Karte = { element, kopf, teile };
-    const umgebung = u.innen(`${b.id}-${zaehler++}`, teile, (feld) => geschwister(karte, feld));
+    const ebene = u.innen(`${b.id}-${zaehler++}`, teile, (feld) => geschwister(karte, feld));
+    // Ändert sich ein Feld des Eintrags, fallen die Fehler des Bots an ihm weg:
+    // Sie galten für den Eintrag, wie er gesendet wurde.
+    const umgebung: Umgebung = {
+      ...ebene,
+      geaendert: (neuLaden) => {
+        for (const teil of teile.values()) teil.vergiss?.();
+        u.geaendert(neuLaden);
+      },
+    };
     for (const baustein of b.bausteine) teile.set(baustein.id, u.baue(baustein, umgebung, werte[baustein.id]));
     const entfernen = document.createElement('button');
     entfernen.type = 'button';
