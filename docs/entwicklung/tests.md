@@ -203,7 +203,7 @@ und prüft dort die Anmeldung und die eigenen Grenzen.
 | geht das Mitglied, bevor das Verschieben klappt (40032) … | der neue Raum geht wieder, keine Zeile, kein Log |
 | fehlt dem Bot ein Recht (50013) … | nichts angelegt, nicht verschoben, eine Logzeile ohne ID |
 | ist die Art aus oder der Kanal kein Erzeuger … | nichts angelegt |
-| die Grenze von 30 s vergisst ein Mitglied nach ihrer Zeit | mit `abstand` 50 ms: nach dem Anlegen ein Eintrag, danach keiner |
+| die Grenze von 30 s vergisst ein Mitglied nach ihrer Zeit | mit `abstand` 1 s: nach dem Anlegen ein Eintrag, nach 1,1 s keiner. Die Grenze läuft schon während `betritt`; mit 50 ms war sie in der CI manchmal vor der ersten Prüfung abgelaufen |
 | Räume stehen nicht in sprachkanaele … | ein Raum fehlt in der Liste, als Erzeuger `erzeuger_unbekannt` |
 | der Abgleich beim Start … | Zeile ohne Kanal weg, leerer Raum gelöscht, belegter bleibt |
 | channelDelete vergisst den Raum … | `geloescht`, `vergiss` und `behalteNur` für Sprachräume und Räume |
