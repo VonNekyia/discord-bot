@@ -18,10 +18,12 @@ import { begruessungsBereich } from '../module/begruessung/seiten.js';
 import { sprachraeumeBereich } from '../module/sprachraeume/seiten.js';
 import { speichere, speichereBild, standard, type Einstellung } from '../module/begruessung/begruessung.js';
 import { migriere, oeffne, verbindung } from '../kern/datenbank.js';
-import { Zaehlung, type DebugRoute, type EigeneGrenze } from '../kern/zaehlung.js';
+import { Zaehlung, type Debug, type DebugRoute, type EigeneGrenze } from '../kern/zaehlung.js';
 import { zaehleAnfragen } from '../discord/zaehlen.js';
 import {
   ANWENDUNG,
+  anwendungDaten,
+  EIGENTUEMER,
   ChannelType,
   CODE,
   DASHBOARD,
@@ -278,6 +280,7 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
         name: 'Probe Person',
         // Das CDN zeigt im Test auf den Mock.
         avatar: `${mock.url}/cdn/avatars/${PERSON}/abc123.webp?size=128`,
+        debug: false,
       });
       const server = await frage(basis, '/api/server', { sitzung: kennung });
       assert.deepEqual(await server.json(), [
@@ -421,6 +424,121 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
       assert.equal(zeilen.length, 1);
       assert.match(zeilen[0] ?? '', /^API seiten: /);
       assert.doesNotMatch(zeilen[0] ?? '', /\d{17}/);
+    });
+  });
+
+  describe('Debug', () => {
+    const abrufe = () => mock.anfragen.filter((a) => a.pfad === '/api/v10/applications/@me').length;
+    // Die Liste der Berechtigten ist abgelaufen; die nächste Anfrage fragt Discord neu.
+    const spaeter = () => {
+      jetzt += 5 * 60_000;
+    };
+    const fremdeSitzung = () => legeSitzungAn(db, { nutzer: FREMD, name: 'x', avatar: null, server: [] });
+    const ich = async (kennung: string) => ((await (await frage(basis, '/api/ich', { sitzung: kennung })).json()) as { debug: boolean }).debug;
+    after(() => {
+      mock.anwendung = anwendungDaten({ eigentuemer: EIGENTUEMER });
+    });
+
+    test('der Eigentümer der Anwendung sieht Debug, jeder andere bekommt 403', async () => {
+      spaeter();
+      mock.anwendung = anwendungDaten({ eigentuemer: PERSON });
+      const kennung = await sitzung();
+      const fremd = await fremdeSitzung();
+      assert.equal(await ich(kennung), true);
+      assert.equal(await ich(fremd), false);
+      const antwort = await frage(basis, '/api/debug', { sitzung: kennung });
+      assert.equal(antwort.status, 200);
+      const stand = (await antwort.json()) as Debug;
+      assert.deepEqual(Object.keys(stand), ['seit', 'jetzt', 'shards', 'routen', 'rateLimits', 'ungueltig', 'eigene']);
+      assert.deepEqual(stand.shards, [0]);
+      assert.deepEqual(
+        stand.eigene.map((e) => e.name),
+        ['bremse', 'sitzung', 'bausteine', 'testnachricht'],
+      );
+      assert.ok(stand.routen.some((r) => r.methode === 'GET' && r.route === '/applications/@me'));
+      const verboten = await frage(basis, '/api/debug', { sitzung: fremd });
+      assert.equal(verboten.status, 403);
+      assert.deepEqual(await verboten.json(), { code: 'kein_recht' });
+      assert.equal((await frage(basis, '/api/debug')).status, 401);
+    });
+
+    test('die Antwort trägt weder IDs noch Tokens, auch nach Anmeldung, Mitgliedern und Anwendung', async () => {
+      spaeter();
+      mock.anwendung = anwendungDaten({ eigentuemer: PERSON });
+      const antwort = await frage(basis, '/api/debug', { sitzung: await sitzung() });
+      const text = await antwort.text();
+      assert.ok(text.includes('/guilds/:id/members/:id'), text);
+      assert.ok(text.includes('/oauth2/token'), text);
+      assert.doesNotMatch(text, new RegExp(`\\d{17,}|${TOKEN}|${CODE}|${GEHEIMNIS}`));
+    });
+
+    test('ein Team: Mitglieder mit angenommener Einladung sehen Debug, nur eingeladene nicht', async () => {
+      spaeter();
+      mock.anwendung = anwendungDaten({ team: [[PERSON, 2], [FREMD, 1]] });
+      const kennung = await sitzung();
+      const fremd = await fremdeSitzung();
+      assert.equal(await ich(kennung), true);
+      assert.equal((await frage(basis, '/api/debug', { sitzung: kennung })).status, 200);
+      assert.equal(await ich(fremd), false);
+      assert.equal((await frage(basis, '/api/debug', { sitzung: fremd })).status, 403);
+    });
+
+    test('die Liste der Berechtigten gilt 5 min, einmal für alle', async () => {
+      spaeter();
+      mock.anwendung = anwendungDaten({ eigentuemer: PERSON });
+      const kennung = await sitzung();
+      const fremd = await fremdeSitzung();
+      const vorher = abrufe();
+      assert.equal(await ich(kennung), true);
+      assert.equal(await ich(fremd), false);
+      assert.equal(abrufe(), vorher + 1);
+      // Der Eigentümer wechselt; der Bot merkt es erst nach 5 min.
+      mock.anwendung = anwendungDaten({ eigentuemer: FREMD });
+      jetzt += 5 * 60_000 - 1;
+      assert.equal(await ich(kennung), true);
+      assert.equal(abrufe(), vorher + 1);
+      jetzt += 1;
+      assert.equal(await ich(kennung), false);
+      assert.equal(await ich(fremd), true);
+      assert.equal(abrufe(), vorher + 2);
+    });
+
+    test('scheitert das Lesen der Anwendung: Ich.debug false, /api/debug 503, und nichts wird gehalten', async (t) => {
+      const log = t.mock.method(console, 'error', () => {});
+      spaeter();
+      mock.anwendung = 500;
+      const kennung = await sitzung();
+      const vorher = abrufe();
+      const antwortIch = await frage(basis, '/api/ich', { sitzung: kennung });
+      assert.equal(antwortIch.status, 200);
+      assert.equal(((await antwortIch.json()) as { debug: boolean }).debug, false);
+      const antwort = await frage(basis, '/api/debug', { sitzung: kennung });
+      assert.equal(antwort.status, 503);
+      assert.deepEqual(await antwort.json(), { code: 'nicht_erreichbar' });
+      // Ohne vorzurücken: Der Fehlschlag gilt nicht, die nächste Anfrage fragt neu.
+      mock.anwendung = anwendungDaten({ eigentuemer: PERSON });
+      assert.equal((await frage(basis, '/api/debug', { sitzung: kennung })).status, 200);
+      assert.equal(abrufe(), vorher + 3);
+      const zeilen = log.mock.calls.map((c) => String(c.arguments[0]));
+      assert.deepEqual(
+        zeilen.map((z) => z.split(':')[0]),
+        ['API ich', 'API debug'],
+      );
+      for (const zeile of zeilen) assert.doesNotMatch(zeile, /\d{17,}/);
+    });
+
+    test('GET /api/debug zählt zur Grenze von 60 je Minute und Sitzung', async () => {
+      spaeter();
+      mock.anwendung = anwendungDaten({ eigentuemer: PERSON });
+      const kennung = await sitzung();
+      const griffe = gegriffen('sitzung');
+      for (let i = 0; i < 59; i++) assert.equal((await frage(basis, '/api/debug', { sitzung: kennung })).status, 200);
+      assert.equal((await frage(basis, `/api/server/${SERVER}/seiten`, { sitzung: kennung })).status, 200);
+      const antwort = await frage(basis, '/api/debug', { sitzung: kennung });
+      assert.equal(antwort.status, 429);
+      assert.deepEqual(await antwort.json(), { code: 'zu_viele' });
+      assert.ok(Number(antwort.headers.get('retry-after')) >= 1);
+      assert.equal(gegriffen('sitzung'), griffe + 1);
     });
   });
 
@@ -707,7 +825,7 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
     test('Bild und Vorschau zusammen höchstens 20 je Minute, mit Retry-After, ohne Discord zu fragen', async () => {
       const kennung = await sitzung();
       const vorher = mitgliederAbrufe();
-      const griffe = gegriffen('bilder');
+      const griffe = gegriffen('bausteine');
       for (let i = 0; i < 10; i++) {
         assert.equal((await frage(basis, `${pfad}/vorschau`, { sitzung: kennung })).status, 404);
         assert.equal((await hoch(kennung, 'image/gif', pngBild(10, 10))).status, 415);
@@ -718,7 +836,7 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
       const warten = Number(antwort.headers.get('retry-after'));
       assert.ok(warten >= 1 && warten <= 60, String(warten));
       assert.equal(mitgliederAbrufe(), vorher + 20);
-      assert.equal(gegriffen('bilder'), griffe + 1);
+      assert.equal(gegriffen('bausteine'), griffe + 1);
       assert.equal((await frage(basis, `/api/server/${SERVER}/seiten`, { sitzung: kennung })).status, 200);
     });
   });

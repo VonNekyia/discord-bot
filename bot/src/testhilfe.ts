@@ -3,7 +3,7 @@
 import { createServer, type Server } from 'node:http';
 import { connect, type AddressInfo } from 'node:net';
 import { createCanvas } from '@napi-rs/canvas';
-import { ChannelType, ClientUser, PermissionFlagsBits as R, type Client } from 'discord.js';
+import { ChannelType, ClientApplication, ClientUser, PermissionFlagsBits as R, type Client } from 'discord.js';
 import { erstelleClient } from './discord/client.js';
 
 export const BOT = '100000000000000001';
@@ -15,6 +15,20 @@ export const CODE = 'code-aus-discord-7f3a';
 export const TOKEN = 'zugang-aus-discord-91c2';
 export const GEHEIMNIS = 'geheimnis-der-anwendung-5d1e';
 export const DASHBOARD = 'http://localhost:4173';
+// Eigentümer der Anwendung, wenn ein Test nichts anderes sagt; niemand, der sich anmeldet.
+export const EIGENTUEMER = '200000000000000050';
+const TEAM = '710000000000000001';
+
+// Die Anwendung, wie `GET /applications/@me` sie liefert: mit einer Person als
+// Eigentümer oder mit einem Team, je Mitglied ID und `membership_state`
+// (1 eingeladen, 2 angenommen).
+export function anwendungDaten(besitz: { eigentuemer: string } | { team: [string, number][] }) {
+  const person = (id: string) => ({ id, username: `nutzer-${id.slice(-2)}`, global_name: null, discriminator: '0', avatar: null });
+  const basis = { id: ANWENDUNG, name: 'kitty', icon: null, description: '', bot_public: true, bot_require_code_grant: false, flags: 0 };
+  if ('eigentuemer' in besitz) return { ...basis, owner: person(besitz.eigentuemer), team: null };
+  const members = besitz.team.map(([id, membership_state]) => ({ membership_state, team_id: TEAM, user: person(id), role: 'developer', permissions: ['*'] }));
+  return { ...basis, owner: person(TEAM), team: { id: TEAM, icon: null, name: 'Team', owner_user_id: besitz.team[0]?.[0] ?? null, members } };
+}
 
 export function rolle(id: string, name: string, rechte: bigint, position: number) {
   return { id, name, permissions: String(rechte), position, color: 0, hoist: false, managed: false, mentionable: false, flags: 0 };
@@ -125,6 +139,8 @@ export interface MockDiscord {
   umbenennenWarten?: number;
   // Je kommendem `POST /oauth2/token` die Sekunden in `Retry-After` eines 429; leer: kein 429.
   tauschWarten: number[];
+  // Was `GET /applications/@me` liefert, oder ein Status für einen Fehler.
+  anwendung: object | number;
 }
 
 // Eine Nachricht des Bots, wie Discord sie zurückgibt.
@@ -183,6 +199,7 @@ export async function mockDiscord(): Promise<MockDiscord> {
     geaendert: [],
     antworten: [],
     tauschWarten: [],
+    anwendung: anwendungDaten({ eigentuemer: EIGENTUEMER }),
   } as unknown as MockDiscord;
   let naechsterKanal = 800000000000000001n;
   mock.server = createServer((req, res) => {
@@ -220,6 +237,9 @@ export async function mockDiscord(): Promise<MockDiscord> {
           : antworte(mock.person, {});
       }
       if (pfad === '/api/v10/users/@me/guilds') return antworte(200, mock.meineServer);
+      if (pfad === '/api/v10/applications/@me' && req.method === 'GET') {
+        return typeof mock.anwendung === 'number' ? antworte(mock.anwendung, { message: 'Fehler', code: 0 }) : antworte(200, mock.anwendung);
+      }
       const nachricht = /^\/api\/v10\/channels\/(\d+)\/messages$/.exec(pfad);
       if (nachricht && req.method === 'POST') {
         if (mock.nachrichtFehler) return antworte(mock.nachrichtFehler[0], { message: 'Fehler', code: mock.nachrichtFehler[1] });
@@ -299,6 +319,8 @@ export function discordClient(mock: MockDiscord, gilden: object[]): Client {
   const client = erstelleClient({ rest: { api: `${mock.url}/api`, cdn: `${mock.url}/cdn`, retries: 0 } });
   client.rest.setToken('test');
   client.user = Reflect.construct(ClientUser, [client, { id: BOT, username: 'kitty', discriminator: '0', bot: true, avatar: null }]);
+  // Wie nach READY: nur ID und Flags; Eigentümer und Team holt erst `fetch`.
+  Object.assign(client, { application: Reflect.construct(ClientApplication, [client, { id: ANWENDUNG, flags: 0 }]) });
   const guilds = client.guilds as unknown as { _add(daten: unknown): unknown };
   for (const g of gilden) guilds._add(g);
   return client;

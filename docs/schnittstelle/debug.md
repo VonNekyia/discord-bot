@@ -5,6 +5,7 @@ code:
   - bot/src/api/server.ts
   - bot/src/kern/zaehlung.ts
   - bot/src/discord/zaehlen.ts
+  - bot/src/discord/eigentuemer.ts
 ---
 
 # API der Debug-Seite

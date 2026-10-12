@@ -9,8 +9,8 @@ export const grenzeUngueltig = 10_000;
 export const warnungUngueltig = 1_000;
 const zehnMinuten = 10 * 60_000;
 
-export type EigeneGrenze = 'bremse' | 'sitzung' | 'bilder' | 'testnachricht';
-const eigeneGrenzen: readonly EigeneGrenze[] = ['bremse', 'sitzung', 'bilder', 'testnachricht'];
+export type EigeneGrenze = 'bremse' | 'sitzung' | 'bausteine' | 'testnachricht';
+const eigeneGrenzen: readonly EigeneGrenze[] = ['bremse', 'sitzung', 'bausteine', 'testnachricht'];
 
 type Scope = 'user' | 'global' | 'shared';
 

@@ -44,7 +44,7 @@ describe('Zählung', () => {
       eigene: [
         { name: 'bremse', gegriffen: 0 },
         { name: 'sitzung', gegriffen: 0 },
-        { name: 'bilder', gegriffen: 0 },
+        { name: 'bausteine', gegriffen: 0 },
         { name: 'testnachricht', gegriffen: 0 },
       ],
     });
@@ -72,7 +72,7 @@ describe('Zählung', () => {
     assert.deepEqual(s.eigene, [
       { name: 'bremse', gegriffen: 1 },
       { name: 'sitzung', gegriffen: 2 },
-      { name: 'bilder', gegriffen: 0 },
+      { name: 'bausteine', gegriffen: 0 },
       { name: 'testnachricht', gegriffen: 0 },
     ]);
     // Ein Stand ändert sich nicht, wenn danach weitere Antworten kommen.

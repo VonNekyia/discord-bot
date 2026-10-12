@@ -75,7 +75,9 @@ Zeiten selbst prüfen die Tests der Bremse ohne Netz, mit
   können mit einem Code von Discord scheitern, und Umbenennen kann mit 429
   und `Retry-After` antworten. Mit `tauschWarten` antwortet
   `POST /oauth2/token` mit 429 und den Sekunden in `Retry-After`, einmal je
-  Eintrag.
+  Eintrag. `GET /applications/@me` liefert `anwendung`: eine Anwendung aus
+  `anwendungDaten`, mit `EIGENTUEMER` oder einem Team, oder einen Status
+  für einen Fehler.
 - `bot/src/module/sprachraeume/sprachraeume.test.ts` setzt Voice States über den Cache von
   discord.js, wie Discord sie meldet, und ruft dann `Raeume#aenderung`.
   Es nutzt einen eigenen Server und eine eigene Person, weil die
@@ -190,6 +192,12 @@ Millisekunden. Darum:
 | abmelden braucht den Origin des Dashboards … | ohne und mit falschem Origin `403`, sonst `204`, Cookie gelöscht, danach `401` |
 | eine abgelaufene Sitzung gilt nicht … | `401`, `raeumeAuf` löscht die Zeile |
 | Bot nicht auf dem Server gibt 404 … | `404` ohne Aufruf an Discord, Unknown Member `403`, Recht entzogen `403`, Eigentümer ohne Rolle darf |
+| der Eigentümer der Anwendung sieht Debug, jeder andere bekommt 403 | `Ich.debug` true und false; `/api/debug` `200` mit allen Feldern von `Debug`, `shards` `[0]`, den vier eigenen Grenzen und `GET /applications/@me` in den Routen; `403` `kein_recht`, ohne Sitzung `401` |
+| die Antwort trägt weder IDs noch Tokens … | nach Anmeldung, Mitgliedern und Anwendung: Routen mit `:id`, keine Zahl mit 17 Stellen, kein Token, Code oder Secret |
+| ein Team: Mitglieder mit angenommener Einladung sehen Debug … | `membership_state` 2 darf, 1 nicht, auch nicht `/api/debug` |
+| die Liste der Berechtigten gilt 5 min, einmal für alle | zwei Personen, ein Abruf; neuer Eigentümer bei Discord: nach 5 min − 1 ms noch der alte, nach 5 min der neue, zweiter Abruf |
+| scheitert das Lesen der Anwendung … | `500`: `/api/ich` `200` mit `debug: false`, `/api/debug` `503`; danach ohne Vorrücken `200`, drei Abrufe; Logzeilen `API ich` und `API debug` ohne ID |
+| GET /api/debug zählt zur Grenze von 60 … | 59 `/api/debug` und eine Route mit `{id}`, die 61. `429` mit `Retry-After`; `sitzung` zählt eins mehr |
 | nach 60 Anfragen je Minute kommt 429 … | `Retry-After` 1 bis 60, die 61. Anfrage fragt Discord nicht; `sitzung` zählt eins mehr |
 | antwortet Discord nicht, gibt es 503 … | eine Logzeile mit dem Namen der Route, ohne ID |
 | seiten liefert Beitritt, Abschied und Sprachräume … | Reihenfolge der Seiten und ihrer Bausteine, die Vorschau daneben; Optionen des Kanals: ohne Kategorie zuerst, Kategorien und Kanäle nach Position, bei gleicher nach ID; ohne Sehen keine Option, ohne Anhängen kein Merkmal `banner` |
@@ -204,7 +212,7 @@ Millisekunden. Darum:
 | ein Bild über 4 MiB gibt 413, ohne es zu lesen | `Content-Length` über 4 MiB ohne Body |
 | ein JPEG mit GPS wird gedreht … | WebP mit 1100 × 440, ohne `Exif`, ohne Beschreibung; Drehung 6 an den Farben; danach `bild: true`, `banner_ohne_recht` |
 | Vorschau: 404 ohne Bild, sonst ein PNG … | `kein_bild`, PNG mit 1100 × 440, Avatar vom CDN; `DELETE` löscht Bild und `banner` |
-| Bild und Vorschau zusammen höchstens 20 je Minute … | die 21. Anfrage `429` ohne Aufruf an Discord; `seiten` geht weiter; `bilder` zählt eins mehr |
+| Bild und Vorschau zusammen höchstens 20 je Minute … | die 21. Anfrage `429` ohne Aufruf an Discord; `seiten` geht weiter; `bausteine` zählt eins mehr |
 | die Regeln der Testnachricht gelten in ihrer Reihenfolge | `test_ohne_kanal`, `kanal_unbekannt`, `test_ohne_inhalt` mit Leerzeichen, ohne Bild und im Kanal ohne „Dateien anhängen“; keine Nachricht |
 | die Testnachricht geht auch, wenn an aus ist … | `200` „Gesendet.“ mit dem Kanal, Zeile `-# Testnachricht aus dem Dashboard` vorn, `allowed_mentions` leer trotz `{nutzer}` |
 | würde die Nachricht mit der Zeile länger als 2000 Zeichen … | bei 1990 Zeichen Text geht nur der Text |
