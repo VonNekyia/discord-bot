@@ -143,7 +143,8 @@ Ein Zeichen ist eine UTF-16-Einheit, also `String.length` in JavaScript.
 Ein Emoji zählt so oft zwei. Das ist nie weniger, als Discord zählt; ein
 Text, der hier passt, passt auch bei Discord. Jeder Platzhalter `{name}`
 aus `platzhalter` zählt mit seinem längsten Wert, so oft er vorkommt. Mit
-`platzhalter: { name: 32 }` ist `{name}s Raum` also 37 Zeichen lang.
+`platzhalter: { name: 32 }` ist `{name}s Raum` also 38 Zeichen lang:
+32 für den Namen und 6 für `s Raum`.
 
 ## Prüfen in der Oberfläche
 

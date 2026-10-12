@@ -76,6 +76,6 @@ Vertrag und dann in die Oberfläche, für alle Module.
   eine Datei, `web/src/seite.ts` baut daraus eine Seite. Das löst
   [0015](0015-feature-module-und-schichten.md) für die Oberfläche ab.
 - Das Dashboard hat höchstens 6 Tabs, siehe
-  [Design der Oberfläche](../frontend/design.md).
+  [Baukasten des Dashboards](../schnittstelle/baukasten.md), „Routen“.
 - Die PR des Backends entfernt die alten Routen; die alte Oberfläche geht
   damit nicht mehr. Die PR des Frontends wird direkt danach gemergt.
