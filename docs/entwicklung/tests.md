@@ -255,6 +255,7 @@ Millisekunden. Darum:
 | Umbenennen: das Formular setzt den Namen, ohne Platzhalter … | Body nur `name`, `{name}` bleibt, getrimmt; Cache umbenannt; leerer Name und Nicht-Besitzer ohne PATCH |
 | Umbenennen bei 429 … | `Retry-After: 300`: Antwort unter 2 s, „erst in 5 min“ |
 | Limit: ein Formular mit dem Limit von jetzt … | vorbelegt mit 4; `user_limit` 7 und 0; „zehn“ und Nicht-Besitzer ohne PATCH |
+| ein Formular ohne Feld wert gibt den Hinweis … | `alsDruck` liest `wert` ohne zu werfen; Limit und Umbenennen ohne Feld geben ihren Hinweis, kein PATCH |
 | Rauswerfen: ist das Mitglied beim Trennen schon weg (40032) … | „nicht im Raum“, keine Logzeile |
 | Rauswerfen: die Nutzerauswahl nur für den Besitzer … | Auswahl Typ 5 mit `custom_id`; `deferUpdate`, getrennt mit Grund, Auswahl weg; nicht drin, sich selbst, Bot, Nicht-Besitzer: Hinweise |
 | Bannen: Sehen und Verbinden verboten … | Eintrag mit beiden verboten, PATCH vor dem Trennen; zweimal, sich selbst, Bot: Hinweise |

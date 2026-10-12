@@ -1,4 +1,4 @@
-import { MessageFlags, type Interaction } from 'discord.js';
+import { ComponentType, MessageFlags, type Interaction, type ModalSubmitInteraction } from 'discord.js';
 import { uebersetzt } from './fehler.js';
 import { alsAuswahl, alsModal, type Auswahl, type Formular } from './menue.js';
 import { serverVon, type Server } from './server.js';
@@ -37,6 +37,13 @@ export interface Druck {
 
 const ohneErwaehnung = { parse: [] };
 
+// Das Textfeld `wert` eines Formulars, ohne zu werfen; fehlt es, undefined.
+// `getTextInputValue` würfe, und das läge vor jedem `try` im Zuhörer.
+function wertVon(i: ModalSubmitInteraction): string | undefined {
+  const feld = i.fields.fields.get('wert');
+  return feld?.type === ComponentType.TextInput ? feld.value : undefined;
+}
+
 // Ein Druck für das Menü mit `praefix` in `custom_id`; sonst undefined.
 // Nur Knöpfe, Nutzerauswahl und Formulare auf einem Server im Cache.
 export function alsDruck(i: Interaction, praefix: string): Druck | undefined {
@@ -50,7 +57,7 @@ export function alsDruck(i: Interaction, praefix: string): Druck | undefined {
     nutzer: i.user.id,
     bot: i.client.user.id,
     ...(i.isUserSelectMenu() && ziel !== undefined ? { ziel: { id: ziel, bot: i.users.get(ziel)?.bot ?? false } } : {}),
-    ...(i.isModalSubmit() ? { wert: i.fields.getTextInputValue('wert') } : {}),
+    ...(i.isModalSubmit() ? { wert: wertVon(i) } : {}),
     get beantwortet() {
       return i.deferred || i.replied;
     },

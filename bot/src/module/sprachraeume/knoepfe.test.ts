@@ -309,6 +309,18 @@ describe('Menü der Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_H
     assert.equal(mock.geaendert.length, 2);
   });
 
+  test('ein Formular ohne Feld wert gibt den Hinweis von Limit und Umbenennen und wirft nicht', async () => {
+    const faelle: [string, string][] = [
+      ['limit', 'Das Limit ist eine Zahl von 0 bis 99.'],
+      ['umbenennen', 'Ein Name hat 1 bis 100 Zeichen.'],
+    ];
+    for (const [aktion, hinweis] of faelle) {
+      // `los` ruft `alsDruck` wie der Zuhörer in index.ts; ein Wurf dort liesse den Test fallen.
+      assert.equal(text(await los(BESITZER, 5, { custom_id: `sprachraum:${aktion}`, components: [] })), hinweis);
+    }
+    assert.equal(mock.geaendert.length, 0);
+  });
+
   test('Rauswerfen: ist das Mitglied beim Trennen schon weg (40032), heisst es nicht im Raum, ohne Logzeile', async (t) => {
     const log = t.mock.method(console, 'error', () => {});
     stimme(GAST, RAUM);
