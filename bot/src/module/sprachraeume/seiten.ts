@@ -78,7 +78,6 @@ function bausteine(l: Liste): Baustein[] {
     {
       art: 'liste',
       id: 'erzeuger',
-      titel: 'Erzeuger',
       eintrag: 'Erzeuger',
       kopf: 'kanal',
       hoechstens: 10,
@@ -97,6 +96,7 @@ function bausteine(l: Liste): Baustein[] {
           unbekannt: 'erzeuger_unbekannt',
           pflicht: 'erzeuger_fehlt',
           einmalig: 'erzeuger_doppelt',
+          vergeben: 'schon gewählt',
         },
         {
           art: 'auswahl',

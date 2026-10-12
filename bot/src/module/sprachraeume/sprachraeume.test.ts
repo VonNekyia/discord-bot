@@ -426,7 +426,7 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
       mock.mitglieder.set(`${SERVER}/${TEAM}`, mitglied(TEAM, [ROLLE_TEAM]));
       return legeSitzungAn(db, { nutzer: TEAM, name: 'Team', avatar: null, server: [SERVER] });
     };
-    type Baustein = { art: string; id: string; optionen?: unknown[]; bausteine?: Baustein[] };
+    type Baustein = { art: string; id: string; titel?: string; optionen?: unknown[]; einmalig?: string; vergeben?: string; bausteine?: Baustein[] };
     type Seite = { id: string; wert: unknown; bausteine: Baustein[]; fund: unknown };
     const seite = async (kennung: string) => {
       const antwort = await frage(basis, `/api/server/${SERVER}/seiten`, { sitzung: kennung });
@@ -455,6 +455,10 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
         s?.bausteine[1]?.bausteine?.map((b) => `${b.art}:${b.id}`),
         ['auswahl:kanal', 'auswahl:kategorie', 'text:name', 'zahl:limit'],
       );
+      // Die Liste hat keine eigene Überschrift; ein schon gewählter Erzeuger heisst „schon gewählt“.
+      assert.equal(s?.bausteine[1]?.titel, undefined);
+      const kanal = s?.bausteine[1]?.bausteine?.[0];
+      assert.deepEqual([kanal?.einmalig, kanal?.vergeben], ['erzeuger_doppelt', 'schon gewählt']);
       const privatK = { id: K.privat, name: 'Privat' };
       const fehlt = (code: string) => ({ grund: 'kitty fehlt ein Recht', code });
       assert.deepEqual(optionen(s, 'kanal'), [
