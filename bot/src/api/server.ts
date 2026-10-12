@@ -21,9 +21,11 @@ import {
 import { BausteinFehler, hoechstensSeiten, methoden, type Bereich, type MitRoute } from '../kern/baukasten.js';
 import { text } from '../kern/fehler.js';
 import { Grenze } from '../kern/grenze.js';
-import type { Zaehlung } from '../kern/zaehlung.js';
+import { Zaehlung } from '../kern/zaehlung.js';
+import { Berechtigte } from '../discord/eigentuemer.js';
 import type { Kontext } from '../discord/kontext.js';
 import { oauthUeber } from '../discord/oauth.js';
+import { debugStand } from '../discord/zaehlen.js';
 
 export interface ApiUmgebung {
   geheimnis: string;
@@ -53,8 +55,9 @@ export interface ApiOptionen {
   geheimnis: string;
   dashboard: string;
   // Zählt, wie oft eine Grenze unten greift. Siehe docs/bot/rate-limits.md, „Eigene Grenzen“.
-  // Zählt auch die Anfragen der Anmeldung an Discord.
-  zaehlung?: Pick<Zaehlung, 'griff' | 'antwort'>;
+  // Zählt auch die Anfragen der Anmeldung an Discord und liefert den Stand
+  // für GET /api/debug. Ohne Angabe eine eigene, die nur die API zählt.
+  zaehlung?: Pick<Zaehlung, 'griff' | 'antwort' | 'stand'>;
   // Die Uhr der Grenzen, in ms; in Tests eine falsche.
   uhr?: () => number;
   // Was die Module für das Dashboard anmelden, in der Reihenfolge der Tabs.
@@ -144,6 +147,8 @@ interface Route {
   sitzung: boolean;
   // Mit {id}: Grenze und Rechte vorher.
   server: boolean;
+  // Ohne {id}, zählt aber zur Grenze je Sitzung, etwa GET /api/debug.
+  grenze?: boolean;
   // Zählt auch zur Grenze für Bilder, Vorschau und Aktionen.
   teuer?: boolean;
   tue(a: Anfrage): Promise<void>;
@@ -178,17 +183,21 @@ function json(a: Anfrage, status: number, wert: unknown, kopf: OutgoingHttpHeade
 export function erstelleApi(o: ApiOptionen): Server {
   const origin = new URL(o.dashboard).origin;
   const sicher = o.dashboard.startsWith('https://');
+  const zaehlung = o.zaehlung ?? new Zaehlung();
   const oauth: OAuth = {
     // Über eine eigene REST-Instanz mit der Basis des Clients.
     // Siehe docs/bot/rate-limits.md, „Anmeldung“.
-    frage: oauthUeber(o.client.rest, { zaehlung: o.zaehlung }),
+    frage: oauthUeber(o.client.rest, { zaehlung }),
     anwendung: o.anwendung,
     geheimnis: o.geheimnis,
     zurueck: `${o.dashboard}/api/anmelden/zurueck`,
   };
   const zeit = o.uhr ?? (() => Date.now());
-  const grenze = new Grenze(60, 60_000, zeit, () => o.zaehlung?.griff('sitzung'));
-  const grenzeBild = new Grenze(20, 60_000, zeit, () => o.zaehlung?.griff('bilder'));
+  // Wer die Debug-Seite sehen darf, höchstens 5 min gehalten.
+  // Siehe docs/schnittstelle/debug.md, „Wer sie sehen darf“.
+  const berechtigte = new Berechtigte(o.client, zeit);
+  const grenze = new Grenze(60, 60_000, zeit, () => zaehlung.griff('sitzung'));
+  const grenzeBild = new Grenze(20, 60_000, zeit, () => zaehlung.griff('bausteine'));
   const sortierer = new Intl.Collator('de');
   const anmeldungWeg = cookie('anmeldung', '', '/api/anmelden', 0, sicher);
 
@@ -329,7 +338,27 @@ export function erstelleApi(o: ApiOptionen): Server {
       server: false,
       async tue(a) {
         const { nutzer, name, avatar } = a.sitzung!;
-        json(a, 200, { id: nutzer, name, avatar: avatar && o.client.rest.cdn.avatar(nutzer, avatar, { size: 128 }) });
+        // `GET /api/ich` scheitert nicht daran, dass Discord die Anwendung nicht liefert.
+        const debug = await berechtigte.darf(nutzer).catch((fehler: unknown) => {
+          console.error(`API ich: Eigentümer nicht gelesen: ${text(fehler)}`);
+          return false;
+        });
+        json(a, 200, { id: nutzer, name, avatar: avatar && o.client.rest.cdn.avatar(nutzer, avatar, { size: 128 }), debug });
+      },
+    },
+    {
+      methode: 'GET',
+      muster: /^\/api\/debug$/,
+      name: 'debug',
+      sitzung: true,
+      server: false,
+      grenze: true,
+      // Scheitert das Lesen der Anwendung, wird es wie jeder andere Fehler 503.
+      // Siehe docs/schnittstelle/debug.md.
+      async tue(a) {
+        const { sitzung } = a;
+        if (!sitzung || !(await berechtigte.darf(sitzung.nutzer))) throw new ApiFehler(403, 'kein_recht');
+        json(a, 200, debugStand(o.client, zaehlung));
       },
     },
     {
@@ -382,10 +411,12 @@ export function erstelleApi(o: ApiOptionen): Server {
         a.sitzung = await findeSitzung(o.db, a.cookies.get('sitzung'));
         if (!a.sitzung) throw new ApiFehler(401, 'nicht_angemeldet');
       }
-      if (route.server) {
+      if (route.server || route.grenze) {
         // Die Grenze vor den Rechten: Eine abgelehnte Anfrage kostet Discord nichts.
         const warten = grenze.pruefe(a.sitzung!.kennung.toString('hex'));
         if (warten > 0) throw new ApiFehler(429, 'zu_viele', undefined, { 'retry-after': String(warten) });
+      }
+      if (route.server) {
         const wartenBild = route.teuer ? grenzeBild.pruefe(a.sitzung!.kennung.toString('hex')) : 0;
         if (wartenBild > 0) throw new ApiFehler(429, 'zu_viele', undefined, { 'retry-after': String(wartenBild) });
         ({ guild: a.server, mitglied: a.mitglied } = await pruefeRechte(o.client, a.teile[1]!, a.sitzung!.nutzer));

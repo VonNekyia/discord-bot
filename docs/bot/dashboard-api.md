@@ -1,11 +1,12 @@
 ---
 title: API im Bot
-description: Wie der Bot die API des Dashboards baut; Dateien, Seiten der Module, Start und Ende, die Reihenfolge der Prüfungen, Grenzen und Zeitlimits im Prozess, Bilder und Vorschau, Fehler und Aufräumen.
+description: Wie der Bot die API des Dashboards baut; Dateien, Seiten der Module, Start und Ende, die Reihenfolge der Prüfungen, Grenzen und Zeitlimits im Prozess, Bilder und Vorschau, die Debug-Route, Fehler und Aufräumen.
 code:
   - bot/src/api/server.ts
   - bot/src/api/anmeldung.ts
   - bot/src/kern/baukasten.ts
   - bot/src/kern/grenze.ts
+  - bot/src/discord/eigentuemer.ts
   - bot/src/module/begruessung/seiten.ts
   - bot/src/module/begruessung/banner.ts
   - bot/src/module/sprachraeume/seiten.ts
@@ -27,7 +28,8 @@ Bilder und Banner zeichnet `@napi-rs/canvas`, siehe Entscheidung
 | Datei | Inhalt |
 |---|---|
 | `bot/src/api/server.ts` | `erstelleApi`: Routen, Origin, Grenzen, Rechte, Body; die Routen der Seiten aus den Bereichen der Module; dazu `apiUmgebung` |
-| `bot/src/api/anmeldung.ts` | OAuth2 mit `fetch`, Sitzungen in PostgreSQL, Cookies |
+| `bot/src/api/anmeldung.ts` | OAuth2 über `oauthUeber` in `bot/src/discord/oauth.ts`, Sitzungen in PostgreSQL, Cookies |
+| `bot/src/discord/eigentuemer.ts` | `Berechtigte`: wer die Debug-Seite sehen darf, siehe „Debug“ |
 | `bot/src/kern/baukasten.ts` | der Vertrag: Typen der Seiten und Bausteine, `Bereich`, `BausteinFehler` |
 | `bot/src/kern/grenze.ts` | `Grenze`, das gleitende Fenster für alle Grenzen |
 | `bot/src/discord/kanaele.ts` | `kanaele`: Text- und Ankündigungskanäle, in denen der Bot senden darf |
@@ -66,8 +68,8 @@ Jede Anfrage durchläuft diese Schritte; sie hört beim ersten Fehler auf:
 | Route | alle; Seite, Baustein und Methode gehören zur Route | `404` `nicht_gefunden` |
 | Origin | `PUT`, `POST`, `DELETE` | `403` `origin_falsch` |
 | Sitzung | alle ausser `/api/anmelden…` | `401` `nicht_angemeldet` |
-| Grenze | Routen mit `{id}`; `PUT`, `GET` und `POST` auf einen Baustein auch die für Bilder | `429` `zu_viele` |
-| Rechte | Routen mit `{id}` | `404` `nicht_gefunden`, `403` `kein_recht` |
+| Grenze | Routen mit `{id}` und `GET /api/debug`; `PUT`, `GET` und `POST` auf einen Baustein auch die für Bausteine | `429` `zu_viele` |
+| Rechte | Routen mit `{id}`; `GET /api/debug` prüft in der Route, siehe „Debug“ | `404` `nicht_gefunden`, `403` `kein_recht` |
 | Body | `PUT …/seiten/{seite}` | `415` `kein_json`, `413` `zu_gross` |
 | Bereich | der Bereich der Seite: Regeln, Bild, Aktion | sein `BausteinFehler`, siehe [API der Begrüssung](../schnittstelle/begruessung.md) und [API der Sprachräume](../schnittstelle/sprachraeume.md) |
 
@@ -90,14 +92,15 @@ Wer Einstellungen oder ein Bild schreibt oder löscht, ruft danach
 
 | Was | Wert | Wie |
 |---|---|---|
-| Anfragen mit `{id}` je Sitzung | 60 je Minute | `Grenze`: gleitendes Fenster im Speicher, Schlüssel ist der Hash der Sitzung |
-| Bild, Vorschau und Testnachricht je Sitzung | 20 je Minute | eine zweite `Grenze`, zusätzlich zur ersten |
+| Anfragen mit `{id}` und `GET /api/debug` je Sitzung | 60 je Minute | `Grenze`: gleitendes Fenster im Speicher, Schlüssel ist der Hash der Sitzung |
+| Anfragen auf einen Baustein je Sitzung | 20 je Minute | eine zweite `Grenze`, zusätzlich zur ersten |
 | Testnachricht je Server | 3 je Minute | eine dritte `Grenze` im Bereich der Begrüssung, Schlüssel ist der Server; sie zählt erst nach Rechten und Regeln, sonst sperrte eine fremde Sitzung |
 | JSON-Body | 16 KiB | zuerst `Content-Length`; sonst zählt das Lesen mit und hört an der Grenze auf |
 | Bild | 4 MiB | wie beim JSON-Body |
 | Header einer Anfrage | 10 s | `headersTimeout` |
 | ganze Anfrage | 30 s | `requestTimeout` |
-| ein Aufruf an Discord für OAuth2 | 10 s | `AbortSignal.timeout` |
+| ein Aufruf an Discord für OAuth2 | 10 s | `oauthFrist`: `signal` und ein Rennen, siehe [Rate-Limits](rate-limits.md), „Anmeldung“ |
+| die Liste der Berechtigten für Debug | 5 min | `Berechtigte`, siehe „Debug“ |
 | ein Avatar vom CDN | 5 s | `AbortSignal.timeout` in `holeAvatar` |
 
 - Ihre Uhr ist `uhr` aus `ApiOptionen` und, für die Testnachricht, aus
@@ -142,6 +145,28 @@ Wer Einstellungen oder ein Bild schreibt oder löscht, ruft danach
 also mit Spitzname und Avatar auf diesem Server. Ohne Bild `404`
 `kein_bild`. Die Vorschau zeichnet auch, wenn `banner` aus ist, damit das
 Team sie vor dem Einschalten sieht.
+
+## Debug
+
+`GET /api/debug` und `Ich.debug` folgen
+[API der Debug-Seite](../schnittstelle/debug.md).
+
+- Die Route hat keinen Server. Sie braucht eine Sitzung und zählt zur
+  Grenze von 60 je Sitzung (`grenze` an der Route), vor dem Prüfen der
+  Rechte.
+- Die Rechte prüft `Berechtigte#darf` in `bot/src/discord/eigentuemer.ts`
+  mit `client.application.fetch()`: der Eigentümer, sonst die Mitglieder
+  des Teams mit `membershipState` angenommen. Die Liste der IDs gilt
+  einmal je Prozess höchstens 5 min, nach `uhr` aus `ApiOptionen`.
+  Gleichzeitige Anfragen teilen sich einen Abruf; einen Fehlschlag hält
+  sie nicht.
+- Scheitert der Abruf, gibt `GET /api/debug` wie jeder andere Fehler
+  `503` `nicht_erreichbar` mit der Zeile `API debug: <Fehler>`.
+  `GET /api/ich` antwortet trotzdem, mit `debug: false` und der Zeile
+  `API ich: Eigentümer nicht gelesen: <Fehler>`.
+- Den Stand liefert `debugStand` aus der `Zaehlung` in `ApiOptionen`;
+  ohne Angabe zählt eine eigene nur die Anfragen der API. Siehe
+  [Rate-Limits](rate-limits.md), „Zählen“.
 
 ## Fehler
 

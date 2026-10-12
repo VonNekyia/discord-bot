@@ -129,9 +129,10 @@ ist, auch. Vorher entschlüsselt sie Segmente wie `%40original`. Route und
 `majorParameter` von `@discordjs/rest` nimmt sie nicht: `majorParameter`
 trägt bei Webhooks den Token.
 
-`debugStand` gibt den Stand in der Form, die eine Debug-Seite später nur
-noch ausliefert: Routen nach Anfragen absteigend, alle vier eigenen
-Grenzen auch mit 0, die Shards dieses Prozesses.
+`debugStand` gibt den Stand in der Form, die `GET /api/debug` ausliefert,
+siehe [API der Debug-Seite](../schnittstelle/debug.md): Routen nach
+Anfragen absteigend, alle vier eigenen Grenzen auch mit 0, die Shards
+dieses Prozesses.
 
 Je 429 kommt eine Zeile ins Log, nur mit Methode, Route, Scope, `global`
 und Zahlen; fehlt ein Wert, steht `-`:
@@ -173,10 +174,10 @@ mit, wie oft sie greifen (`Zaehlung#griff`):
 |---|---|---|
 | `bremse` | die Bremse der Begrüssung, siehe [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md), „Bremse“ | einmal, wenn sie greift, nicht je gezähltem Ereignis |
 | `sitzung` | 60 Anfragen je Minute und Sitzung | je `429` `zu_viele` |
-| `bilder` | 20 je Minute für Bilder, Vorschau und Aktionen | je `429` `zu_viele` |
+| `bausteine` | 20 je Minute für jede Anfrage auf einen Baustein: Bilder, Vorschau, Aktionen | je `429` `zu_viele` |
 | `testnachricht` | 3 je Minute und Server | je `429` `zu_viele` |
 
-`sitzung` und `bilder` stehen in
+`sitzung` und `bausteine` stehen in
 [API des Dashboards](../schnittstelle/api.md), „Grenzen je Sitzung“,
 `testnachricht` im Modul Begrüssung, siehe
 [API der Begrüssung](../schnittstelle/begruessung.md), „Testnachricht“.

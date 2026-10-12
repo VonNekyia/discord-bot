@@ -13,6 +13,7 @@ code:
   - bot/src/module/sprachraeume/knoepfe.ts
   - bot/src/kern/zaehlung.ts
   - bot/src/discord/oauth.ts
+  - bot/src/discord/eigentuemer.ts
 ---
 
 # Datenschutz
@@ -44,6 +45,16 @@ Mitglied die Zeit des letzten neuen Raums im Speicher, mit der Discord-ID.
 Ein Timer vergisst den Eintrag nach 30 s (`Raeume`, `bot/src/module/sprachraeume/raeume.ts`),
 siehe [Sprachräume](../benutzung/sprachraeume.md), „Grenzen“. Der Test „die
 Grenze von 30 s vergisst ein Mitglied nach ihrer Zeit“ prüft das.
+
+Für die Debug-Seite hält der Bot die Discord-IDs des Eigentümers der
+Anwendung oder der Mitglieder ihres Teams mit angenommener Einladung im
+Speicher, einmal je Prozess und höchstens 5 min (`Berechtigte` in
+`bot/src/discord/eigentuemer.ts`), siehe
+[API der Debug-Seite](../schnittstelle/debug.md), „Wer sie sehen darf“.
+Ausserdem legt discord.js beim Abruf Eigentümer oder Team mit Namen in
+`client.application.owner` ab; das bleibt bis zum nächsten Abruf oder zum
+Ende des Prozesses. Der Test „die Liste der Berechtigten gilt 5 min,
+einmal für alle“ prüft die 5 min.
 
 „Der Bot verlässt den Server“ heisst auch: Er wurde entfernt, während er
 aus war. Beim Start gleicht er ab und löscht dann, siehe
