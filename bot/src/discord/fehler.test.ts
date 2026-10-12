@@ -14,7 +14,9 @@ test('jeder Code, den ein Modul unterscheidet, hat seinen eigenen; die Meldung b
     [10003, 'nicht_gefunden'],
     [40032, 'nicht_verbunden'],
     [30060, 'zu_viele_eintraege'],
-    [10007, 'anderes'],
+    [10007, 'kein_mitglied'],
+    [10013, 'kein_mitglied'],
+    [10004, 'anderes'],
     [30013, 'anderes'],
   ];
   for (const [code, eigener] of faelle) {

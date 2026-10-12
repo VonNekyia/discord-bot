@@ -112,8 +112,7 @@ Stand 2026-10-12:
 
 | Paket | Regel | Funde | wo |
 |---|---|---|---|
-| `bot/` | `no-non-null-assertion` | 7 | `api/server.ts`: `a.sitzung!` in den Routen und beim Prüfen der Rechte |
-| `bot/` | `no-unsafe-type-assertion` | 4 | der Code eines Fehlers von Discord in `api/server.ts`, die geprüfte Eingabe in `pruefe` der Begrüssung und der Sprachräume |
+| `bot/` | `no-unsafe-type-assertion` | 3 | die geprüfte Eingabe in `pruefe` der Begrüssung und der Sprachräume |
 
 Die Antworten der API prüft `web/src/api/klient.ts` mit Typprädikaten statt
 mit `as`, siehe [Dashboard](../frontend/dashboard.md), „Antworten prüfen“.

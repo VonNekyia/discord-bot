@@ -397,6 +397,23 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
       assert.equal((await frage(basis, `/api/server/${EIGENER}/seiten`, { sitzung: kennung })).status, 200);
     });
 
+    test('liefert Discord den Server gerade nicht, gibt es 503 ohne Logzeile, ohne nach dem Mitglied zu fragen', async (t) => {
+      const log = t.mock.method(console, 'error', () => {});
+      const kennung = await sitzung();
+      const guild = client.guilds.cache.get(SERVER);
+      assert.ok(guild);
+      guild.available = false;
+      t.after(() => {
+        guild.available = true;
+      });
+      const vorher = mitgliederAbrufe();
+      const antwort = await frage(basis, `/api/server/${SERVER}/seiten`, { sitzung: kennung });
+      assert.equal(antwort.status, 503);
+      assert.deepEqual(await antwort.json(), { code: 'nicht_erreichbar' });
+      assert.equal(mitgliederAbrufe(), vorher);
+      assert.equal(log.mock.callCount(), 0);
+    });
+
     test('nach 60 Anfragen je Minute kommt 429 mit Retry-After, ohne Discord zu fragen', async () => {
       const kennung = await sitzung();
       const vorher = mitgliederAbrufe();

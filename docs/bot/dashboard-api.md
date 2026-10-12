@@ -7,6 +7,7 @@ code:
   - bot/src/kern/baukasten.ts
   - bot/src/kern/grenze.ts
   - bot/src/discord/eigentuemer.ts
+  - bot/src/discord/kontext.ts
   - bot/src/module/begruessung/seiten.ts
   - bot/src/module/begruessung/banner.ts
   - bot/src/module/sprachraeume/seiten.ts
@@ -27,7 +28,8 @@ Bilder und Banner zeichnet `@napi-rs/canvas`, siehe Entscheidung
 
 | Datei | Inhalt |
 |---|---|
-| `bot/src/api/server.ts` | `erstelleApi`: Routen, Origin, Grenzen, Rechte, Body; die Routen der Seiten aus den Bereichen der Module; dazu `apiUmgebung` |
+| `bot/src/api/server.ts` | `erstelleApi`: Routen nach Zugang, Origin, Grenzen, Body; die Routen der Seiten aus den Bereichen der Module; dazu `apiUmgebung` |
+| `bot/src/discord/kontext.ts` | `verwaltet`: ob eine Person einen Server jetzt verwalten darf, und dann ihr `Kontext` |
 | `bot/src/api/anmeldung.ts` | OAuth2 über `oauthUeber` in `bot/src/discord/oauth.ts`, Sitzungen in PostgreSQL, Cookies |
 | `bot/src/discord/eigentuemer.ts` | `Berechtigte`: wer die Debug-Seite sehen darf, siehe „Debug“ |
 | `bot/src/kern/baukasten.ts` | der Vertrag: Typen der Seiten und Bausteine, `Bereich`, `BausteinFehler` |
@@ -61,6 +63,19 @@ ihren Bereich über die IDs, die er anmeldet.
 
 ## Ablauf einer Anfrage
 
+Jede Route hat einen Zugang. Er sagt, was `fuehreAus` in
+`bot/src/api/server.ts` vor der Route prüft, und was die Route bekommt:
+
+| Zugang | Routen | prüft vorher | die Route bekommt |
+|---|---|---|---|
+| `offen` | `/api/anmelden…` | nichts | `Anfrage` |
+| `sitzung` | `/api/abmelden`, `/api/ich`, `/api/server`, `/api/debug` | Sitzung; mit `grenze` auch die Grenze je Sitzung | `MitSitzung`, mit `sitzung` |
+| `server` | jede Route mit `{id}` | Sitzung, Grenze je Sitzung, mit `teuer` die für Bausteine, Rechte | `MitServer`, mit `sitzung` und `kontext` |
+
+Eine Route liest nur, was ihr Zugang geprüft hat; sonst baut `tsc`
+nicht. So braucht keine Route `a.sitzung!` oder eine Prüfung zur
+Laufzeit.
+
 Jede Anfrage durchläuft diese Schritte; sie hört beim ersten Fehler auf:
 
 | Schritt | Für | Fehler |
@@ -69,7 +84,7 @@ Jede Anfrage durchläuft diese Schritte; sie hört beim ersten Fehler auf:
 | Origin | `PUT`, `POST`, `DELETE` | `403` `origin_falsch` |
 | Sitzung | alle ausser `/api/anmelden…` | `401` `nicht_angemeldet` |
 | Grenze | Routen mit `{id}` und `GET /api/debug`; `PUT`, `GET` und `POST` auf einen Baustein auch die für Bausteine | `429` `zu_viele` |
-| Rechte | Routen mit `{id}`; `GET /api/debug` prüft in der Route, siehe „Debug“ | `404` `nicht_gefunden`, `403` `kein_recht` |
+| Rechte | Routen mit `{id}`; `GET /api/debug` prüft in der Route, siehe „Debug“ | `404` `nicht_gefunden`, `503` `nicht_erreichbar`, `403` `kein_recht` |
 | Body | `PUT …/seiten/{seite}` | `415` `kein_json`, `413` `zu_gross` |
 | Bereich | der Bereich der Seite: Regeln, Bild, Aktion | sein `BausteinFehler`, siehe [API der Begrüssung](../schnittstelle/begruessung.md) und [API der Sprachräume](../schnittstelle/sprachraeume.md) |
 
@@ -78,8 +93,19 @@ dann die Grenze je Server und sendet erst danach; scheitert das Senden,
 `503` `nicht_erreichbar`, siehe [Begrüssung senden](begruessung-senden.md),
 „Testnachricht“.
 
-Bei den Rechten werden Unknown Member (10007) und Unknown User (10013) von
-Discord zu `403` `kein_recht`. Der Cache von discord.js hält ohnehin keine
+Die Rechte prüft `verwaltet` in `bot/src/discord/kontext.ts`. Es gibt den
+`Kontext` zurück oder den Grund, und die API macht daraus Status und Code:
+
+| Grund | Antwort |
+|---|---|
+| `kein_server`: der Bot ist nicht auf dem Server | `404` `nicht_gefunden` |
+| `nicht_erreichbar`: Discord liefert den Server gerade nicht (`available` falsch) | `503` `nicht_erreichbar`, ohne Logzeile und ohne nach dem Mitglied zu fragen |
+| `kein_recht`: kein Mitglied, oder ohne „Server verwalten“ | `403` `kein_recht` |
+
+Unknown Member (10007) und Unknown User (10013) von Discord werden
+`DiscordFehler` mit `kein_mitglied` und so `kein_recht`. Jeder andere
+Fehler beim Holen des Mitglieds wird `503` `nicht_erreichbar` mit
+Logzeile, siehe „Fehler“. Der Cache von discord.js hält ohnehin keine
 Mitglieder, siehe [Datenschutz](datenschutz.md), „Was der Bot speichert“;
 `force: true` holt das Mitglied auch dann neu, wenn sich das einmal
 ändert.

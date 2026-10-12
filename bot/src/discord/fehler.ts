@@ -2,7 +2,7 @@ import { DiscordAPIError, RateLimitError, RESTJSONErrorCodes as Code } from 'dis
 
 // Fehler von Discord mit eigenen Codes, nur die, die ein Modul unterscheidet.
 // Siehe docs/entwicklung/struktur.md, „Die Discord-Schicht“.
-export type FehlerCode = 'kein_recht' | 'nicht_gefunden' | 'nicht_verbunden' | 'zu_viele_eintraege' | 'zu_schnell' | 'anderes';
+export type FehlerCode = 'kein_recht' | 'nicht_gefunden' | 'kein_mitglied' | 'nicht_verbunden' | 'zu_viele_eintraege' | 'zu_schnell' | 'anderes';
 
 // Ein Fehler von Discord mit eigenem Code. Die Meldung bleibt die von Discord;
 // bei `zu_schnell` sagt `warten`, wie viele ms es noch dauert.
@@ -28,6 +28,9 @@ function codeVon(fehler: unknown): FehlerCode {
       return 'kein_recht';
     case Code.UnknownChannel:
       return 'nicht_gefunden';
+    case Code.UnknownMember:
+    case Code.UnknownUser:
+      return 'kein_mitglied';
     case Code.TargetUserIsNotConnectedToVoice:
       return 'nicht_verbunden';
     case Code.MaximumNumberOfChannelPermissionOverwritesReached:

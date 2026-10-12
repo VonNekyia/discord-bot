@@ -214,6 +214,7 @@ Millisekunden. Darum:
 | abmelden braucht den Origin des Dashboards … | ohne und mit falschem Origin `403`, sonst `204`, Cookie gelöscht, danach `401` |
 | eine abgelaufene Sitzung gilt nicht … | `401`, `raeumeAuf` löscht die Zeile |
 | Bot nicht auf dem Server gibt 404 … | `404` ohne Aufruf an Discord, Unknown Member `403`, Recht entzogen `403`, Eigentümer ohne Rolle darf |
+| liefert Discord den Server gerade nicht, gibt es 503 … | `available` falsch: `503` `nicht_erreichbar`, kein Abruf des Mitglieds, keine Logzeile |
 | der Eigentümer der Anwendung sieht Debug, jeder andere bekommt 403 | `Ich.debug` true und false; `/api/debug` `200` mit allen Feldern von `Debug`, `shards` `[0]`, den vier eigenen Grenzen und `GET /applications/@me` in den Routen; `403` `kein_recht`, ohne Sitzung `401` |
 | die Antwort trägt weder IDs noch Tokens … | nach Anmeldung, Mitgliedern und Anwendung: Routen mit `:id`, keine Zahl mit 17 Stellen, kein Token, Code oder Secret |
 | ein Team: Mitglieder mit angenommener Einladung sehen Debug … | `membership_state` 2 darf, 1 nicht, auch nicht `/api/debug` |
@@ -289,7 +290,7 @@ Millisekunden. Darum:
 | fehlt dem Bot ein Recht (50013) … / ein anderer Fehler … | Hinweis oder „Das hat nicht geklappt.“, je eine Logzeile ohne ID und Token |
 | dauer: Sekunden unter einer Minute … | 50 ms, 12 s, 5 und 6 min |
 | Rechte im Raum: … | `raumrechte` ohne Discord: Sperren und Verstecken hin und zurück ergeben die Einträge vom Anlegen; ohne Kategorie; Zeigen bei gesperrtem Raum; Bann und Entbannen; Gebannte bleiben gebannt; Kategorie-Sperre ist kein Bann; Besitzer und Bot behalten ihre Rechte; neuer Besitzer; der alte behält seinen Eintrag bis Entsperren oder Zeigen, dann wie in der Kategorie |
-| jeder Code, den ein Modul unterscheidet, hat seinen eigenen … | `fehler.test.ts`: 50001 und 50013 `kein_recht`, 10003 `nicht_gefunden`, 40032 `nicht_verbunden`, 30060 `zu_viele_eintraege`, 10007 und 30013 `anderes`; die Meldung bleibt |
+| jeder Code, den ein Modul unterscheidet, hat seinen eigenen … | `fehler.test.ts`: 50001 und 50013 `kein_recht`, 10003 `nicht_gefunden`, 10007 und 10013 `kein_mitglied`, 40032 `nicht_verbunden`, 30060 `zu_viele_eintraege`, 10004 und 30013 `anderes`; die Meldung bleibt |
 | ein RateLimitError wird zu_schnell mit der Wartezeit … | `warten` aus `retryAfter`, die Meldung mit Methode, Route und Sekunden, ohne IDs; andere Fehler und Nicht-Fehler `anderes`; ein `DiscordFehler` bleibt, wie er ist |
 | uebersetzt wirft DiscordFehler … | das Ergebnis geht durch, 40032 wird `nicht_verbunden` |
 | der Griff trägt ID und Name … | `sprachkanaele.test.ts`: eingefroren, `guildVon` gibt die Guild; eine Kopie des Griffs hat keine |
