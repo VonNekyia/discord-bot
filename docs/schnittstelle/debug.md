@@ -98,7 +98,13 @@ type Eigene = {
   dem Pfad und verlässt sich nicht auf die Route von `@discordjs/rest`.
 - **Die Header** stehen in [Rate Limits](https://docs.discord.com/developers/topics/rate-limits#header-format).
   Fehlt einer, ist der Wert `null`. `X-RateLimit-Bucket` gehört nicht zur
-  Antwort.
+  Antwort. `limit`, `remaining` und `resetAfter` gelten zum Zeitpunkt
+  `zuletzt`, nicht `jetzt`. Den Rest bis zum Reset rechnet die Oberfläche
+  als `max(0, resetAfter − (jetzt − zuletzt))`.
+- **Zeiten**: `seit`, `jetzt` und `zuletzt` sind ISO 8601 in UTC mit `Z`,
+  etwa `2026-10-12T08:30:00.000Z`. Relative Zeiten wie „vor 12 s“ rechnet
+  die Oberfläche gegen `jetzt` aus der Antwort, nicht gegen die Uhr des
+  Browsers.
 - **`ungueltig`**: ein gleitendes Fenster von 10 min
   ([Invalid Request Limit](https://docs.discord.com/developers/topics/rate-limits#invalid-request-limit-aka-cloudflare-bans)).
   Ein 429 mit `X-RateLimit-Scope: shared` zählt dort nicht mit, so wie bei
@@ -127,4 +133,5 @@ und nicht ins Log. Was ins Log geht, steht in
 
 Die Oberfläche lädt `GET /api/debug` beim Öffnen und dann höchstens alle
 10 s neu, nur solange die Seite sichtbar ist. Das sind höchstens 6 von 60
-Anfragen je Minute und Sitzung.
+Anfragen je Minute und Sitzung. Nach `429` wartet sie `Retry-After` ab,
+nach `403` hört sie auf und zeigt die Meldung.
