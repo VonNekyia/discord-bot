@@ -1,17 +1,9 @@
-import {
-  ChannelType,
-  PermissionFlagsBits,
-  type Guild,
-  type GuildMember,
-  type PartialGuildMember,
-} from 'discord.js';
 import type { Pool } from 'pg';
 import { holeAvatar, zeichne } from './banner.js';
 import { text as fehlertext } from '../../kern/fehler.js';
 import type { Zaehlung } from '../../kern/zaehlung.js';
 import { ersetze, liesBild, type Art, type Einstellung, type Werte } from './begruessung.js';
-
-type Mitglied = GuildMember | PartialGuildMember;
+import type { Mitglied, Textkanal } from '../../discord/nachrichten.js';
 
 // Was `begruesse` braucht: die Datenbank für das Bild, die Einstellungen
 // über den Cache und die Bremse. Siehe docs/bot/begruessung-senden.md.
@@ -19,7 +11,10 @@ export interface SendeKontext {
   db: Pick<Pool, 'query'>;
   einstellungen: { fetch(server: string): Promise<Record<Art, Einstellung> | undefined> };
   avatar?: (url: string) => Promise<Buffer | undefined>;
-  bremse?: Bremse<{ guild: Guild; art: Art }>;
+  bremse?: Bremse<{ server: string; art: Art }>;
+  // Der Textkanal, in dem der Bot senden darf, über die IDs von Server und
+  // Kanal; im Bot `textkanalAuf` aus der Discord-Schicht.
+  kanal: (server: string, kanal: string) => Textkanal | undefined;
   // Zählt, wie oft die Bremse greift. Siehe docs/bot/rate-limits.md, „Eigene Grenzen“.
   zaehlung?: Pick<Zaehlung, 'griff'>;
 }
@@ -50,25 +45,15 @@ export class Plaetze {
 const bannerPlaetze = new Plaetze(2);
 
 function werte(mitglied: Mitglied): Werte {
-  return { id: mitglied.id, name: mitglied.displayName, server: mitglied.guild.name, anzahl: mitglied.guild.memberCount };
-}
-
-// Der Text- oder Ankündigungskanal mit dieser ID und die Rechte des Bots dort.
-function textkanal(guild: Guild, id: string) {
-  const kanal = guild.channels.cache.get(id);
-  const ich = guild.members.me;
-  if (!ich || (kanal?.type !== ChannelType.GuildText && kanal?.type !== ChannelType.GuildAnnouncement)) return undefined;
-  const rechte = kanal.permissionsFor(ich);
-  if (!rechte.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) return undefined;
-  return { kanal, anhaengen: rechte.has(PermissionFlagsBits.AttachFiles) };
+  return { id: mitglied.id, name: mitglied.name, server: mitglied.server.name, anzahl: mitglied.server.anzahl };
 }
 
 // Das Banner für ein Mitglied; undefined ohne gespeichertes Bild.
 export async function banner(mitglied: Mitglied, art: Art, vorlage: string, k: Pick<SendeKontext, 'db' | 'avatar'>): Promise<Buffer | undefined> {
-  const hintergrund = await liesBild(k.db, mitglied.guild.id, art);
+  const hintergrund = await liesBild(k.db, mitglied.server.id, art);
   if (!hintergrund) return undefined;
   return bannerPlaetze.nutze(async () => {
-    const avatar = await (k.avatar ?? holeAvatar)(mitglied.displayAvatarURL({ extension: 'png', size: 256 }));
+    const avatar = await (k.avatar ?? holeAvatar)(mitglied.avatar);
     return zeichne(hintergrund, avatar, ersetze(vorlage, werte(mitglied), 'banner'));
   });
 }
@@ -115,18 +100,19 @@ export function zusammenfassung(art: Art, zahl: number): string {
 }
 
 // Schickt die Zusammenfassung, wenn die Art noch an ist und der Bot im Kanal
-// darf; ohne Ping, ohne Banner.
-async function fasseZusammen(guild: Guild, art: Art, zahl: number, k: Pick<SendeKontext, 'einstellungen'>): Promise<void> {
+// darf; ohne Ping, ohne Banner. Den Kanal sucht sie erst jetzt: In 30 s
+// können sich Einstellung und Rechte ändern.
+async function fasseZusammen(server: string, art: Art, zahl: number, k: Pick<SendeKontext, 'einstellungen' | 'kanal'>): Promise<void> {
   console.log(`Begrüssung ${art}: Bremse aus, ${zahl} gezählt.`);
   try {
-    const e = (await k.einstellungen.fetch(guild.id))?.[art];
+    const e = (await k.einstellungen.fetch(server))?.[art];
     if (!e?.an || !e.kanal) return;
-    const ziel = textkanal(guild, e.kanal);
+    const ziel = k.kanal(server, e.kanal);
     if (!ziel) {
       console.error(`Begrüssung ${art}: Kanal fehlt oder der Bot darf dort nicht senden.`);
       return;
     }
-    await ziel.kanal.send({ content: zusammenfassung(art, zahl), allowedMentions: { parse: [] } });
+    await ziel.sende({ text: zusammenfassung(art, zahl) });
   } catch (fehler) {
     console.error(`Begrüssung ${art}: Zusammenfassung nicht gesendet: ${fehlertext(fehler)}`);
   }
@@ -134,32 +120,32 @@ async function fasseZusammen(guild: Guild, art: Art, zahl: number, k: Pick<Sende
 
 // Eine Bremse, die beim Lösen die Zusammenfassung schickt. `ruhe` ist nur
 // für Tests kürzer als 30 s.
-export function erstelleBremse(k: Pick<SendeKontext, 'einstellungen'>, ruhe = 30_000): Bremse<{ guild: Guild; art: Art }> {
-  return new Bremse(({ guild, art }, zahl) => void fasseZusammen(guild, art, zahl, k), 5, 10_000, ruhe);
+export function erstelleBremse(k: Pick<SendeKontext, 'einstellungen' | 'kanal'>, ruhe = 30_000): Bremse<{ server: string; art: Art }> {
+  return new Bremse(({ server, art }, zahl) => void fasseZusammen(server, art, zahl, k), 5, 10_000, ruhe);
 }
 
 // Schickt die Begrüssung für `art`, wenn sie an ist, die Bremse nicht greift
 // und der Bot im Kanal darf. Ins Log gehen nur die Art und der Grund, nie IDs
 // oder Namen. Siehe docs/benutzung/begruessung.md, „Wenn etwas fehlt“.
 export async function begruesse(mitglied: Mitglied, art: Art, k: SendeKontext): Promise<void> {
-  const { guild } = mitglied;
+  const server = mitglied.server.id;
   let e: Einstellung | undefined;
   try {
-    e = (await k.einstellungen.fetch(guild.id))?.[art];
+    e = (await k.einstellungen.fetch(server))?.[art];
   } catch (fehler) {
     console.error(`Begrüssung ${art}: Einstellungen nicht gelesen: ${fehlertext(fehler)}`);
     return;
   }
   if (!e?.an || !e.kanal) return;
   // Die Bremse zählt erst hier, also nur, solange die Art an ist.
-  const stand = k.bremse?.zaehle(`${guild.id}/${art}`, { guild, art }) ?? 'einzeln';
+  const stand = k.bremse?.zaehle(`${server}/${art}`, { server, art }) ?? 'einzeln';
   if (stand === 'an') {
     console.log(`Begrüssung ${art}: Bremse an.`);
     k.zaehlung?.griff('bremse');
   }
   if (stand !== 'einzeln') return;
 
-  const ziel = textkanal(guild, e.kanal);
+  const ziel = k.kanal(server, e.kanal);
   if (!ziel) {
     console.error(`Begrüssung ${art}: Kanal fehlt oder der Bot darf dort nicht senden.`);
     return;
@@ -180,12 +166,11 @@ export async function begruesse(mitglied: Mitglied, art: Art, k: SendeKontext): 
 
   // Beim Beitritt pingt nur das neue Mitglied, beim Abschied niemand.
   // Siehe docs/benutzung/begruessung.md, „Platzhalter“.
-  const allowedMentions = art === 'beitritt' ? { parse: [], users: [mitglied.id] } : { parse: [] };
-  await ziel.kanal
-    .send({
-      ...(text.trim() === '' ? {} : { content: text }),
-      files: datei ? [{ attachment: datei, name: `${art}.png` }] : [],
-      allowedMentions,
+  await ziel
+    .sende({
+      ...(text.trim() === '' ? {} : { text }),
+      ...(datei ? { datei: { name: `${art}.png`, daten: datei } } : {}),
+      pingt: art === 'beitritt' ? [mitglied.id] : [],
     })
     .catch((fehler: unknown) => console.error(`Begrüssung ${art}: nicht gesendet: ${fehlertext(fehler)}`));
 }
@@ -194,17 +179,16 @@ export async function begruesse(mitglied: Mitglied, art: Art, k: SendeKontext): 
 // Siehe docs/schnittstelle/begruessung.md, „Testnachricht“.
 export const testZeile = '-# Testnachricht aus dem Dashboard';
 
-// Schickt eine Testnachricht mit `mitglied` als Mitglied, ohne Ping, auch wenn
-// `an` aus ist. Die Regeln der API sind schon geprüft. Wirft, wenn nichts
-// gesendet wurde. Siehe docs/schnittstelle/begruessung.md, „Testnachricht“.
+// Schickt eine Testnachricht mit `mitglied` als Mitglied in `ziel`, ohne
+// Ping, auch wenn `an` aus ist. Die Regeln der API sind schon geprüft. Wirft,
+// wenn nichts gesendet wurde. Siehe docs/schnittstelle/begruessung.md, „Testnachricht“.
 export async function sendeTest(
-  mitglied: GuildMember,
+  mitglied: Mitglied,
+  ziel: Textkanal,
   art: Art,
   e: Einstellung,
   k: Pick<SendeKontext, 'db' | 'avatar'>,
 ): Promise<{ banner: boolean }> {
-  const ziel = e.kanal ? textkanal(mitglied.guild, e.kanal) : undefined;
-  if (!ziel) throw new Error('Kanal fehlt oder der Bot darf dort nicht senden');
   const text = ersetze(e.text, werte(mitglied), 'text');
   let datei: Buffer | undefined;
   if (e.banner && e.bild && ziel.anhaengen) {
@@ -215,10 +199,9 @@ export async function sendeTest(
   }
   if (text.trim() === '' && !datei) throw new Error('nichts zu senden, das Banner ist gescheitert');
   const mitZeile = text.trim() === '' ? testZeile : `${testZeile}\n${text}`;
-  await ziel.kanal.send({
-    content: mitZeile.length <= 2000 ? mitZeile : text,
-    files: datei ? [{ attachment: datei, name: `${art}.png` }] : [],
-    allowedMentions: { parse: [] },
+  await ziel.sende({
+    text: mitZeile.length <= 2000 ? mitZeile : text,
+    ...(datei ? { datei: { name: `${art}.png`, daten: datei } } : {}),
   });
   return { banner: datei !== undefined };
 }

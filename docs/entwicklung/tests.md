@@ -17,6 +17,7 @@ code:
   - bot/src/kern/zaehlung.test.ts
   - bot/src/discord/zaehlen.test.ts
   - bot/src/discord/oauth.test.ts
+  - bot/src/discord/nachrichten.test.ts
   - bot/package.json
   - .github/workflows/backend.yml
 ---
@@ -55,11 +56,12 @@ Interaktionen ersetzt `interaktion` durch ein Objekt mit nur dem, was
 `bot/src/api/server.test.ts` startet die API mit `erstelleApi` und den
 Bereichen von Begrüssung und Sprachräumen auf einem freien Port und
 spricht sie mit `fetch` an, ohne Weiterleitungen zu folgen.
-`bot/src/module/begruessung/senden.test.ts` ruft `begruesse` mit Mitgliedern auf, wie
-discord.js sie bei Beitritt und Abschied bringt. Dort gibt die Bremse nur
-200 ms Ruhe statt 30 s (`erstelleBremse`), siehe „Falsche Uhren“. Die
-Zeiten selbst prüfen die Tests der Bremse ohne Netz, mit
-`t.mock.timers`. Beide nutzen
+`bot/src/module/begruessung/senden.test.ts` ruft `begruesse` mit einer
+Fälschung der Discord-Schicht: ein `Mitglied` als Objekt und ein
+`Textkanal`, der sich merkt, was er senden soll; ohne Client und ohne
+Netz. Darum laufen die 30 s der Bremse dort mit `t.mock.timers`, siehe
+„Falsche Uhren“. Die Schicht selbst prüft `bot/src/discord/nachrichten.test.ts`
+gegen `mockDiscord`. Die Tests der API und der Schicht nutzen
 `bot/src/testhilfe.ts`:
 
 - `mockDiscord`: ein `node:http`-Server für OAuth2 (`/oauth2/token`,
@@ -127,14 +129,15 @@ der dabei Discord fragt, hängt oder wird langsam: Mit falschem
 `setTimeout` brauchte ein `PATCH` an den Mock gemessen 6 s statt weniger
 Millisekunden. Darum:
 
-- Ohne Netz geht `t.mock.timers`, etwa für die Bremse oder die Zählung der
+- Ohne Netz geht `t.mock.timers`, etwa für die Bremse, auch beim Senden
+  gegen eine Fälschung der Discord-Schicht, oder die Zählung der
   Rate-Limits.
 - Mit Netz bekommt der Code eine eigene falsche Uhr: `uhr` für Zeiten und
   `planen` für Timer in `RaumKontext` (`bot/src/module/sprachraeume/raeume.ts`).
   Der Test lässt die Zeit selbst vorrücken.
-- Echte kurze Zeiten nur, wo der Test auf das Ende wartet, etwa die Ruhe
-  der Bremse; nie eine Wartezeit, die gegen die Dauer anderer Aufrufe
-  läuft.
+- Echte kurze Zeiten nur, wo der Test auf das Ende wartet, etwa `warten`
+  vor dem Löschen eines leeren Raums; nie eine Wartezeit, die gegen die
+  Dauer anderer Aufrufe läuft.
 
 ## Was abgedeckt ist
 
@@ -263,18 +266,27 @@ Millisekunden. Darum:
 | fehlt dem Bot ein Recht (50013) … / ein anderer Fehler … | Hinweis oder „Das hat nicht geklappt.“, je eine Logzeile ohne ID und Token |
 | dauer: Sekunden unter einer Minute … | 50 ms, 12 s, 5 und 6 min |
 | Rechte im Raum: … | `raumrechte` ohne Discord: Sperren und Verstecken hin und zurück ergeben die Einträge vom Anlegen; ohne Kategorie; Zeigen bei gesperrtem Raum; Bann und Entbannen; Gebannte bleiben gebannt; Kategorie-Sperre ist kein Bann; Besitzer und Bot behalten ihre Rechte; neuer Besitzer; der alte behält seinen Eintrag bis Entsperren oder Zeigen, dann wie in der Kategorie |
-| Beitritt: Platzhalter im Text maskiert, nur das neue Mitglied pingt | Text mit Spitzname und Servername maskiert, `{anzahl}`, `allowed_mentions` |
-| Abschied eines Mitglieds ausserhalb des Caches … | Partial mit globalem Anzeigenamen, `allowed_mentions` ohne Nutzer |
+| textkanal: nur Text- und Ankündigungskanäle … | `nachrichten.test.ts`: Text und Ankündigung ja; ohne Senden, ohne Sehen, Sprachkanal, unbekannt nicht; `anhaengen` nur mit „Dateien anhängen“ |
+| textkanalAuf findet den Kanal über die IDs … | auf einem fremden Server nichts |
+| sende: Text, der nur die genannten pingt … | `allowed_mentions` `{ parse: [], users: [ID] }`, ohne `pingt` `{ parse: [] }`, auch bei `@everyone` im Text |
+| sende mit Datei: Multipart … | Name und Bytes der Datei, ohne Text kein `content` |
+| Fehler von Discord werden eigene Codes … | 50013 und 50001 `kein_recht`, 10003 `nicht_gefunden`, sonst `anderes`; die Meldung bleibt |
+| alsMitglied: Spitzname vor globalem Namen … | Avatar als PNG mit 256 px vom CDN, Server mit Name und 42 Mitgliedern |
+| alsMitglied: ein Mitglied ausserhalb des Caches … | Partial beim Abschied mit globalem Anzeigenamen |
+| Beitritt: Platzhalter im Text maskiert, nur das neue Mitglied pingt | `senden.test.ts` mit Fälschung: Text mit Spitzname und Servername maskiert, `{anzahl}`, `pingt` nur das Mitglied |
+| Abschied: der Name, den die Schicht liefert, und niemand pingt | `pingt` leer |
 | darf der Bot im Kanal nicht senden … | keine Nachricht, eine Logzeile ohne ID und Namen |
-| mit Banner hängt der Bot beitritt.png … | Datei mit 1100 × 440, Avatar vom CDN |
+| scheitert das Senden, steht eine Zeile im Log … | `DiscordFehler` aus `sende`: „nicht gesendet: Missing Permissions“ |
+| mit Banner hängt der Bot beitritt.png … | Datei mit 1100 × 440, der Avatar des Mitglieds |
 | scheitert das Banner oder fehlt „Dateien anhängen“ … | beide Male nur der Text, je eine Logzeile ohne ID |
 | leerer Text ohne Banner schickt nichts … | auch eine ausgeschaltete Art; kein Log |
 | Plaetze lässt höchstens zwei zugleich laufen … | fünf Aufgaben: nie mehr als zwei, Reihenfolge wie gekommen |
 | die Bremse greift beim 6. Ereignis in 10 s … | mit falschen Uhren: 5 einzeln, `an`, `gezaehlt`; ein Ereignis nach 20 s setzt die Ruhe neu; nach 29 999 ms nichts, nach 30 000 ms `loese` mit 3; danach wieder einzeln |
 | die Bremse zählt im Fenster von 10 s … | acht Ereignisse im Abstand von 2,1 s gehen einzeln |
 | die Zusammenfassung sagt eins oder mehrere | Singular und Plural für beide Arten |
-| beim Raid gehen 5 einzeln, dann zählt die Bremse … | gegen den Mock: 5 Nachrichten mit Banner, dann die Zusammenfassung „Willkommen an die 2 neuen Mitglieder!“ ohne Ping und Banner; Logzeilen „Bremse an“ und „Bremse aus“; `bremse` zählt einmal; danach wieder einzeln |
+| beim Raid gehen 5 einzeln, dann zählt die Bremse … | mit Fälschung und `t.mock.timers`: 5 Nachrichten mit Banner; nach 29 999 ms nichts, nach 30 000 ms dann die Zusammenfassung „Willkommen an die 2 neuen Mitglieder!“ ohne Ping und Banner; Logzeilen „Bremse an“ und „Bremse aus“; `bremse` zählt einmal; danach wieder einzeln |
 | ein gezählter Abschied gibt die Zusammenfassung im Singular | „1 Mitglied hat den Server verlassen.“ |
+| ist der Kanal beim Lösen weg, kommt keine Zusammenfassung … | der Bot verliert in den 30 s den Kanal: keine sechste Nachricht, „Bremse aus“ und „Kanal fehlt“ im Log, kein unbehandelter Fehler |
 | bei ausgeschalteter Art zählt die Bremse nicht | zehn Ereignisse bei `an: false`, danach eingeschaltet geht das nächste einzeln |
 
 ## Tests gegen PostgreSQL
