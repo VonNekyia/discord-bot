@@ -80,7 +80,10 @@ export type Liste = {
   bausteine: (Schalter | Auswahl | Text | Zahl)[];
 };
 export type Hinweis = { art: 'hinweis'; id: string; ton: 'info' | 'warn'; satz: Satz };
-export type Baustein = Schalter | Auswahl | Text | Zahl | Bild | Vorschau | Aktion | Liste | Hinweis;
+// Eine Art, die die Oberfläche nicht kennt, oder ein Baustein, der nicht zu
+// seiner Beschreibung passt; die Seite zeigt ihn als Warnung an seiner Stelle.
+export type Unbekannt = { art: 'unbekannt'; id: string };
+export type Baustein = Schalter | Auswahl | Text | Zahl | Bild | Vorschau | Aktion | Liste | Hinweis | Unbekannt;
 
 export type Seite = {
   id: string;
@@ -113,6 +116,174 @@ export type Debug = {
   eigene: { name: string; gegriffen: number }[];
 };
 
+// Prüfer für die Antworten: Jede Antwort wird geprüft, nicht behauptet. Ein
+// Prüfer ist ein Typprädikat; aus kleinen setzen sich die grossen zusammen.
+// Siehe docs/frontend/dashboard.md, „Antworten prüfen“.
+type Pruefer<T> = (x: unknown) => x is T;
+// Je Feld von T ein Prüfer; optionale Felder prüft `vielleicht`.
+type Form<T> = { [K in keyof T]-?: Pruefer<T[K]> };
+
+const istObjekt = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
+const istText = (x: unknown): x is string => typeof x === 'string';
+const istZahl = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
+const istWahr = (x: unknown): x is boolean => typeof x === 'boolean';
+const istNull = (x: unknown): x is null => x === null;
+const vielleicht =
+  <T>(p: Pruefer<T>): Pruefer<T | undefined> =>
+  (x): x is T | undefined =>
+    x === undefined || p(x);
+const oderNull =
+  <T>(p: Pruefer<T>): Pruefer<T | null> =>
+  (x): x is T | null =>
+    istNull(x) || p(x);
+const listeVon =
+  <T>(p: Pruefer<T>): Pruefer<T[]> =>
+  (x): x is T[] =>
+    Array.isArray(x) && x.every((e) => p(e));
+const tabelleVon =
+  <T>(p: Pruefer<T>): Pruefer<Record<string, T>> =>
+  (x): x is Record<string, T> =>
+    istObjekt(x) && Object.values(x).every((w) => p(w));
+const genau =
+  <T extends string>(...werte: T[]): Pruefer<T> =>
+  (x): x is T =>
+    werte.some((w) => w === x);
+const form =
+  <T>(felder: Form<T>): Pruefer<T> =>
+  (x): x is T => {
+    if (!istObjekt(x)) return false;
+    for (const feld in felder) if (!felder[feld](x[feld])) return false;
+    return true;
+  };
+
+const istIch = form<Ich>({ id: istText, name: istText, avatar: oderNull(istText), debug: istWahr });
+const istServer = form<Server>({ id: istText, name: istText, icon: oderNull(istText) });
+const istSatz = form<Satz>({ titel: istText, text: istText });
+const istFund = form<Fund>({ code: istText, feld: vielleicht(istText) });
+const istWert = (x: unknown): x is Wert => istWahr(x) || istZahl(x) || istText(x) || istNull(x) || listeVon(istEintrag)(x);
+function istEintrag(x: unknown): x is Eintrag {
+  return istObjekt(x) && Object.values(x).every(istWert);
+}
+const istOption = form<Option>({
+  id: istText,
+  name: istText,
+  gruppe: oderNull(form<{ id: string; name: string }>({ id: istText, name: istText })),
+  merkmale: listeVon(istText),
+  gesperrt: oderNull(form<{ grund: string; code: string }>({ grund: istText, code: istText })),
+});
+const istBedingung = form<Bedingung>({ feld: istText, merkmal: vielleicht(istText), sonst: istText });
+
+// Je Art ihre Felder aus dem Vertrag. Siehe docs/schnittstelle/baukasten.md, „Typen“.
+const istSchalter = form<Schalter>({ art: genau('schalter'), id: istText, titel: istText, hilfe: vielleicht(istText), braucht: vielleicht(listeVon(istBedingung)) });
+const istAuswahl = form<Auswahl>({
+  art: genau('auswahl'),
+  id: istText,
+  titel: istText,
+  hilfe: vielleicht(istText),
+  leer: istText,
+  optionen: listeVon(istOption),
+  unbekannt: istText,
+  pflicht: vielleicht(istText),
+  einmalig: vielleicht(istText),
+  vergeben: vielleicht(istText),
+});
+const istTextBaustein = form<Text>({
+  art: genau('text'),
+  id: istText,
+  titel: istText,
+  hilfe: vielleicht(istText),
+  mehrzeilig: istWahr,
+  grenze: istZahl,
+  platzhalter: tabelleVon(istZahl),
+  rechnung: vielleicht(istText),
+  pflicht: vielleicht(istText),
+});
+const istZahlBaustein = form<Zahl>({ art: genau('zahl'), id: istText, titel: istText, hilfe: vielleicht(istText), min: istZahl, max: istZahl, ungueltig: istText });
+const istBild = form<Bild>({
+  art: genau('bild'),
+  id: istText,
+  titel: istText,
+  hilfe: vielleicht(istText),
+  typen: listeVon(istText),
+  groesse: istZahl,
+  pixel: form<{ min: number; max: number }>({ min: istZahl, max: istZahl }),
+  entfernen: istText,
+});
+const istVorschau = form<Vorschau>({
+  art: genau('vorschau'),
+  id: istText,
+  titel: istText,
+  alt: istText,
+  breite: istZahl,
+  hoehe: istZahl,
+  braucht: istText,
+  leer: istSatz,
+  fehler: istSatz,
+});
+const istAktion = form<Aktion>({ art: genau('aktion'), id: istText, titel: istText, laeuft: istText, hilfe: vielleicht(istText), ungespeichert: vielleicht(istText) });
+// In einer Liste nur diese vier Arten; passt einer nicht, passt die ganze Liste nicht.
+const istInListe = (x: unknown): x is Schalter | Auswahl | Text | Zahl => istSchalter(x) || istAuswahl(x) || istTextBaustein(x) || istZahlBaustein(x);
+const istListe = form<Liste>({
+  art: genau('liste'),
+  id: istText,
+  eintrag: istText,
+  kopf: vielleicht(istText),
+  hoechstens: istZahl,
+  hinzufuegen: istText,
+  entfernen: istText,
+  voll: istText,
+  leer: istSatz,
+  neu: istEintrag,
+  bausteine: listeVon(istInListe),
+});
+const istHinweis = form<Hinweis>({ art: genau('hinweis'), id: istText, ton: genau('info', 'warn'), satz: istSatz });
+
+// Ein Baustein, wie er passt, sonst `unbekannt` mit seiner ID; ohne ID mit `ersatz`,
+// damit zwei solche sich auf der Seite nicht überschreiben.
+function alsBaustein(x: unknown, ersatz: string): Baustein {
+  if (istSchalter(x) || istAuswahl(x) || istTextBaustein(x) || istZahlBaustein(x) || istBild(x)) return x;
+  if (istVorschau(x) || istAktion(x) || istListe(x) || istHinweis(x)) return x;
+  return { art: 'unbekannt', id: istObjekt(x) && istText(x.id) ? x.id : ersatz };
+}
+
+// Der äussere Aufbau einer Seite muss passen, sonst gilt die ganze Antwort
+// als nicht erreichbar. Siehe docs/schnittstelle/baukasten.md, „Bausteine“.
+function alsSeite(x: unknown): Seite | undefined {
+  if (!istObjekt(x) || !istText(x.id) || !istText(x.titel) || !Array.isArray(x.bausteine) || !Array.isArray(x.daneben)) return undefined;
+  if (!istEintrag(x.wert) || !tabelleVon(istSatz)(x.saetze) || !oderNull(istFund)(x.fund)) return undefined;
+  return { id: x.id, titel: x.titel, bausteine: x.bausteine.map((b, i) => alsBaustein(b, `unbekannt-${i}`)), daneben: x.daneben.map((b, i) => alsBaustein(b, `unbekannt-daneben-${i}`)), wert: x.wert, saetze: x.saetze, fund: x.fund };
+}
+function alsSeiten(x: unknown): Seite[] | undefined {
+  if (!Array.isArray(x)) return undefined;
+  const seiten = x.map(alsSeite);
+  return seiten.every((s) => s !== undefined) ? seiten.filter((s) => s !== undefined) : undefined;
+}
+
+const istDebug = form<Debug>({
+  seit: istText,
+  jetzt: istText,
+  shards: listeVon(istZahl),
+  routen: listeVon(
+    form<DebugRoute>({
+      methode: istText,
+      route: istText,
+      anfragen: istZahl,
+      rateLimits: istZahl,
+      limit: oderNull(istZahl),
+      remaining: oderNull(istZahl),
+      resetAfter: oderNull(istZahl),
+      zuletzt: istText,
+    }),
+  ),
+  rateLimits: form<Debug['rateLimits']>({
+    anzahl: istZahl,
+    global: istZahl,
+    scope: form<Debug['rateLimits']['scope']>({ user: istZahl, global: istZahl, shared: istZahl }),
+  }),
+  ungueltig: form<Debug['ungueltig']>({ letzte10min: istZahl, warnung: istZahl, grenze: istZahl }),
+  eigene: listeVon(form<{ name: string; gegriffen: number }>({ name: istText, gegriffen: istZahl })),
+});
+
 // Ein Fehler der API mit Status, festem Code und, bei 400, dem Feld.
 // Ohne Antwort oder ohne Code im Body gilt nicht_erreichbar ab 500.
 export class ApiFehler extends Error {
@@ -134,28 +305,40 @@ async function senden(methode: string, pfad: string, body?: BodyInit, typ?: stri
     throw new ApiFehler(0, 'nicht_erreichbar');
   }
   if (antwort.ok) return antwort;
-  const inhalt = (await antwort.json().catch(() => null)) as { code?: unknown; feld?: unknown } | null;
-  const code = typeof inhalt?.code === 'string' ? inhalt.code : antwort.status >= 500 ? 'nicht_erreichbar' : 'unbekannt';
-  const feld = typeof inhalt?.feld === 'string' ? inhalt.feld : undefined;
+  const inhalt: unknown = await antwort.json().catch(() => null);
+  const code = istObjekt(inhalt) && istText(inhalt.code) ? inhalt.code : antwort.status >= 500 ? 'nicht_erreichbar' : 'unbekannt';
+  const feld = istObjekt(inhalt) && istText(inhalt.feld) ? inhalt.feld : undefined;
   const warten = Number(antwort.headers.get('Retry-After')) || undefined;
   throw new ApiFehler(antwort.status, code, feld, warten);
 }
 
-const json = async <T>(antwort: Response): Promise<T> => (await antwort.json()) as T;
+// Liest JSON und prüft es; passt es nicht, gilt die Antwort wie eine ohne
+// JSON als nicht erreichbar.
+async function lese<T>(antwort: Response, wandle: (x: unknown) => T | undefined): Promise<T> {
+  const inhalt: unknown = await antwort.json().catch(() => undefined);
+  const wert = wandle(inhalt);
+  if (wert === undefined) throw new ApiFehler(antwort.status, 'nicht_erreichbar');
+  return wert;
+}
+const wenn =
+  <T>(p: Pruefer<T>) =>
+  (x: unknown): T | undefined =>
+    p(x) ? x : undefined;
 const seiten = (id: string) => `/api/server/${encodeURIComponent(id)}/seiten`;
 const baustein = (id: string, seite: string, name: string) => `${seiten(id)}/${encodeURIComponent(seite)}/${encodeURIComponent(name)}`;
 
 export const api = {
-  ich: async () => json<Ich>(await senden('GET', '/api/ich')),
+  ich: async () => lese(await senden('GET', '/api/ich'), wenn(istIch)),
   abmelden: async () => {
     await senden('POST', '/api/abmelden');
   },
-  server: async () => json<Server[]>(await senden('GET', '/api/server')),
-  debug: async () => json<Debug>(await senden('GET', '/api/debug')),
-  seiten: async (id: string) => json<Seite[]>(await senden('GET', seiten(id))),
+  server: async () => lese(await senden('GET', '/api/server'), wenn(listeVon(istServer))),
+  debug: async () => lese(await senden('GET', '/api/debug'), wenn(istDebug)),
+  seiten: async (id: string) => lese(await senden('GET', seiten(id)), alsSeiten),
   speichern: async (id: string, seite: string, wert: Eintrag) =>
-    json<{ wert: Eintrag; meldung: Satz }>(
+    lese(
       await senden('PUT', `${seiten(id)}/${encodeURIComponent(seite)}`, JSON.stringify(wert), 'application/json'),
+      wenn(form<{ wert: Eintrag; meldung: Satz }>({ wert: istEintrag, meldung: istSatz })),
     ),
   // Die Datei geht roh als Body, mit ihrem Typ.
   hochladen: async (id: string, seite: string, name: string, datei: File) => {
@@ -165,7 +348,7 @@ export const api = {
     await senden('DELETE', baustein(id, seite, name));
   },
   // Ohne Body; die Antwort ist der Satz für die Meldung.
-  ausloesen: async (id: string, seite: string, name: string) => json<Satz>(await senden('POST', baustein(id, seite, name))),
+  ausloesen: async (id: string, seite: string, name: string) => lese(await senden('POST', baustein(id, seite, name)), wenn(istSatz)),
   // Die Query ändert sich bei jedem Aufruf, damit der Browser neu lädt; die API ignoriert sie.
   bild: (id: string, seite: string, name: string) => `${baustein(id, seite, name)}?v=${Date.now()}`,
 };

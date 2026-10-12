@@ -15,7 +15,8 @@ import { zahl } from './bausteine/zahl.js';
 import { meldung, satz } from './kern/texte.js';
 import type { Geschwister, Teil, Umgebung } from './kern/teil.js';
 
-// Eine Art, die diese Oberfläche nicht kennt, steht als Warnung an ihrer Stelle.
+// Eine Art, die diese Oberfläche nicht kennt, oder ein Baustein, der nicht zu seiner
+// Beschreibung passt, steht als Warnung an seiner Stelle; src/api/klient.ts macht ihn dazu.
 // Siehe docs/schnittstelle/baukasten.md, „Bausteine“.
 function unbekannt(): Teil {
   const element = document.createElement('div');
@@ -43,6 +44,8 @@ function baue(b: Baustein, u: Umgebung, start: Wert | undefined): Teil {
       return liste(b, u, start);
     case 'hinweis':
       return hinweis(b, u, start);
+    case 'unbekannt':
+      break;
   }
   return unbekannt();
 }

@@ -5,7 +5,7 @@
   "ignorePatterns": ["dist"],
   "env": { "browser": true },
   "options": {
-    "maxWarnings": 4
+    "maxWarnings": 0
   },
   "overrides": [
     {
@@ -44,16 +44,6 @@
             ]
           }
         ]
-      }
-    },
-    {
-      // Altlasten: Casts an Antworten der API und an getElementById. Sie sind
-      // Warnungen, bis der Umbau sie beseitigt; mehr als `maxWarnings`
-      // dürfen es nicht werden. Siehe docs/entwicklung/lint.md, „Altlasten“.
-      "files": ["src/api/klient.ts", "src/dashboard.ts"],
-      "rules": {
-        "typescript/no-unsafe-type-assertion": "warn",
-        "typescript/no-unnecessary-type-parameters": "warn"
       }
     }
   ]
