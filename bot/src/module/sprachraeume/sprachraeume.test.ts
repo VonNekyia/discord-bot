@@ -450,6 +450,21 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
       ]);
     });
 
+    test('fehlt dem Bot ein Recht auf dem Server, steht oben ein Hinweis', async () => {
+      const kitty = guild.roles.cache.get(ROLLE_BOT) as unknown as { _patch(d: unknown): void };
+      kitty._patch({ permissions: String(botRechte & ~R.ManageChannels) });
+      try {
+        const s = await seite(await sitzung());
+        assert.deepEqual(
+          s?.bausteine.map((b) => `${b.art}:${b.id}`),
+          ['hinweis:rechte', 'schalter:an', 'liste:erzeuger'],
+        );
+      } finally {
+        kitty._patch({ permissions: String(botRechte) });
+      }
+      assert.equal((await seite(await sitzung()))?.bausteine[0]?.art, 'schalter');
+    });
+
     test('die Seite liefert ohne Zeile die Standardwerte und speichert, was passt', async () => {
       const kennung = await sitzung();
       const leer = await seite(kennung);

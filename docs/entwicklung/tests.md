@@ -211,6 +211,7 @@ und prüft dort die Anmeldung und die eigenen Grenzen.
 | der Abgleich beim Start … | Zeile ohne Kanal weg, leerer Raum gelöscht, belegter bleibt |
 | channelDelete vergisst den Raum … | `geloescht`, `vergiss` und `behalteNur` für Sprachräume und Räume |
 | die Seite bietet Sprachkanäle und Kategorien … | Bausteine der Seite und der Liste; Sortierung, ohne Text und Bühne; ohne „Mitglieder verschieben“ gesperrt mit `erzeuger_ohne_recht`; eine Kategorie, die „Streamen“ verbietet, das der Bot nicht hat, gesperrt mit `kategorie_ohne_recht` |
+| fehlt dem Bot ein Recht auf dem Server, steht oben ein Hinweis | ohne „Kanäle verwalten“ ist der erste Baustein `hinweis` `rechte`, mit allen Rechten wieder `schalter` |
 | die Seite liefert ohne Zeile die Standardwerte … | `{ an: false, erzeuger: [] }`, `fund` `null`, Speichern mit 100 Zeichen Vorlage und `meldung`, fremde Felder fallen weg, Cache geleert |
 | jede Prüfregel meldet ihren Code und den Pfad des Felds | alle Zeilen der Tabelle „Sprachräume einstellen“, mit Pfaden wie `erzeuger.1.limit` |
 | ein gespeicherter Erzeuger, der nicht mehr geht, steht als fund … | eine Kategorie ohne `bereit` gibt `kategorie_ohne_recht` an `erzeuger.0.kategorie` |
