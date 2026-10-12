@@ -13,7 +13,9 @@ import {
   sendeMenue,
   verschiebe,
 } from '../../discord/sprachkanaele.js';
+import type { Mitglied } from '../../discord/nachrichten.js';
 import { text as fehlertext } from '../../kern/fehler.js';
+import { nameOder, ohneHasszeichen } from '../../kern/namen.js';
 import { menue } from './menue.js';
 import { besitzerRechte, botRechte, erlaube, type Eintrag } from './raumrechte.js';
 import type { Sprachraeume } from './sprachraeume.js';
@@ -91,6 +93,16 @@ export async function vergissRaum(db: Pick<Pool, 'query'>, kanal: string): Promi
 
 // Räume auf Zeit: anlegen, verschieben, leere löschen.
 // Siehe docs/benutzung/sprachraeume.md und docs/bot/sprachraeume-bau.md.
+// Der Name eines neuen Raums: die Vorlage mit dem Namen des Besitzers für
+// `{name}`, höchstens 100 Zeichen. Der Bot schreibt keine Hasszeichen, weder
+// aus dem Namen noch aus der Vorlage; bleibt vom Namen nichts, nimmt er den
+// Benutzernamen, bleibt vom Raumnamen nichts, den Namen.
+// Siehe docs/benutzung/sprachraeume.md, „Namensvorlage“.
+export function raumname(vorlage: string, mitglied: Pick<Mitglied, 'name' | 'benutzername'>): string {
+  const name = nameOder(ohneHasszeichen(mitglied.name), mitglied.benutzername);
+  return nameOder(ohneHasszeichen(vorlage.replaceAll('{name}', name)), name).slice(0, 100);
+}
+
 export class Raeume {
   // Je `<Server>/<Mitglied>` die Zeit des letzten neuen Raums; ein Timer
   // vergisst sie nach `abstand`. Siehe docs/bot/datenschutz.md, „Was der Bot speichert“.
@@ -171,7 +183,7 @@ export class Raeume {
     let raum;
     try {
       raum = await legeSprachkanalAn(server, {
-        name: erzeuger.name.replaceAll('{name}', mitglied.name).slice(0, 100),
+        name: raumname(erzeuger.name, mitglied),
         kategorie: kategorie ? kategorieId : null,
         limit: erzeuger.limit,
         eintraege: eintraege(kategorie, nutzer, ich),

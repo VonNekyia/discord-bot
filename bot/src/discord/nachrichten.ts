@@ -10,6 +10,9 @@ export interface Mitglied {
   id: string;
   // Anzeigename auf dem Server: Spitzname, sonst globaler Name, sonst Nutzername.
   name: string;
+  // Benutzername bei Discord: bei Personen nur a–z, 0–9, `_` und `.`; bei
+  // Bots kann mehr darin stehen.
+  benutzername: string;
   // URL des Avatars als PNG mit 256 px; ohne eigenen der Standard von Discord.
   avatar: string;
   server: { id: string; name: string; anzahl: number };
@@ -20,6 +23,7 @@ export function alsMitglied(m: GuildMember | PartialGuildMember): Mitglied {
   return {
     id: m.id,
     name: m.displayName,
+    benutzername: m.user.username,
     avatar: m.displayAvatarURL({ extension: 'png', size: 256 }),
     server: { id: m.guild.id, name: m.guild.name, anzahl: m.guild.memberCount },
   };

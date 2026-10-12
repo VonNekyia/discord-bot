@@ -104,11 +104,12 @@ describe('Nachrichten in der Discord-Schicht', () => {
     }
   });
 
-  test('alsMitglied: Spitzname vor globalem Namen, Avatar als PNG mit 256 px, Server mit Name und Zahl', () => {
+  test('alsMitglied: Spitzname vor globalem Namen, der Benutzername, Avatar als PNG mit 256 px, Server mit Name und Zahl', () => {
     const m = (guild.members as unknown as { _add(d: unknown): GuildMember })._add(mitglied(NEU, [], { nick: 'Nick', global_name: 'Global', avatar: 'abc123' }));
     assert.deepEqual(alsMitglied(m), {
       id: NEU,
       name: 'Nick',
+      benutzername: `nutzer-${NEU.slice(-2)}`,
       avatar: `${mock.url}/cdn/avatars/${NEU}/abc123.png?size=256`,
       server: { id: SERVER, name: 'Probe *Server*', anzahl: 42 },
     });
@@ -120,7 +121,7 @@ describe('Nachrichten in der Discord-Schicht', () => {
     });
     assert.equal(partial.partial, true);
     const m = alsMitglied(partial);
-    assert.equal(m.name, 'Globaler Name');
+    assert.deepEqual([m.name, m.benutzername], ['Globaler Name', 'nutzer-61']);
     assert.ok(m.avatar.startsWith(`${mock.url}/cdn/`), m.avatar);
   });
 });

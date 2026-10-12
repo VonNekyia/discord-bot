@@ -12,6 +12,8 @@ code:
   - bot/src/api/server.test.ts
   - bot/src/module/begruessung/begruessung.test.ts
   - bot/src/module/begruessung/banner.test.ts
+  - bot/src/module/begruessung/glyphen.test.ts
+  - bot/src/kern/namen.test.ts
   - bot/src/discord/client.test.ts
   - bot/src/module/begruessung/senden.test.ts
   - bot/src/testhilfe.ts
@@ -206,6 +208,14 @@ Millisekunden. Darum:
 | eine gültige Einstellung kommt so zurück … | `bild` aus dem Stand, nicht aus der Eingabe |
 | ein Name mit Emoji, Kanji und Hangul zeigt kein Kästchen | jedes Zeichen einzeln mit dem Schriftstapel gezeichnet, hat Tinte und ist nicht das Glyph für ein fehlendes Zeichen (`U+0378`); dass der Vergleich ein Kästchen erkennt, zeigt `😀` mit Inter allein |
 | ein Banner mit Emoji und CJK im Namen hat 1100 × 440 px | `zeichne` mit dem Stapel |
+| ein Banner mit „𝕿𝖊𝖘𝖙“ ist Pixel für Pixel das Banner mit „Test“ … | `zeichne` mit Zierbuchstaben gleich `zeichne` mit „Test“; Arabisch ohne Glyphe fällt weg, auch der doppelte Leerraum |
+| zeichenbar: Zierbuchstaben ohne Glyphe werden nach NFKC zu Buchstaben … | `bot/src/module/begruessung/glyphen.test.ts`: 𝕿, 𝔗 und 𝓣 werden T; die Pixel gleich „Test“, ungeändert nicht |
+| zeichenbar: was eine Schrift hat, bleibt … | Ｔ, Ⓣ, ﬁ, Emoji mit ZWJ, Hautton, Flaggen samt Tag-Flagge, Taste, Kanji, Hangul: Zeichen für Zeichen gleich |
+| zeichenbar: ohne Glyphe und ohne Ersatz fällt ein Zeichen weg … | U+16CB, Arabisch, Devanagari mit Vokalzeichen (Mn), U+0378 fallen weg; ZWJ, U+200F, U+2066, VS16 bleiben |
+| unsichtbare Zeichen zeichnet das Banner nicht … | neun Default Ignorables zwischen A und B: dieselben Pixel wie „AB“ |
+| die cmap sagt dasselbe wie das Zeichnen … | 16 Zeichen: Glyphe nach der `cmap` genau dann, wenn das Zeichnen Tinte und kein Kästchen ergibt |
+| Glyphen legt die Bereiche der Schriften zusammen … / bereicheAus liest Format 12 … | Bereiche über drei Schriften; Glyphe 0 am Anfang einer Gruppe zählt nicht; nur Format 4 oder Format 12 für 3/1 wirft |
+| leseBereiche wirft beim Laden für eine Schrift ohne cmap im Format 12 … | eine gebaute Datei mit `cmap` nur im Format 4 und eine ohne `cmap`: Fehler mit dem Dateinamen |
 | maskiere setzt vor jedes ASCII-Satzzeichen genau einen Backslash | Markdown, Erwähnung, Emoji; höchstens doppelt so lang; Umlaute, CJK und Emoji bleiben |
 | ersetze maskiert im Text, lässt das Banner roh … | `<@…>` im Text, `@Name` im Banner; unbekannte Platzhalter bleiben; ein eingesetztes `{server}` bleibt stehen |
 | apiUmgebung braucht Secret und Adresse des Dashboards | ohne eins keine API, Standardport, falsche Adresse oder Port beendet den Start |
@@ -253,6 +263,8 @@ Millisekunden. Darum:
 | die Grenze je Server zählt erst nach den Rechten … | fünfmal `403` für eine fremde Sitzung, danach dreimal `200` und `429` mit `Retry-After: 60`; `testnachricht` zählt eins mehr |
 | kein Code, Token, Cookie, state und keine ID im Log | Anmeldung mit Erfolg und drei Fehlern, eine Route mit `503`; keine Zeile enthält einen der Werte |
 | ein Erzeuger legt den Raum … in einem Aufruf an | eine private Kategorie: Name aus der Vorlage, Kategorie, Limit; die Einträge der Kategorie, @everyone ohne „Kanal ansehen“, der Besitzer zusammengeführt, der Bot; verschoben mit Grund; Zeile in `raeume` |
+| raumname: ohne Hasszeichen aus Name und Vorlage … | U+5350 im Namen und in der Vorlage fällt, SS-Runen gemischt fallen, ein einzelnes U+16CB bleibt; Name nur aus Hakenkreuzen: Benutzername; Vorlage nur aus Hakenkreuz: der Name; höchstens 100 Zeichen |
+| ein neuer Raum heisst ohne Hasszeichen … | `global_name` mit U+5350: der angelegte Kanal heisst „Mias Raum“ |
 | nach dem Anlegen kommt das Menü in den Textchat des Raums … | eine Nachricht im Raum, „## Dein Sprachraum“, `allowed_mentions` leer, drei Reihen mit je vier Knöpfen, jede `custom_id` mit `sprachraum:`, die zwölf Namen der Tabelle |
 | scheitert das Menü, bleibt der Raum ohne Knöpfe … | Senden mit 50013: Zeile bleibt, nichts gelöscht, eine Logzeile ohne ID |
 | ohne Kategorie hat der Raum nur die Einträge von Besitzer und Bot | kein `parent_id`, zwei Einträge für Personen (Typ 1) mit ihren Rechten |
@@ -290,7 +302,7 @@ Millisekunden. Darum:
 | Entsperren: Verbinden wieder wie in der Kategorie … | Einträge wieder wie beim Anlegen; Hinweise für nicht gesperrt und Nicht-Besitzer |
 | Verstecken und Zeigen … | Rollen ohne „Kanal ansehen“, wer drin ist, sieht und verbindet sich; Zeigen stellt die Einträge vom Anlegen her; Hinweise |
 | Umbenennen: ein Formular mit dem Namen von jetzt … | Callback Typ 9, Label mit Textfeld `wert`, 1 bis 100 Zeichen, vorbelegt; Nicht-Besitzer Typ 4 mit Hinweis |
-| Umbenennen: das Formular setzt den Namen, ohne Platzhalter … | Body nur `name`, `{name}` bleibt, getrimmt; Cache umbenannt; leerer Name und Nicht-Besitzer ohne PATCH |
+| Umbenennen: das Formular setzt den Namen, ohne Platzhalter … | Hakenkreuz und SS-Runen fallen, bleibt nichts, der Hinweis für einen leeren Namen; Body nur `name`, `{name}` bleibt, getrimmt; Cache umbenannt; leerer Name und Nicht-Besitzer ohne PATCH |
 | Umbenennen bei 429 … | `Retry-After: 300`: Antwort unter 2 s, „erst in 5 min“ |
 | Limit: ein Formular mit dem Limit von jetzt … | vorbelegt mit 4; `user_limit` 7 und 0; „zehn“ und Nicht-Besitzer ohne PATCH |
 | ein Formular ohne Feld wert gibt den Hinweis … | `alsDruck` liest `wert` ohne zu werfen; Limit und Umbenennen ohne Feld geben ihren Hinweis, kein PATCH |
@@ -327,10 +339,11 @@ Millisekunden. Darum:
 | sende: Text, der nur die genannten pingt … | `allowed_mentions` `{ parse: [], users: [ID] }`, ohne `pingt` `{ parse: [] }`, auch bei `@everyone` im Text |
 | sende mit Datei: Multipart … | Name und Bytes der Datei, ohne Text kein `content` |
 | Fehler von Discord werden eigene Codes … | 50013 und 50001 `kein_recht`, 10003 `nicht_gefunden`, sonst `anderes`; die Meldung bleibt |
-| alsMitglied: Spitzname vor globalem Namen … | Avatar als PNG mit 256 px vom CDN, Server mit Name und 42 Mitgliedern |
-| alsMitglied: ein Mitglied ausserhalb des Caches … | Partial beim Abschied mit globalem Anzeigenamen |
+| alsMitglied: Spitzname vor globalem Namen … | Benutzername, Avatar als PNG mit 256 px vom CDN, Server mit Name und 42 Mitgliedern |
+| alsMitglied: ein Mitglied ausserhalb des Caches … | Partial beim Abschied mit globalem Anzeigenamen und Benutzernamen |
 | Beitritt: Platzhalter im Text maskiert, nur das neue Mitglied pingt | `senden.test.ts` mit Fälschung: Text mit Spitzname und Servername maskiert, `{anzahl}`, `pingt` nur das Mitglied |
 | Abschied: der Name, den die Schicht liefert, und niemand pingt | `pingt` leer |
+| der gesendete Text hat keine Hasszeichen … | PostgreSQL: U+5350 in Name und Vorlage, U+534D im Servernamen; gesendet wird der Text ohne sie |
 | darf der Bot im Kanal nicht senden … | keine Nachricht, eine Logzeile ohne ID und Namen |
 | scheitert das Senden, steht eine Zeile im Log … | `DiscordFehler` aus `sende`: „nicht gesendet: Missing Permissions“ |
 | mit Banner hängt der Bot beitritt.png … | Datei mit 1100 × 440, der Avatar des Mitglieds |
@@ -340,6 +353,9 @@ Millisekunden. Darum:
 | die Bremse greift beim 6. Ereignis in 10 s … | mit falschen Uhren: 5 einzeln, `an`, `gezaehlt`; ein Ereignis nach 20 s setzt die Ruhe neu; nach 29 999 ms nichts, nach 30 000 ms `loese` mit 3; danach wieder einzeln |
 | die Bremse zählt im Fenster von 10 s … | acht Ereignisse im Abstand von 2,1 s gehen einzeln |
 | die Zusammenfassung sagt eins oder mehrere | Singular und Plural für beide Arten |
+| Werte, Text und Bannerzeile ohne Hasszeichen, auch aus der Vorlage … | `werte`, `textFuer`, `bannerZeile` ohne Datenbank; Name nur aus Hakenkreuzen: Benutzername, im Text maskiert; ein einzelnes U+16CB bleibt im Text |
+| im Banner werden Zierbuchstaben Buchstaben; bleibt vom Namen nichts zu zeichnen … | `bannerZeile`: 𝕿𝖊𝖘𝖙 im Namen und im Server wird „Test“ und „Probe“; ein Name ganz in Arabisch wird der Benutzername, auch in `{nutzer}`; im Text bleibt er |
+| ohneHasszeichen: Hakenkreuze fallen, SS-Runen ab zwei … / nameOder … | `bot/src/kern/namen.test.ts`: alle sechs Hakenkreuze; SS-Runen gleich, gemischt, mit ZWJ oder VS16 dazwischen; erst die Hakenkreuze; ein einzelnes Zeichen und Runen mit Sichtbarem dazwischen bleiben; `nameOder` bei leerem oder unsichtbarem Namen |
 | beim Raid gehen 5 einzeln, dann zählt die Bremse … | mit Fälschung und `t.mock.timers`: 5 Nachrichten mit Banner; nach 29 999 ms nichts, nach 30 000 ms dann die Zusammenfassung „Willkommen an die 2 neuen Mitglieder!“ ohne Ping und Banner; Logzeilen „Bremse an“ und „Bremse aus“; `bremse` zählt einmal; danach wieder einzeln |
 | ein gezählter Abschied gibt die Zusammenfassung im Singular | „1 Mitglied hat den Server verlassen.“ |
 | ist der Kanal beim Lösen weg, kommt keine Zusammenfassung … | der Bot verliert in den 30 s den Kanal: keine sechste Nachricht, „Bremse aus“ und „Kanal fehlt“ im Log, kein unbehandelter Fehler |

@@ -286,8 +286,12 @@ describe('Menü der Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_H
     assert.equal(text(antworten), 'Umbenannt.');
     assert.equal(guild.channels.cache.get(RAUM)?.name, '{name} Lounge');
     assert.equal(text(await schickt(BESITZER, 'umbenennen', '   ')), 'Ein Name hat 1 bis 100 Zeichen.');
+    // Hasszeichen schreibt der Bot nicht; bleibt nichts, ist der Name leer.
+    assert.equal(text(await schickt(BESITZER, 'umbenennen', ' \u5350\u16CB\u16CB ')), 'Ein Name hat 1 bis 100 Zeichen.');
     assert.equal(text(await schickt(GAST, 'umbenennen', 'Meins')), nurBesitzer);
     assert.equal(mock.geaendert.length, 1);
+    await schickt(BESITZER, 'umbenennen', 'Lounge \u5350');
+    assert.deepEqual(mock.geaendert.at(-1)?.body, { name: 'Lounge' });
   });
 
   test('Umbenennen bei 429: der Bot wartet nicht, sondern nennt die Wartezeit', async () => {
