@@ -60,10 +60,19 @@ und Löschen warten weiter“ prüft das gegen die gemockte API, der Test
 
 Die vier Aufrufe der Anmeldung (`/oauth2/token`, `/oauth2/token/revoke`,
 `/users/@me`, `/users/@me/guilds`) laufen über `oauthUeber` in
-`bot/src/discord/oauth.ts` und `client.rest`, siehe Entscheidung
+`bot/src/discord/oauth.ts` und `@discordjs/rest`, siehe Entscheidung
 [0016](../entscheidungen/0016-debug-im-speicher-fuer-den-eigentuemer.md).
 So zählen sie mit, und 429 behandelt die Bibliothek wie bei jeder anderen
 Anfrage.
+
+Sie haben eine eigene REST-Instanz mit derselben Basis wie `client.rest`,
+ohne Token des Bots, und `zaehleAnfragen` hängt an ihr mit derselben
+`Zaehlung`. `@discordjs/rest` führt die Buckets dieser Routen für alle
+Tokens zusammen (`majorParameter` `global`), Discord rechnet sie aber je
+Token der Person. Mit dem Client des Bots liesse ein `Remaining: 0` von
+Person A Person B warten, und ein 429 mit `X-RateLimit-Global` auf dem
+Token einer Person hielte den ganzen Bot an. Der Test „ein globales 429
+der Anmeldung bremst den Bot nicht …“ prüft das.
 
 - Mit `auth: false` und eigenem Header `Authorization`: `Basic` mit ID und
   Secret der Anwendung für Tausch und Widerruf, `Bearer` mit dem Token der
@@ -76,7 +85,8 @@ Anfrage.
   das Warten auf `Retry-After` hört nicht darauf, darum läuft der Aufruf
   zusätzlich gegen die Frist um die Wette.
 - Ein kurzes `Retry-After` wartet die Bibliothek ab. Verlangt Discord
-  10 s oder mehr, wirft sie gleich einen `RateLimitError` (`wartetNicht`).
+  10 s oder mehr, wirft sie gleich einen `RateLimitError` (eigenes
+  `rejectOnRateLimit` der Instanz).
   Die Anmeldung scheitert dann sofort mit `?fehler=anmeldung` und der
   Zeile `Anmeldung: Tausch: Discord antwortet 429, Retry-After 60 s`.
 
@@ -88,7 +98,8 @@ prüfen das gegen die gemockte API, „die Frist gilt auch, während
 ## Zählen
 
 `zaehleAnfragen` in `bot/src/discord/zaehlen.ts` hört auf das Ereignis
-`response` von `client.rest`. Es kommt nach jeder Antwort von Discord,
+`response` von `client.rest` und der Instanz der Anmeldung, siehe
+„Anmeldung“. Es kommt nach jeder Antwort von Discord,
 auch bei 429, 5xx und jedem neuen Versuch. Was der Bot über das Gateway
 schickt, zählt nicht. Der Bot liest nur Status und Header; den Body teilt
 das Ereignis mit der Anfrage.

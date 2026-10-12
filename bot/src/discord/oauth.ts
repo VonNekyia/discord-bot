@@ -1,4 +1,6 @@
-import { DiscordAPIError, HTTPError, RateLimitError, RequestMethod, type REST } from 'discord.js';
+import { DiscordAPIError, HTTPError, RateLimitError, REST, RequestMethod } from 'discord.js';
+import type { Zaehlung } from '../kern/zaehlung.js';
+import { zaehleAnfragen } from './zaehlen.js';
 
 // Die vier Aufrufe der Anmeldung laufen über `@discordjs/rest` wie alle
 // anderen: Sie zählen mit, und 429 behandelt die Bibliothek. Statt des
@@ -20,7 +22,6 @@ export type OAuthFrage = (aufruf: OAuthAufruf) => Promise<unknown>;
 // Wie lange ein Aufruf höchstens dauert, in ms, Warten auf ein Rate-Limit
 // eingeschlossen. Siehe docs/bot/rate-limits.md, „Anmeldung“.
 export const oauthFrist = 10_000;
-export const oauthPfade: ReadonlySet<string> = new Set(['/oauth2/token', '/oauth2/token/revoke', '/users/@me', '/users/@me/guilds']);
 
 // Nur Schritt und Status, nie der Body der Antwort, der Code oder der Token.
 // Siehe docs/bot/datenschutz.md, „Was ins Log geht“.
@@ -31,11 +32,25 @@ function grund(fehler: unknown): string {
   return fehler instanceof Error ? fehler.message : String(fehler);
 }
 
-// Eine `OAuthFrage` über `rest`. `@discordjs/rest` wartet ein kurzes
-// Retry-After ab; ein langes wirft es gleich (`wartetNicht` in
-// `bot/src/discord/client.ts`). Die Frist gilt auch, wenn die Bibliothek
-// gerade wartet: Ihr Schlaf hört nicht auf `signal`, das Rennen schon.
-export function oauthUeber(rest: REST, frist = oauthFrist): OAuthFrage {
+// Eine `OAuthFrage` über eine eigene REST-Instanz mit der Basis von
+// `basis`, ohne Token des Bots. Eigene Instanz, weil `@discordjs/rest` die
+// Buckets dieser Routen für alle Tokens zusammen führt und ein globales 429
+// für die ganze Instanz gilt: Eine Person soll weder andere Anmeldungen noch
+// den Bot bremsen. `zaehlung` zählt sie mit wie den Bot.
+// Ein kurzes Retry-After wartet die Bibliothek ab; eins ab der Frist wirft
+// sie gleich. Die Frist gilt auch, wenn die Bibliothek gerade wartet: Ihr
+// Schlaf hört nicht auf `signal`, das Rennen schon.
+// Siehe docs/bot/rate-limits.md, „Anmeldung“.
+export function oauthUeber(basis: REST, o: { zaehlung?: Pick<Zaehlung, 'antwort'>; frist?: number } = {}): OAuthFrage {
+  const frist = o.frist ?? oauthFrist;
+  const rest = new REST({
+    api: basis.options.api,
+    version: basis.options.version,
+    retries: basis.options.retries,
+    timeout: basis.options.timeout,
+    rejectOnRateLimit: (daten) => daten.retryAfter >= frist,
+  });
+  if (o.zaehlung) zaehleAnfragen(rest, o.zaehlung);
   return async ({ schritt, methode, pfad, kopf, form }) => {
     const signal = AbortSignal.timeout(frist);
     const anfrage = rest.request({

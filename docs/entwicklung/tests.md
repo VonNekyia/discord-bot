@@ -141,7 +141,8 @@ und prüft dort die Anmeldung und die eigenen Grenzen.
 | Tokens von Interaktionen und Webhooks stehen weder im Stand noch im Log … | Callback mit 429 `shared`, `@original` mit 429 `global`: Routen mit `:token`, `global` 1, `shared` zählt nicht als ungültig; kein Token und keine ID in Stand und Log |
 | ein Aufruf trägt den eigenen Authorization-Header, nicht den Token des Bots | `oauthUeber`: alle rohen Header `Authorization` der Anfrage, nur `Bearer` der Person |
 | antwortet Discord nicht, scheitert der Aufruf nach der Frist | Frist 200 ms: „Person: Frist abgelaufen“ |
-| die Frist gilt auch, während @discordjs/rest ein Retry-After abwartet | 429 mit `Retry-After: 1`, Frist 200 ms: Fehler vor 900 ms, eine Anfrage |
+| die Frist gilt auch, während @discordjs/rest ein Retry-After abwartet | Antwort nach 400 ms, 429 mit `Retry-After: 0.8`, Frist 1 s: Fehler nach 0,9 bis 1,2 s, eine Anfrage |
+| ein globales 429 der Anmeldung bremst den Bot nicht … | `Retry-After: 60` mit `X-RateLimit-Global`: die Anmeldung scheitert gleich, danach geht `GET /gateway` des Bots unter 1 s; die Zählung hat das 429 als `global` |
 | Route ohne IDs und Tokens | `route`: Zahlen, Tokens nach `webhooks` und `interactions`, `%40original`, Query, unbekannte Segmente |
 | ohne Antworten: alle vier eigenen Grenzen mit 0 … | `stand` mit falscher Uhr: `seit`, `jetzt`, leere Routen, `warnung` 1000, `grenze` 10000 |
 | je Methode und Route: Anfragen, 429, die letzten Header … | Methode gross, nach Anfragen sortiert, `global` und Scopes, `griff`; ein Stand ändert sich danach nicht |

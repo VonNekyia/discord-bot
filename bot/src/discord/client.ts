@@ -1,15 +1,12 @@
 import { Client, GatewayIntentBits, Options, Partials, type ClientOptions, type RateLimitData } from 'discord.js';
-import { oauthFrist, oauthPfade } from './oauth.js';
 
-// Wann `@discordjs/rest` bei einem Rate-Limit nicht wartet, sondern einen
-// `RateLimitError` wirft. `PATCH /channels/:id` immer: Umbenennen kann bis
-// zu 10 Minuten warten, und das Menü nennt dann die Wartezeit. Die
-// Anmeldung, wenn das Warten nicht in ihre Frist passt. Alles andere, auch
-// Nachrichten in `/channels/:id/messages`, wartet weiter.
-// Siehe docs/bot/rate-limits.md, „Kanäle ändern“.
-export function wartetNicht(daten: Pick<RateLimitData, 'method' | 'route' | 'retryAfter'>): boolean {
-  if (daten.method.toUpperCase() === 'PATCH' && daten.route === '/channels/:id') return true;
-  return oauthPfade.has(daten.route) && daten.retryAfter >= oauthFrist;
+// Nur `PATCH /channels/:id` wartet bei einem Rate-Limit nicht, sondern wirft
+// einen `RateLimitError`: Umbenennen kann bis zu 10 Minuten warten, und das
+// Menü nennt dann die Wartezeit. Alles andere, auch Nachrichten in
+// `/channels/:id/messages`, wartet weiter. Die Anmeldung hat eine eigene
+// REST-Instanz (`oauthUeber`). Siehe docs/bot/rate-limits.md, „Kanäle ändern“.
+export function wartetNicht(daten: Pick<RateLimitData, 'method' | 'route'>): boolean {
+  return daten.method.toUpperCase() === 'PATCH' && daten.route === '/channels/:id';
 }
 
 // Der Client von discord.js mit den Intents und Grenzen des Bots. Guilds

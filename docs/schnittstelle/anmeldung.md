@@ -40,8 +40,8 @@ Routen stehen in [API des Dashboards](api.md).
    und leitet auf `/dashboard/`.
 
 Die Aufrufe aus Schritt 3 bis 5 laufen über `@discordjs/rest` wie jede
-Anfrage des Bots, mit eigenem Header `Authorization` statt des Tokens des
-Bots. Jeder hat eine Frist von 10 s, Warten auf ein Rate-Limit
+Anfrage des Bots, aber in einer eigenen Instanz und mit eigenem Header
+`Authorization` statt des Tokens des Bots. Jeder hat eine Frist von 10 s, Warten auf ein Rate-Limit
 eingeschlossen; verlangt Discord länger, scheitert der Schritt gleich.
 Siehe [Rate-Limits](../bot/rate-limits.md), „Anmeldung“.
 

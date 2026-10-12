@@ -66,7 +66,8 @@ export interface ApiOptionen {
   geheimnis: string;
   dashboard: string;
   // Zählt, wie oft eine Grenze unten greift. Siehe docs/bot/rate-limits.md, „Eigene Grenzen“.
-  zaehlung?: Pick<Zaehlung, 'griff'>;
+  // Zählt auch die Anfragen der Anmeldung an Discord.
+  zaehlung?: Pick<Zaehlung, 'griff' | 'antwort'>;
   // Der Cache der Einstellungen; wer schreibt, löscht dort den Server.
   // Siehe docs/bot/cache.md, „So geht es“.
   einstellungen?: { delete(server: string): unknown };
@@ -241,9 +242,9 @@ export function erstelleApi(o: ApiOptionen): Server {
   const origin = new URL(o.dashboard).origin;
   const sicher = o.dashboard.startsWith('https://');
   const oauth: OAuth = {
-    // Über `@discordjs/rest` des Clients, wie jede Anfrage an Discord.
+    // Über eine eigene REST-Instanz mit der Basis des Clients.
     // Siehe docs/bot/rate-limits.md, „Anmeldung“.
-    frage: oauthUeber(o.client.rest),
+    frage: oauthUeber(o.client.rest, { zaehlung: o.zaehlung }),
     anwendung: o.anwendung,
     geheimnis: o.geheimnis,
     zurueck: `${o.dashboard}/api/anmelden/zurueck`,
