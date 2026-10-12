@@ -88,7 +88,7 @@ Befehl bekommt eine Meldung, das Log keine Nutzerdaten“ prüft die Zeile.
 
 Die API loggt nur den Schritt der Anmeldung oder den Namen der Route
 und den Text des Fehlers: `Anmeldung: <Schritt>: <Fehler>` und
-`API <Route>: <Fehler>`. Der Name der Route ist fest, etwa `kanaele`, nie
+`API <Route>: <Fehler>`. Der Name der Route ist fest, etwa `seiten`, nie
 der Pfad; der trägt die ID des Servers. Der Test „kein Code, Token, Cookie,
 state und keine ID im Log“ prüft das.
 
