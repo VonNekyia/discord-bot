@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { after, before, beforeEach, describe, test } from 'node:test';
+import { after, afterEach, before, beforeEach, describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { ChannelType, Events, PermissionFlagsBits as R, type Client, type Guild, type Interaction } from 'discord.js';
 import type { Pool } from 'pg';
@@ -96,29 +96,33 @@ describe('Menü der Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_H
     await migriere(ziel, fileURLToPath(new URL('../../../migrationen', import.meta.url)));
     db = oeffne(ziel);
     mock = await mockDiscord();
-    client = discordClient(mock, [server()]);
-    guild = client.guilds.cache.get(SERVER) as Guild;
     knoepfe = new Knoepfe({ db });
   });
 
+  // Jeder Test hat einen eigenen Client: Cache und REST mit seinen
+  // Rate-Limits fangen frisch an, kein Test erbt sie von einem anderen.
   beforeEach(async () => {
     if (!ziel) return;
     for (const liste of [mock.geaendert, mock.verschoben, mock.antworten, mock.anfragen]) liste.length = 0;
     mock.aendernFehler = undefined;
     mock.verschiebenFehler = undefined;
     mock.umbenennenWarten = undefined;
-    guild.voiceStates.cache.clear();
     mock.kanaele.set(RAUM, raumDaten());
-    aktionen().ChannelUpdate.handle(raumDaten());
+    client = discordClient(mock, [server()]);
+    guild = client.guilds.cache.get(SERVER) as Guild;
     await db.query('DELETE FROM raeume WHERE server = $1', [SERVER]);
     await db.query('INSERT INTO raeume (kanal, server, besitzer) VALUES ($1, $2, $3)', [RAUM, SERVER, BESITZER]);
+  });
+
+  afterEach(async () => {
+    if (!ziel) return;
+    await client.destroy();
   });
 
   after(async () => {
     if (!ziel) return;
     await db.query('DELETE FROM raeume WHERE server = $1', [SERVER]);
     await schliesse(mock);
-    await client.destroy();
     await db.end();
   });
 

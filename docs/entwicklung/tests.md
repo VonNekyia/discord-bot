@@ -110,7 +110,10 @@ entstehen echte `ButtonInteraction`, `UserSelectMenuInteraction` und
 `ModalSubmitInteraction`, und `deferReply`, `showModal` und
 `editReply` gehen als REST an `mockDiscord`. Den Stand des Raums setzt
 der Test mit der Action `ChannelUpdate`, wer drin ist, über die Voice
-States. Die Datei nutzt einen eigenen Server und eigene Personen.
+States. Die Datei nutzt einen eigenen Server und eigene Personen. Jeder
+Test baut in `beforeEach` einen eigenen Client mit `discordClient`: Cache
+und REST fangen frisch an, und kein Test hängt an den Rate-Limits eines
+anderen, auch nicht am globalen Limit von 50 Anfragen je Sekunde.
 `bot/src/module/sprachraeume/raumrechte.test.ts` prüft die Rechnung der Rechte ohne Discord.
 
 ## Rate-Limits zählen
@@ -176,6 +179,8 @@ Millisekunden. Darum:
 | die Warnung kommt einmal beim Erreichen von 1000 … | 999 ohne, die 1000. mit genau einer Zeile, 500 weitere ohne; nach 10 min und wieder 1000 die zweite |
 | je 429 genau eine Logzeile … | Webhook mit Token: die Zeile mit `:token`, kein Token im Stand |
 | nur PATCH /channels/:id wartet nicht auf ein Rate-Limit … | je Route zuerst 429 mit `Retry-After: 0`: `PATCH /channels/:id` wirft `RateLimitError` ohne zweiten Versuch, `POST /channels/:id/messages` und `DELETE /channels/:id` versuchen es noch einmal |
+| auf das globale Limit von @discordjs/rest wartet auch PATCH /channels/:id | `globalRequestsPerSecond: 1`: zwei `PATCH /channels/:id` nacheinander, beide gehen durch |
+| ein 429 beim Umbenennen wirft auch, wenn die Anfragen der Sekunde verbraucht sind | `globalRequestsPerSecond: 1`, 429 mit `Retry-After: 300`: `RateLimitError` mit `global` und 300 050 ms unter 2 s, eine Anfrage |
 | hoechstens rechnet jeden Platzhalter … | längste Werte im Text und im Banner, Emoji zählt zwei |
 | der Text darf mit den längsten Werten genau 2000 Zeichen haben … | Grenze genau, ein Zeichen mehr gibt den Code |
 | jede Prüfregel meldet ihren Code und ihr Feld | `pruefe`: jede Zeile der Tabelle „Einstellung speichern“ |
@@ -274,7 +279,7 @@ Millisekunden. Darum:
 | dauer: Sekunden unter einer Minute … | 50 ms, 12 s, 5 und 6 min |
 | Rechte im Raum: … | `raumrechte` ohne Discord: Sperren und Verstecken hin und zurück ergeben die Einträge vom Anlegen; ohne Kategorie; Zeigen bei gesperrtem Raum; Bann und Entbannen; Gebannte bleiben gebannt; Kategorie-Sperre ist kein Bann; Besitzer und Bot behalten ihre Rechte; neuer Besitzer; der alte behält seinen Eintrag bis Entsperren oder Zeigen, dann wie in der Kategorie |
 | jeder Code, den ein Modul unterscheidet, hat seinen eigenen … | `fehler.test.ts`: 50001 und 50013 `kein_recht`, 10003 `nicht_gefunden`, 40032 `nicht_verbunden`, 30060 `zu_viele_eintraege`, 10007 und 30013 `anderes`; die Meldung bleibt |
-| ein RateLimitError wird zu_schnell mit der Wartezeit … | `warten` aus `retryAfter`; andere Fehler und Nicht-Fehler `anderes`; ein `DiscordFehler` bleibt, wie er ist |
+| ein RateLimitError wird zu_schnell mit der Wartezeit … | `warten` aus `retryAfter`, die Meldung mit Methode, Route und Sekunden, ohne IDs; andere Fehler und Nicht-Fehler `anderes`; ein `DiscordFehler` bleibt, wie er ist |
 | uebersetzt wirft DiscordFehler … | das Ergebnis geht durch, 40032 wird `nicht_verbunden` |
 | der Griff trägt ID und Name … | `sprachkanaele.test.ts`: eingefroren, `guildVon` gibt die Guild; eine Kopie des Griffs hat keine |
 | kontextVon gibt Griff und Mitglied … | ID des Servers, Mitglied mit Name und Zahl |
