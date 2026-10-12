@@ -4,13 +4,12 @@
   "extends": ["../.oxlintrc.json"],
   "ignorePatterns": ["dist"],
   "options": {
-    "maxWarnings": 2
+    "maxWarnings": 0
   },
   "overrides": [
     {
-      // Grenzen der Schichten. Kern, Discord-Schicht und Module halten sie
-      // schon, die API noch nicht: dort sind es Warnungen, bis der Umbau
-      // fertig ist. Siehe docs/entwicklung/struktur.md, „Grenzen“.
+      // Grenzen der Schichten, je Schicht als Fehler.
+      // Siehe docs/entwicklung/struktur.md, „Grenzen“.
       "files": ["src/kern/**"],
       "excludeFiles": ["**/*.test.ts"],
       "rules": {
@@ -41,7 +40,7 @@
       "excludeFiles": ["**/*.test.ts"],
       "rules": {
         "eslint/no-restricted-imports": [
-          "warn",
+          "error",
           {
             "paths": [{ "name": "discord.js", "message": "Nur src/discord/ spricht mit discord.js." }],
             "patterns": [

@@ -1,6 +1,6 @@
 ---
 title: API im Bot
-description: Wie der Bot die API des Dashboards baut; Dateien, Seiten der Module, Start und Ende, die Reihenfolge der Prüfungen, Grenzen und Zeitlimits im Prozess, Bilder und Vorschau, die Debug-Route, Fehler und Aufräumen.
+description: Wie der Bot die API des Dashboards baut; Dateien, Seiten der Module, Start und Ende, welche Server in die Sitzung kommen, die Reihenfolge der Prüfungen, Grenzen und Zeitlimits im Prozess, Bilder und Vorschau, die Debug-Route, Fehler und Aufräumen.
 code:
   - bot/src/api/server.ts
   - bot/src/api/anmeldung.ts
@@ -8,6 +8,8 @@ code:
   - bot/src/kern/grenze.ts
   - bot/src/discord/eigentuemer.ts
   - bot/src/discord/kontext.ts
+  - bot/src/discord/dashboard.ts
+  - bot/src/discord/rechte.ts
   - bot/src/module/begruessung/seiten.ts
   - bot/src/module/begruessung/banner.ts
   - bot/src/module/sprachraeume/seiten.ts
@@ -29,7 +31,9 @@ Bilder und Banner zeichnet `@napi-rs/canvas`, siehe Entscheidung
 | Datei | Inhalt |
 |---|---|
 | `bot/src/api/server.ts` | `erstelleApi`: Routen nach Zugang, Origin, Grenzen, Body; die Routen der Seiten aus den Bereichen der Module; dazu `apiUmgebung` |
+| `bot/src/discord/dashboard.ts` | `DashboardGriff`: was die API von Discord braucht, mit eigenen Typen; die API sieht keinen Client. `dashboardGriff` baut ihn in `bot/src/index.ts` aus dem Client |
 | `bot/src/discord/kontext.ts` | `verwaltet`: ob eine Person einen Server jetzt verwalten darf, und dann ihr `Kontext` |
+| `bot/src/discord/rechte.ts` | `darfVerwalten`: die Rechte eines Servers aus der Anmeldung, siehe „Server der Sitzung“ |
 | `bot/src/api/anmeldung.ts` | OAuth2 über `oauthUeber` in `bot/src/discord/oauth.ts`, Sitzungen in PostgreSQL, Cookies |
 | `bot/src/discord/eigentuemer.ts` | `Berechtigte`: wer die Debug-Seite sehen darf, siehe „Debug“ |
 | `bot/src/kern/baukasten.ts` | der Vertrag: Typen der Seiten und Bausteine, `Bereich`, `BausteinFehler` |
@@ -60,6 +64,33 @@ ihren Bereich über die IDs, die er anmeldet.
   `DASHBOARD_URL` fällt weg.
 - Beim Beenden schliesst der Bot zuerst die API, siehe
   [Datenbank](datenbank.md), „Pool“.
+
+## Server der Sitzung
+
+Bei der Anmeldung liest `liesPerson` in `bot/src/api/anmeldung.ts` die
+Server der Person aus `GET /users/@me/guilds` und merkt sich in der
+Sitzung die, die sie verwalten darf, siehe
+[Anmeldung am Dashboard](../schnittstelle/anmeldung.md), „Ablauf“:
+
+| Eintrag | in der Sitzung |
+|---|---|
+| `id` ist keine Zahl mit 1 bis 20 Ziffern | nein |
+| `owner` ist `true` | ja |
+| `permissions` hat „Server verwalten“ oder „Administrator“ | ja |
+| `permissions` ist keine Dezimalzahl, etwa leer, negativ, hex oder Text | nein, wie ohne Recht |
+
+Die Rechte prüft `darfVerwalten` in `bot/src/discord/rechte.ts`. Discord
+liefert `permissions` als Text mit einer Dezimalzahl, siehe
+[Permissions](https://docs.discord.com/developers/topics/permissions).
+Ein Eintrag, der nicht passt, fällt weg, und die Anmeldung geht weiter;
+so hält es auch eine falsche `id`. `BigInt` allein hätte bei Text geworfen
+und die ganze Anmeldung scheitern lassen, und bei `0x20` hätte es hex
+gelesen.
+
+`GET /api/server` zeigt davon die Server, auf denen der Bot ist und die
+Discord gerade liefert (`DashboardGriff#server`), sortiert nach Namen. Die
+Rechte prüft jede Route mit `{id}` trotzdem neu, siehe „Ablauf einer
+Anfrage“.
 
 ## Ablauf einer Anfrage
 

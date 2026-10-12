@@ -1,7 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import { PermissionFlagsBits } from 'discord.js';
 import type { Pool } from 'pg';
 import type { OAuthFrage } from '../discord/oauth.js';
+import { darfVerwalten } from '../discord/rechte.js';
 
 // Wie lange das Cookie `anmeldung` gilt, in Sekunden.
 // Siehe docs/schnittstelle/anmeldung.md, „Ablauf“.
@@ -95,14 +95,13 @@ export async function liesPerson(o: OAuth, token: string): Promise<Omit<Sitzung,
   if (typeof id !== 'string' || typeof nutzername !== 'string') throw new Error('Person: Antwort unvollständig');
   const liste = await o.frage({ schritt: 'Server', methode: 'GET', pfad: '/users/@me/guilds', kopf });
   if (!Array.isArray(liste)) throw new Error('Server: Antwort ist keine Liste');
-  const verwalten = PermissionFlagsBits.ManageGuild | PermissionFlagsBits.Administrator;
   const server: string[] = [];
   const eintraege: unknown[] = liste;
   for (const s of eintraege) {
     const serverId = feld(s, 'id');
     const rechte = feld(s, 'permissions');
     if (typeof serverId !== 'string' || !/^\d{1,20}$/.test(serverId)) continue;
-    if (feld(s, 'owner') === true || (typeof rechte === 'string' && (BigInt(rechte) & verwalten) !== 0n)) server.push(serverId);
+    if (feld(s, 'owner') === true || (typeof rechte === 'string' && darfVerwalten(rechte))) server.push(serverId);
   }
   const globalerName = feld(ich, 'global_name');
   const avatar = feld(ich, 'avatar');

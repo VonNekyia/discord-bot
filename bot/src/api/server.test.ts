@@ -13,6 +13,8 @@ import { bereiteVor, masse } from '../module/begruessung/banner.js';
 import { behalteNur, vergiss } from '../kern/aufraeumen.js';
 import type { Bereich } from '../kern/baukasten.js';
 import { Grenze } from '../kern/grenze.js';
+import type { DashboardGriff } from '../discord/dashboard.js';
+import { dashboardGriff } from '../discord/dashboard.js';
 import type { Kontext } from '../discord/kontext.js';
 import { begruessungsBereich } from '../module/begruessung/seiten.js';
 import { sprachraeumeBereich } from '../module/sprachraeume/seiten.js';
@@ -59,6 +61,7 @@ const SERVER = '300000000000000003';
 const OHNE_BOT = '300000000000000004';
 const EIGENER = '300000000000000005';
 const NUR_MITGLIED = '300000000000000006';
+const KAPUTTE_RECHTE = '300000000000000041';
 const ANDERER_SHARD = '300000000004194307';
 const K = {
   infos: '500000000000000001',
@@ -92,6 +95,8 @@ const meineServer = [
   { id: OHNE_BOT, name: 'Ohne Bot', owner: true, permissions: '0' },
   { id: EIGENER, name: 'Eigener', owner: false, permissions: String(R.Administrator) },
   { id: NUR_MITGLIED, name: 'Nur Mitglied', owner: false, permissions: String(R.SendMessages) },
+  // Kein Bitfeld als Dezimalzahl: zählt als kein Recht, die Anmeldung geht weiter.
+  { id: KAPUTTE_RECHTE, name: 'Kaputte Rechte', owner: false, permissions: 'viel' },
 ];
 
 test('apiUmgebung braucht Secret und Adresse des Dashboards', () => {
@@ -127,8 +132,18 @@ test('erstelleApi weist doppelte, zu viele und ungültige Seiten ab', () => {
     speichere: async () => ({ wert: {}, meldung: { titel: '', text: '' } }),
     ...mehr,
   });
-  const api = (...bereiche: Bereich<Kontext>[]) =>
-    erstelleApi({ client: { rest: { options: { api: 'http://127.0.0.1:1', version: '10', retries: 0, timeout: 1000 } } } as unknown as Client, db: {} as Pool, anwendung: ANWENDUNG, geheimnis: GEHEIMNIS, dashboard: DASHBOARD, bereiche });
+  // Ein Griff ohne Discord: Die Prüfung der Seiten fragt Discord nie.
+  const griff: DashboardGriff = {
+    frage: async () => {
+      throw new Error('kein Discord');
+    },
+    darfDebug: async () => false,
+    debug: () => new Zaehlung().stand([0]),
+    avatar: () => '',
+    server: () => [],
+    verwaltet: async () => 'kein_server',
+  };
+  const api = (...bereiche: Bereich<Kontext>[]) => erstelleApi({ griff, db: {} as Pool, anwendung: ANWENDUNG, geheimnis: GEHEIMNIS, dashboard: DASHBOARD, bereiche });
   assert.throws(() => api(bereich({ a: {} }), bereich({ a: {} })), /a ist doppelt/);
   assert.throws(() => api(bereich(Object.fromEntries(['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((id) => [id, {}])))), /Mehr als 6 Seiten/);
   assert.throws(() => api(bereich({ 'a/b': {} })), /taugt nicht als Pfad/);
@@ -163,7 +178,7 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
     client = discordClient(mock, gilden);
     zaehleAnfragen(client.rest, zaehlung);
     api = erstelleApi({
-      client,
+      griff: dashboardGriff(client, { zaehlung, uhr: () => jetzt }),
       zaehlung,
       db,
       anwendung: ANWENDUNG,
@@ -338,7 +353,7 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
     });
 
     test('mit https tragen die Cookies Secure', async () => {
-      const sicher = erstelleApi({ client, db, anwendung: ANWENDUNG, geheimnis: GEHEIMNIS, dashboard: 'https://dashboard.example', bereiche: [] });
+      const sicher = erstelleApi({ griff: dashboardGriff(client, { zaehlung: new Zaehlung() }), db, anwendung: ANWENDUNG, geheimnis: GEHEIMNIS, dashboard: 'https://dashboard.example', bereiche: [] });
       await new Promise<void>((fertig) => sicher.listen(0, '127.0.0.1', fertig));
       try {
         const antwort = await frage(`http://127.0.0.1:${(sicher.address() as AddressInfo).port}`, '/api/anmelden');
