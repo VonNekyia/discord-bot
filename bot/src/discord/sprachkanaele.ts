@@ -124,3 +124,51 @@ export async function sendeMenue(server: Server, kanal: string, m: Menue): Promi
     await ziel.send(alsNachricht(m));
   });
 }
+
+// Ein Raum für die Knöpfe des Menüs. Name, Limit und Einträge liest es bei
+// jedem Zugriff aus dem Cache; was es setzt, legt discord.js gleich dort ab.
+// Siehe docs/bot/sprachraeume-menue.md, „Eins nach dem anderen je Raum“.
+export interface Sprachraum {
+  readonly id: string;
+  readonly name: string;
+  readonly limit: number;
+  readonly eintraege: Eintrag[];
+  // Die Einträge seiner Kategorie; leer ohne Kategorie.
+  readonly kategorieEintraege: Eintrag[];
+  // Alle Einträge in einem PATCH; ohne `name` gilt das Sublimit nicht.
+  setzeRechte(eintraege: Eintrag[], grund: string): Promise<void>;
+  // Wartet nicht auf ein Rate-Limit, sondern wirft `zu_schnell` mit `warten`.
+  // Siehe docs/bot/rate-limits.md, „Kanäle ändern“.
+  benenne(name: string, grund: string): Promise<void>;
+  setzeLimit(limit: number, grund: string): Promise<void>;
+}
+
+// Der Sprachkanal mit dieser ID als `Sprachraum`; undefined für jeden anderen Kanal.
+export function sprachraum(server: Server, id: string): Sprachraum | undefined {
+  const kanal = guildVon(server).channels.cache.get(id);
+  if (kanal?.type !== ChannelType.GuildVoice) return undefined;
+  return {
+    id: kanal.id,
+    get name() {
+      return kanal.name;
+    },
+    get limit() {
+      return kanal.userLimit;
+    },
+    get eintraege() {
+      return [...kanal.permissionOverwrites.cache.values()].map(alsEintrag);
+    },
+    get kategorieEintraege() {
+      return [...(kanal.parent?.permissionOverwrites.cache.values() ?? [])].map(alsEintrag);
+    },
+    async setzeRechte(eintraege, grund) {
+      await uebersetzt(() => kanal.permissionOverwrites.set(eintraege.map(alsOverwrite), grund));
+    },
+    async benenne(name, grund) {
+      await uebersetzt(() => kanal.setName(name, grund));
+    },
+    async setzeLimit(limit, grund) {
+      await uebersetzt(() => kanal.setUserLimit(limit, grund));
+    },
+  };
+}

@@ -255,6 +255,7 @@ Millisekunden. Darum:
 | Umbenennen: das Formular setzt den Namen, ohne Platzhalter … | Body nur `name`, `{name}` bleibt, getrimmt; Cache umbenannt; leerer Name und Nicht-Besitzer ohne PATCH |
 | Umbenennen bei 429 … | `Retry-After: 300`: Antwort unter 2 s, „erst in 5 min“ |
 | Limit: ein Formular mit dem Limit von jetzt … | vorbelegt mit 4; `user_limit` 7 und 0; „zehn“ und Nicht-Besitzer ohne PATCH |
+| Rauswerfen: ist das Mitglied beim Trennen schon weg (40032) … | „nicht im Raum“, keine Logzeile |
 | Rauswerfen: die Nutzerauswahl nur für den Besitzer … | Auswahl Typ 5 mit `custom_id`; `deferUpdate`, getrennt mit Grund, Auswahl weg; nicht drin, sich selbst, Bot, Nicht-Besitzer: Hinweise |
 | Bannen: Sehen und Verbinden verboten … | Eintrag mit beiden verboten, PATCH vor dem Trennen; zweimal, sich selbst, Bot: Hinweise |
 | Bannen bei 30060 … | Hinweis, niemand getrennt, kein Log |
@@ -266,7 +267,8 @@ Millisekunden. Darum:
 | Übernehmen: Hinweise … | Besitzer drin, nicht drin, schon Besitzer, eigener Raum; Besitz bleibt |
 | Info: für jeden, der den Chat sieht … | Besitzer, Limit, gesperrt, versteckt, Zahl der Gebannten; „keins“ bei 0 |
 | ein Knopf in einem Kanal, der kein Raum ist … | „kein Sprachraum mehr“, auch für einen Knopf mit Auswahl |
-| istMenue erkennt nur das Präfix … | andere `custom_id` nicht; unbekannte Aktion mit Präfix bekommt einen Hinweis |
+| alsDruck: Art, Aktion, Server, Kanal, Nutzer und Bot … | Knopf, Auswahl mit einem Bot als Ziel (`bot: true`), Formular mit `wert`; `beantwortet` am Anfang falsch |
+| alsDruck erkennt nur das Präfix … | andere `custom_id` gibt keinen `Druck`; eine unbekannte Aktion mit Präfix bekommt gleich einen Hinweis (Typ 4), ohne aufzuschieben |
 | fehlt dem Bot ein Recht (50013) … / ein anderer Fehler … | Hinweis oder „Das hat nicht geklappt.“, je eine Logzeile ohne ID und Token |
 | dauer: Sekunden unter einer Minute … | 50 ms, 12 s, 5 und 6 min |
 | Rechte im Raum: … | `raumrechte` ohne Discord: Sperren und Verstecken hin und zurück ergeben die Einträge vom Anlegen; ohne Kategorie; Zeigen bei gesperrtem Raum; Bann und Entbannen; Gebannte bleiben gebannt; Kategorie-Sperre ist kein Bann; Besitzer und Bot behalten ihre Rechte; neuer Besitzer; der alte behält seinen Eintrag bis Entsperren oder Zeigen, dann wie in der Kategorie |
@@ -276,6 +278,7 @@ Millisekunden. Darum:
 | der Griff trägt ID und Name … | `sprachkanaele.test.ts`: eingefroren, `guildVon` gibt die Guild; eine Kopie des Griffs hat keine |
 | kontextVon gibt Griff und Mitglied … | ID des Servers, Mitglied mit Name und Zahl |
 | eintraegeVon: die Einträge einer Kategorie mit art … | Rolle und Person mit ihren Bits; Sprach-, Text- und unbekannter Kanal ohne Ergebnis; `kategorieVon` |
+| sprachraum: ein Sprachkanal mit Name, Limit und Einträgen … | `sprachkanaele.test.ts`: `id`, `name`, `limit`, Einträge mit `art`, die drei der Kategorie; Kategorie, Text- und unbekannter Kanal ohne Ergebnis |
 | alsOverwrite macht aus art wieder den Typ … | `rolle` Typ 0, `person` Typ 1 |
 | das Menü: Text, drei Reihen … | `menue.test.ts`: `alsNachricht`: Überschrift, `allowedMentions` leer, 3 × 4 Knöpfe mit Präfix, rot nur Rauswerfen und Bannen |
 | die Auswahl: die Frage und genau ein Mitglied | `alsAuswahl`: Typ 5 mit `custom_id`, Platzhalter, 1 bis 1 |

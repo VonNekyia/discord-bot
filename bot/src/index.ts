@@ -10,11 +10,13 @@ import { lese } from './module/begruessung/begruessung.js';
 import { ladeCache } from './kern/cache.js';
 import { erstelleClient } from './discord/client.js';
 import { alsMitglied, textkanalAuf } from './discord/nachrichten.js';
+import { alsDruck } from './discord/interaktionen.js';
 import { serverVon } from './discord/server.js';
 import { zaehleAnfragen } from './discord/zaehlen.js';
 import { migriere, oeffne, verbindung } from './kern/datenbank.js';
 import { Zaehlung } from './kern/zaehlung.js';
-import { istMenue, Knoepfe } from './module/sprachraeume/knoepfe.js';
+import { Knoepfe } from './module/sprachraeume/knoepfe.js';
+import { praefix } from './module/sprachraeume/menue.js';
 import { Raeume } from './module/sprachraeume/raeume.js';
 import { begruesse, erstelleBremse } from './module/begruessung/senden.js';
 import { begruessungsBereich } from './module/begruessung/seiten.js';
@@ -123,9 +125,13 @@ client.on(Events.ChannelDelete, (kanal) => {
 });
 
 client.on(Events.InteractionCreate, (interaction) => {
-  if (interaction.isChatInputCommand()) void beantworte(interaction, { db });
+  if (interaction.isChatInputCommand()) {
+    void beantworte(interaction, { db });
+    return;
+  }
   // Das Menü der Sprachräume, erkannt am Präfix in `custom_id`. Siehe docs/bot/sprachraeume-menue.md, „Knöpfe“.
-  else if (istMenue(interaction)) void knoepfe.bediene(interaction);
+  const druck = alsDruck(interaction, praefix);
+  if (druck) void knoepfe.bediene(druck);
 });
 
 // discord.js verbindet sich selbst neu. Gibt es auf, endet der Prozess, und

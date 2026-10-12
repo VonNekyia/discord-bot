@@ -4,7 +4,7 @@
   "extends": ["../.oxlintrc.json"],
   "ignorePatterns": ["dist"],
   "options": {
-    "maxWarnings": 17
+    "maxWarnings": 14
   },
   "overrides": [
     {
@@ -83,7 +83,6 @@
       "files": [
         "src/api/server.ts",
         "src/module/begruessung/begruessung.ts",
-        "src/module/sprachraeume/knoepfe.ts",
         "src/module/sprachraeume/sprachraeume.ts"
       ],
       "rules": {
