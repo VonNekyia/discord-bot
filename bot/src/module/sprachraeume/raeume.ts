@@ -22,6 +22,16 @@ export interface RaumKontext {
   warten?: number;
   // Wie lange ein Mitglied auf einen neuen Raum wartet, in ms.
   abstand?: number;
+  // Plant `fn` nach `ms` und gibt zurück, wie man es abbricht; für das
+  // Vergessen nach `abstand`. In Tests eine falsche Uhr: Mit falschem
+  // `setTimeout` für den ganzen Prozess hängt REST. Siehe docs/entwicklung/tests.md, „Falsche Uhren“.
+  planen?: (fn: () => void, ms: number) => () => void;
+}
+
+function planeEcht(fn: () => void, ms: number): () => void {
+  const uhr = setTimeout(fn, ms);
+  uhr.unref?.();
+  return () => clearTimeout(uhr);
 }
 
 // Feste Gründe im Audit-Log, ohne IDs und Namen.
@@ -89,18 +99,20 @@ export async function vergissRaum(db: Pick<Pool, 'query'>, kanal: string): Promi
 export class Raeume {
   // Je `<Server>/<Mitglied>` die Zeit des letzten neuen Raums; ein Timer
   // vergisst sie nach `abstand`. Siehe docs/bot/datenschutz.md, „Was der Bot speichert“.
-  private readonly letzteAnlage = new Map<string, { zeit: number; uhr: ReturnType<typeof setTimeout> }>();
+  private readonly letzteAnlage = new Map<string, { zeit: number; abbrechen: () => void }>();
   private readonly ketten = new Map<string, Promise<void>>();
   // Je Raum der Timer bis zum Löschen und wer darauf wartet.
   private readonly loeschUhren = new Map<string, { uhr: ReturnType<typeof setTimeout>; fertig: () => void }>();
   private readonly uhr: () => number;
   private readonly warten: number;
   private readonly abstand: number;
+  private readonly planen: (fn: () => void, ms: number) => () => void;
 
   constructor(private readonly k: RaumKontext) {
     this.uhr = k.uhr ?? (() => Date.now());
     this.warten = k.warten ?? 2_000;
     this.abstand = k.abstand ?? 30_000;
+    this.planen = k.planen ?? planeEcht;
   }
 
   // Wie viele Mitglieder die Grenze von 30 s gerade kennt; für Tests.
@@ -109,10 +121,9 @@ export class Raeume {
   }
 
   private merke(schluessel: string): void {
-    clearTimeout(this.letzteAnlage.get(schluessel)?.uhr);
-    const uhr = setTimeout(() => this.letzteAnlage.delete(schluessel), this.abstand);
-    uhr.unref?.();
-    this.letzteAnlage.set(schluessel, { zeit: this.uhr(), uhr });
+    this.letzteAnlage.get(schluessel)?.abbrechen();
+    const abbrechen = this.planen(() => this.letzteAnlage.delete(schluessel), this.abstand);
+    this.letzteAnlage.set(schluessel, { zeit: this.uhr(), abbrechen });
   }
 
   // Aus `voiceStateUpdate`: `vorher` und `nachher` sind Kanal-IDs oder null.

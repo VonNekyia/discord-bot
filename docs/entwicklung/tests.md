@@ -57,9 +57,9 @@ Bereichen von Begrüssung und Sprachräumen auf einem freien Port und
 spricht sie mit `fetch` an, ohne Weiterleitungen zu folgen.
 `bot/src/module/begruessung/senden.test.ts` ruft `begruesse` mit Mitgliedern auf, wie
 discord.js sie bei Beitritt und Abschied bringt. Dort gibt die Bremse nur
-200 ms Ruhe statt 30 s (`erstelleBremse`); mit falschen Uhren hängen
-REST von discord.js und `fetch`. Die Zeiten selbst prüfen die Tests der
-Bremse ohne Netz, mit `t.mock.timers`. Beide nutzen
+200 ms Ruhe statt 30 s (`erstelleBremse`), siehe „Falsche Uhren“. Die
+Zeiten selbst prüfen die Tests der Bremse ohne Netz, mit
+`t.mock.timers`. Beide nutzen
 `bot/src/testhilfe.ts`:
 
 - `mockDiscord`: ein `node:http`-Server für OAuth2 (`/oauth2/token`,
@@ -116,6 +116,23 @@ starten je Test einen kleinen `node:http`-Server, der je Pfad zuerst ein
 und hängen `zaehleAnfragen` oder `oauthUeber` an den REST eines Clients
 aus `erstelleClient`. `bot/src/api/server.test.ts` zählt wie im Bot mit
 und prüft dort die Anmeldung und die eigenen Grenzen.
+
+## Falsche Uhren
+
+Mit `t.mock.timers` laufen `setTimeout` und `Date` für den ganzen
+Prozess falsch, auch in REST von discord.js, `fetch` und undici. Ein Test,
+der dabei Discord fragt, hängt oder wird langsam: Mit falschem
+`setTimeout` brauchte ein `PATCH` an den Mock gemessen 6 s statt weniger
+Millisekunden. Darum:
+
+- Ohne Netz geht `t.mock.timers`, etwa für die Bremse oder die Zählung der
+  Rate-Limits.
+- Mit Netz bekommt der Code eine eigene falsche Uhr: `uhr` für Zeiten und
+  `planen` für Timer in `RaumKontext` (`bot/src/module/sprachraeume/raeume.ts`).
+  Der Test lässt die Zeit selbst vorrücken.
+- Echte kurze Zeiten nur, wo der Test auf das Ende wartet, etwa die Ruhe
+  der Bremse; nie eine Wartezeit, die gegen die Dauer anderer Aufrufe
+  läuft.
 
 ## Was abgedeckt ist
 
@@ -206,7 +223,7 @@ und prüft dort die Anmeldung und die eigenen Grenzen.
 | geht das Mitglied, bevor das Verschieben klappt (40032) … | der neue Raum geht wieder, keine Zeile, kein Log |
 | fehlt dem Bot ein Recht (50013) … | nichts angelegt, nicht verschoben, eine Logzeile ohne ID |
 | ist die Art aus oder der Kanal kein Erzeuger … | nichts angelegt |
-| die Grenze von 30 s vergisst ein Mitglied nach ihrer Zeit | mit `abstand` 1 s: nach dem Anlegen ein Eintrag, nach 1,1 s keiner. Die Grenze läuft schon während `betritt`; mit 50 ms war sie in der CI manchmal vor der ersten Prüfung abgelaufen |
+| die Grenze von 30 s vergisst ein Mitglied nach ihrer Zeit | mit falscher Uhr in `planen`: nach dem Anlegen ein Eintrag, nach 29 999 ms noch einer, nach 30 000 ms keiner; unabhängig davon, wie lange `betritt` braucht |
 | Räume stehen nicht unter den Optionen … | ein Raum fehlt unter den Optionen des Erzeugers, als Erzeuger `erzeuger_unbekannt` |
 | der Abgleich beim Start … | Zeile ohne Kanal weg, leerer Raum gelöscht, belegter bleibt |
 | channelDelete vergisst den Raum … | `geloescht`, `vergiss` und `behalteNur` für Sprachräume und Räume |
