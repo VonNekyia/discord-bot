@@ -1,6 +1,6 @@
 ---
 title: Dashboard
-description: Die Seite /dashboard/ in web/; ihre Zustände von abgemeldet bis zu den Tabs, wie aus den Seiten des Bots Tabs und Formulare werden, die Bausteine im Code, Speichern, Bild, Aktion und Vorschau, die Debug-Ansicht, was sie vor dem Senden prüft und welche Meldung sie wann zeigt.
+description: Die Seite /dashboard/ in web/; ihre Zustände von abgemeldet bis zu den Tabs, wie aus den Seiten des Bots Tabs und Formulare werden, die Bausteine im Code, Speichern, Bild, Aktion und Vorschau, die Debug-Ansicht, wie sie Antworten des Bots prüft, was sie vor dem Senden prüft und welche Meldung sie wann zeigt.
 code:
   - web/dashboard/index.html
   - web/src/dashboard.ts
@@ -156,6 +156,30 @@ Text dahinter. Ist eine Option gesperrt und vergeben, steht `grund`. Eine
 
 Eine neue Art kommt zuerst in den Vertrag, dann als Datei hierher und in
 `baue` in `web/src/seite.ts`, mit einem Element aus dem Guide.
+
+## Antworten prüfen
+
+`web/src/api/klient.ts` prüft jede Antwort des Bots, bevor die Oberfläche
+sie nutzt; behauptet wird kein Typ. Kleine Prüfer (`istText`, `istZahl`,
+`oderNull`, `listeVon`, `form` …) sind Typprädikate und setzen sich zu den
+grossen zusammen, ohne `as`. Alles liegt in dieser einen Datei, denn die
+API-Schicht importiert nichts Eigenes, siehe
+[Struktur von Bot und Oberfläche](../entwicklung/struktur.md), „Grenzen“.
+
+| Antwort | wie streng | passt sie nicht |
+|---|---|---|
+| `Ich`, `Server[]`, `{ wert, meldung }` beim Speichern, `Satz` einer Aktion, `Debug` | jedes Feld | `nicht_erreichbar`, wie eine Antwort ohne JSON |
+| `Seite[]`: der äussere Aufbau jeder Seite, `wert` als Objekt, `saetze`, `fund` | jedes Feld | die ganze Antwort `nicht_erreichbar`; die Seite geht zurück zur Liste |
+| ein Baustein | jedes Feld seiner Art aus dem Vertrag; optionale nur, wenn da; weitere Felder zählen nicht | er wird `{ art: 'unbekannt', id }` und zur Warnung an seiner Stelle; die übrigen bleiben |
+| eine `liste` | wie ein Baustein, dazu jeder innere Baustein; nur `schalter`, `auswahl`, `text` und `zahl` | die ganze Liste wird zur Warnung |
+| der Body eines Fehlers | `code` und `feld` je als Text | ohne `code`: `nicht_erreichbar` ab 500, sonst `unbekannt` |
+
+Hat ein Baustein, der nicht passt, keine `id`, bekommt er eine Ersatz-ID
+nach seiner Stelle, damit zwei solche sich auf der Seite nicht
+überschreiben. Den Vertrag dazu hält [Baukasten](../schnittstelle/baukasten.md),
+„Bausteine“, fest. Ein Element, das in `web/dashboard/index.html` fehlt oder
+die falsche Art hat, meldet `element` in `web/src/dashboard.ts` beim Laden
+mit seiner ID; es prüft mit `instanceof`.
 
 ## Debug
 

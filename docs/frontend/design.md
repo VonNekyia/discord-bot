@@ -124,7 +124,7 @@ Je Art von Baustein, siehe [Baukasten](../schnittstelle/baukasten.md),
 | `aktion` | `button.link-button`, darunter `.help` und Meldungen | Actions, „Links“, „In text“; vom Orchestrator festgelegt |
 | `liste` | `.grid` mit je einem `article.card`, darin `.form` mit `.kicker` als Kopf; `.empty`; `button.link-button` zum Hinzufügen und Entfernen | Content, „Cards“; vom Orchestrator festgelegt |
 | `hinweis` | `.message-warn` oder `.message-info` | Feedback, „Messages“ |
-| eine Art, die die Oberfläche nicht kennt | `.message-warn` | Feedback, „Messages“ |
+| eine Art, die die Oberfläche nicht kennt, oder ein Baustein, der nicht passt | `.message-warn` | Feedback, „Messages“ |
 
 ## Herkunft der Regeln
 

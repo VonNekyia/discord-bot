@@ -101,11 +101,12 @@ In `**/*.test.ts` und `bot/src/testhilfe.ts` gilt anders:
 ## Altlasten
 
 Was beim Einführen schon da war und nicht schnell geht, ist eine Warnung
-statt eines Fehlers: je Datei unter `overrides` in `bot/.oxlintrc.json`
-und `web/.oxlintrc.json`. `maxWarnings` ist die Zahl dieser Warnungen,
-im Bot zusammen mit den 4 Grenzverletzungen aus
-[Struktur von Bot und Oberfläche](struktur.md), „Was noch fehlt“. Eine
-neue Warnung lässt die Prüfung scheitern.
+statt eines Fehlers: je Datei unter `overrides` in `bot/.oxlintrc.json`.
+`maxWarnings` ist die Zahl dieser Warnungen, im Bot zusammen mit den 4
+Grenzverletzungen aus [Struktur von Bot und Oberfläche](struktur.md), „Was
+noch fehlt“. Eine neue Warnung lässt die Prüfung scheitern. `web/` hat
+keine Altlasten mehr: `maxWarnings` ist dort 0, und `web/.oxlintrc.json`
+hat keine `overrides` für Warnungen.
 
 Stand 2026-10-12:
 
@@ -113,8 +114,9 @@ Stand 2026-10-12:
 |---|---|---|---|
 | `bot/` | `no-non-null-assertion` | 7 | `api/server.ts`: `a.sitzung!` in den Routen und beim Prüfen der Rechte |
 | `bot/` | `no-unsafe-type-assertion` | 6 | der Code eines Fehlers von Discord in `api/server.ts`, `custom_id` und ein Fehler in `module/sprachraeume/knoepfe.ts`, die geprüfte Eingabe in `pruefe` der Begrüssung und der Sprachräume |
-| `web/` | `no-unsafe-type-assertion` | 3 | Antworten der API in `api/klient.ts`, `getElementById(…) as T` in `dashboard.ts` |
-| `web/` | `no-unnecessary-type-parameters` | 1 | der Helfer `element` in `dashboard.ts` |
+
+Die Antworten der API prüft `web/src/api/klient.ts` mit Typprädikaten statt
+mit `as`, siehe [Dashboard](../frontend/dashboard.md), „Antworten prüfen“.
 
 Wer eine Altlast beseitigt, senkt `maxWarnings` um ihre Zahl und nimmt
 die Datei aus `overrides`, sobald sie sauber ist.

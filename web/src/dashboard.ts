@@ -6,7 +6,16 @@ import { debugAnsicht } from './debug.js';
 import { meldung, satz } from './kern/texte.js';
 import { baueSeite } from './seite.js';
 
-const element = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
+// Ein Element aus dashboard/index.html, geprüft mit instanceof; fehlt es
+// oder hat es die falsche Art, ist die Seite kaputt, und das sagt die Meldung.
+function element(id: string): HTMLElement;
+function element<T extends HTMLElement>(id: string, art: abstract new () => T): T;
+function element(id: string, art: abstract new () => HTMLElement = HTMLElement): HTMLElement {
+  const gefunden = document.getElementById(id);
+  if (!gefunden) throw new Error(`#${id} fehlt in dashboard/index.html`);
+  if (!(gefunden instanceof art)) throw new Error(`#${id} ist kein ${art.name}`);
+  return gefunden;
+}
 
 const abschnitte = { laden: element('laden'), server: element('server'), einstellungen: element('einstellungen'), debug: element('debug') };
 const kopfMeldung = element('kopf-meldung');
@@ -64,7 +73,7 @@ function angemeldet(ich: Ich): void {
   aktiv = true;
   kopf(false);
   element('person-name').textContent = ich.name;
-  const avatar = element<HTMLImageElement>('avatar');
+  const avatar = element('avatar', HTMLImageElement);
   if (ich.avatar) avatar.src = ich.avatar;
   avatar.hidden = !ich.avatar;
   element('avatar-ersatz').hidden = !!ich.avatar;
