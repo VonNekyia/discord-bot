@@ -6,6 +6,7 @@ code:
   - bot/src/module/befehle/befehle.test.ts
   - bot/src/discord/client.ts
   - bot/src/discord/client.test.ts
+  - bot/src/discord/fehler.ts
   - bot/src/discord/oauth.ts
   - bot/src/discord/zaehlen.ts
   - bot/src/kern/zaehlung.ts
@@ -55,6 +56,24 @@ Test „nur PATCH /channels/:id wartet nicht auf ein Rate-Limit; Nachrichten
 und Löschen warten weiter“ prüft das gegen die gemockte API, der Test
 „Umbenennen bei 429 …“ die Wartezeit im Menü. Stand `@discordjs/rest`
 2.6.3.
+
+Auf ein globales Limit bis 2 s wartet auch `PATCH /channels/:id`.
+`@discordjs/rest` rechnet selbst höchstens `globalRequestsPerSecond`
+Anfragen je Sekunde (50) und ruft `rejectOnRateLimit` mit `global`, bevor
+es die nächste schickt. Ohne diese Ausnahme scheiterte ein Knopf, sobald
+der Bot in derselben Sekunde 50 andere Anfragen geschickt hat; das Warten
+dauert höchstens eine Sekunde und 50 ms (`offset`). `global` steht aber
+auch bei einem 429 der Route, wenn die 50 Anfragen der Sekunde gerade
+verbraucht sind. Darum zählt die Wartezeit: Ein 429 beim Umbenennen mit
+Minuten wirft weiter. Die Tests „auf das globale Limit von @discordjs/rest
+wartet auch PATCH /channels/:id“ und „ein 429 beim Umbenennen wirft auch,
+wenn die Anfragen der Sekunde verbraucht sind“ prüfen beides mit
+`globalRequestsPerSecond: 1`.
+
+Der `RateLimitError` hat keine Meldung. `alsDiscordFehler` in
+`bot/src/discord/fehler.ts` gibt ihm eine mit Methode, Route und Sekunden,
+etwa „Rate-Limit bei PATCH /channels/:id, noch 301 s“; die Route trägt
+`:id` statt IDs.
 
 ## Anmeldung
 

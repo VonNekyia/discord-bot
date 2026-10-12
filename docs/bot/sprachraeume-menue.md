@@ -7,6 +7,8 @@ code:
   - bot/src/module/sprachraeume/raumrechte.ts
   - bot/src/discord/menue.ts
   - bot/src/discord/rechte.ts
+  - bot/src/discord/interaktionen.ts
+  - bot/src/discord/sprachkanaele.ts
   - bot/src/index.ts
 ---
 
@@ -24,13 +26,15 @@ brechen darf. Wie Räume entstehen und gehen, steht in
 |---|---|
 | `bot/src/module/sprachraeume/menue.ts` | `menue`, `auswahl`, `formular` mit eigenen Typen; das Präfix |
 | `bot/src/discord/menue.ts` | die Discord-Schicht baut daraus Components: `alsNachricht`, `alsAuswahl`, `alsModal` |
-| `bot/src/module/sprachraeume/knoepfe.ts` | `Knoepfe#bediene`: Prüfungen, Antworten, Aufrufe an Discord; `istMenue` |
+| `bot/src/module/sprachraeume/knoepfe.ts` | `Knoepfe#bediene(druck)`: Prüfungen und Antworten, ohne discord.js |
+| `bot/src/discord/interaktionen.ts` | `Druck` und `alsDruck`: Knopf, Auswahl oder Formular mit eigenen Typen; `antworte`, `zeigeAuswahl`, `zeigeFormular`, `warte`, `fertig` |
+| `bot/src/discord/sprachkanaele.ts` | `sprachraum(server, kanal)`: Name, Limit und Einträge aus dem Cache, `setzeRechte`, `benenne`, `setzeLimit`; dazu `belegung` und `verschiebe` |
 | `bot/src/module/sprachraeume/raumrechte.ts` | Sperren, Verstecken, Bann und neuer Besitzer als reine Rechnung auf den Rechte-Einträgen (`Eintrag` mit `art`, `Recht` aus `bot/src/discord/rechte.ts`) |
 
 `Raeume` postet das Menü nach dem Anlegen, siehe
 [Sprachräume im Bot](sprachraeume-bau.md), „Anlegen“. `bot/src/index.ts`
-gibt bei `interactionCreate` jede Interaktion, für die `istMenue` gilt, an
-`Knoepfe#bediene`.
+macht bei `interactionCreate` mit `alsDruck` und dem Präfix aus jeder
+passenden Interaktion einen `Druck` und gibt ihn an `Knoepfe#bediene`.
 
 ## Knöpfe
 
@@ -40,8 +44,8 @@ gibt bei `interactionCreate` jede Interaktion, für die `istMenue` gilt, an
   Art der Interaktion.
 - Kein Collector: Der Bot erkennt das Menü nur am Präfix, auch nach einem
   Neustart. Die Nachricht muss er sich nicht merken.
-- Den Raum liest der Bot aus `interaction.channelId`, den Besitzer aus der
-  Tabelle `raeume`. Ist der Kanal kein Raum, sagt er das.
+- Den Raum liest der Bot aus `Druck#kanal` (`interaction.channelId`), den
+  Besitzer aus der Tabelle `raeume`. Ist der Kanal kein Raum, sagt er das.
 - Drei Action Rows mit je vier Knöpfen: Zugang (Sperren, Entsperren,
   Verstecken, Zeigen), Raum (Umbenennen, Limit, Übernehmen, Info),
   Mitglieder (Rauswerfen, Bannen, Entbannen, Besitz übergeben). Rauswerfen
@@ -58,9 +62,9 @@ gibt bei `interactionCreate` jede Interaktion, für die `istMenue` gilt, an
   (`allowed_mentions` leer).
 - Discord wartet höchstens 3 s auf die erste Antwort
   ([Receiving and Responding](https://docs.discord.com/developers/interactions/receiving-and-responding#responding-to-an-interaction)).
-  Vor jedem Aufruf an Discord ruft der Bot darum `deferReply` ephemeral,
-  bei der Nutzerauswahl `deferUpdate`; danach setzt `editReply` die
-  Antwort. Bei der Nutzerauswahl ersetzt sie die Auswahl, deren Knöpfe gehen
+  Vor jedem Aufruf an Discord ruft der Bot darum `Druck#warte`, also
+  `deferReply` ephemeral, bei der Nutzerauswahl `deferUpdate`; danach setzt
+  `Druck#fertig` mit `editReply` die Antwort. Bei der Nutzerauswahl ersetzt sie die Auswahl, deren Knöpfe gehen
   weg. Der Test „Sperren: deferReply vor dem PATCH …“ prüft die
   Reihenfolge.
 - Ein Formular muss die erste Antwort sein (`showModal`). Knöpfe, die ein
@@ -74,8 +78,9 @@ gibt bei `interactionCreate` jede Interaktion, für die `istMenue` gilt, an
 Was die Knöpfe eines Raums auslösen, läuft der Reihe nach (`nacheinander`
 je Kanal). Der Bot rechnet die neuen Rechte aus dem Cache; zwei schnelle
 Klicks sollen nicht vom selben alten Stand ausgehen.
-`permissionOverwrites.set` schickt ein `PATCH /channels/{id}`, und
-discord.js legt dessen Antwort sofort in den Cache
+`Sprachraum#setzeRechte` schickt mit `permissionOverwrites.set` ein
+`PATCH /channels/{id}`, und discord.js legt dessen Antwort sofort in den
+Cache
 (`GuildChannelManager#edit`). Ein `PUT` auf einen einzelnen Eintrag täte
 das nicht; der Cache wüsste erst nach `CHANNEL_UPDATE` vom Gateway davon.
 
@@ -86,7 +91,7 @@ Kanals, siehe Entscheidung
 [0011](../entscheidungen/0011-sprachraeume-mit-knoepfen.md).
 `bot/src/module/sprachraeume/raumrechte.ts` rechnet aus den Einträgen des Raums und denen seiner
 Kategorie die neue Liste, und der Bot schickt sie in einem `PATCH`
-(`permissionOverwrites.set`). Ohne `name` gilt das Sublimit dafür nicht,
+(`Sprachraum#setzeRechte`). Ohne `name` gilt das Sublimit dafür nicht,
 siehe [Rate-Limits](rate-limits.md), „Kanäle ändern“.
 
 Discord wendet erst @everyone an, dann die Rollen, dann die Einträge für
@@ -128,13 +133,16 @@ Zeile.
 
 ## Erwartete Fehler
 
-| Fehler | Wann | Was der Bot tut |
+Die Knöpfe lesen den Code von `DiscordFehler`, siehe
+[Struktur von Bot und Oberfläche](../entwicklung/struktur.md), „Die Discord-Schicht“.
+
+| Code | Wann | Was der Bot tut |
 |---|---|---|
-| `RateLimitError` | Discord lässt `PATCH /channels/{id}` gerade nicht zu, vor allem beim Umbenennen | die Wartezeit nennen, ohne Logzeile |
-| 30060 | der Raum hat so viele Rechte-Einträge, dass Discord keinen weiteren nimmt | Hinweis, ohne Logzeile |
-| 40032 | wer rausgeworfen oder gebannt wird, ist nicht mehr verbunden | beim Rauswerfen „nicht im Raum“, beim Bannen nichts |
-| 10003 | der Kanal ist schon weg | „kein Sprachraum mehr“ |
-| 50013 | dem Bot fehlt ein Recht | Hinweis an den Nutzer, eine Logzeile |
+| `zu_schnell` (RateLimitError) | Discord lässt `PATCH /channels/{id}` gerade nicht zu, vor allem beim Umbenennen | die Wartezeit aus `warten` nennen, ohne Logzeile |
+| `zu_viele_eintraege` (30060) | der Raum hat so viele Rechte-Einträge, dass Discord keinen weiteren nimmt | Hinweis, ohne Logzeile |
+| `nicht_verbunden` (40032) | wer rausgeworfen oder gebannt wird, ist nicht mehr verbunden | beim Rauswerfen „nicht im Raum“, beim Bannen nichts |
+| `nicht_gefunden` (10003) | der Kanal ist schon weg | „kein Sprachraum mehr“ |
+| `kein_recht` (50001, 50013) | dem Bot fehlt ein Recht | Hinweis an den Nutzer, eine Logzeile |
 
 Jeder andere Fehler gibt „Das hat nicht geklappt.“ und eine Logzeile.
 Belege: [JSON Error Codes](https://docs.discord.com/developers/topics/opcodes-and-status-codes#json-json-error-codes).

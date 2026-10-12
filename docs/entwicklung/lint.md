@@ -102,7 +102,7 @@ In `**/*.test.ts` und `bot/src/testhilfe.ts` gilt anders:
 
 Was beim Einführen schon da war und nicht schnell geht, ist eine Warnung
 statt eines Fehlers: je Datei unter `overrides` in `bot/.oxlintrc.json`.
-`maxWarnings` ist die Zahl dieser Warnungen, im Bot zusammen mit den 4
+`maxWarnings` ist die Zahl dieser Warnungen, im Bot zusammen mit den 3
 Grenzverletzungen aus [Struktur von Bot und Oberfläche](struktur.md), „Was
 noch fehlt“. Eine neue Warnung lässt die Prüfung scheitern. `web/` hat
 keine Altlasten mehr: `maxWarnings` ist dort 0, und `web/.oxlintrc.json`
@@ -113,7 +113,7 @@ Stand 2026-10-12:
 | Paket | Regel | Funde | wo |
 |---|---|---|---|
 | `bot/` | `no-non-null-assertion` | 7 | `api/server.ts`: `a.sitzung!` in den Routen und beim Prüfen der Rechte |
-| `bot/` | `no-unsafe-type-assertion` | 6 | der Code eines Fehlers von Discord in `api/server.ts`, `custom_id` und ein Fehler in `module/sprachraeume/knoepfe.ts`, die geprüfte Eingabe in `pruefe` der Begrüssung und der Sprachräume |
+| `bot/` | `no-unsafe-type-assertion` | 4 | der Code eines Fehlers von Discord in `api/server.ts`, die geprüfte Eingabe in `pruefe` der Begrüssung und der Sprachräume |
 
 Die Antworten der API prüft `web/src/api/klient.ts` mit Typprädikaten statt
 mit `as`, siehe [Dashboard](../frontend/dashboard.md), „Antworten prüfen“.

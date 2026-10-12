@@ -70,3 +70,49 @@ test('nur PATCH /channels/:id wartet nicht auf ein Rate-Limit; Nachrichten und L
     'DELETE /api/v10/channels/500000000000000002',
   ]);
 });
+
+// Eine API, die jedes `PATCH` mit `status` beantwortet, 429 mit Retry-After 300 s.
+async function api(t: { after(fn: () => Promise<void>): void }, status: 200 | 429) {
+  const anfragen: string[] = [];
+  const server = createServer((req, res) => {
+    req.resume();
+    req.on('end', () => {
+      anfragen.push(`${req.method} ${req.url}`);
+      if (status === 200) {
+        res.writeHead(200, { 'content-type': 'application/json' }).end('{}');
+        return;
+      }
+      res.writeHead(429, { 'content-type': 'application/json', 'retry-after': '300', 'x-ratelimit-scope': 'user' });
+      res.end(JSON.stringify({ message: 'You are being rate limited.', retry_after: 300, global: false }));
+    });
+  });
+  await new Promise<void>((fertig) => server.listen(0, '127.0.0.1', fertig));
+  // Eine Anfrage je Sekunde: Die zweite trifft das globale Limit, das `@discordjs/rest` selbst rechnet.
+  const client = erstelleClient({ rest: { api: `http://127.0.0.1:${(server.address() as AddressInfo).port}/api`, retries: 0, globalRequestsPerSecond: 1 } });
+  client.rest.setToken('test');
+  t.after(async () => {
+    server.closeAllConnections();
+    server.close();
+    await client.destroy();
+  });
+  return { client, anfragen };
+}
+
+test('auf das globale Limit von @discordjs/rest wartet auch PATCH /channels/:id', async (t) => {
+  const { client, anfragen } = await api(t, 200);
+  await client.rest.patch(Routes.channel('500000000000000001'), { body: { name: 'eins' } });
+  await client.rest.patch(Routes.channel('500000000000000002'), { body: { name: 'zwei' } });
+  assert.deepEqual(anfragen, ['PATCH /api/v10/channels/500000000000000001', 'PATCH /api/v10/channels/500000000000000002']);
+});
+
+test('ein 429 beim Umbenennen wirft auch, wenn die Anfragen der Sekunde verbraucht sind', { timeout: 5_000 }, async (t) => {
+  const { client, anfragen } = await api(t, 429);
+  const los = Date.now();
+  await assert.rejects(client.rest.patch(Routes.channel('500000000000000001'), { body: { name: 'neu' } }), (fehler) => {
+    assert.ok(fehler instanceof RateLimitError);
+    assert.deepEqual([fehler.global, fehler.retryAfter], [true, 300_050]);
+    return true;
+  });
+  assert.ok(Date.now() - los < 2_000);
+  assert.equal(anfragen.length, 1);
+});

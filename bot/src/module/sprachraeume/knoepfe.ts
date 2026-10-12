@@ -1,33 +1,12 @@
-import {
-  ChannelType,
-  DiscordAPIError,
-  MessageFlags,
-  RateLimitError,
-  RESTJSONErrorCodes as Code,
-  type ButtonInteraction,
-  type Guild,
-  type Interaction,
-  type ModalSubmitInteraction,
-  type PermissionOverwrites,
-  type UserSelectMenuInteraction,
-  type VoiceChannel,
-} from 'discord.js';
 import type { Pool } from 'pg';
 import { text as fehlertext } from '../../kern/fehler.js';
-import { aktionen, auswahl, formular, mitAuswahl, mitFormular, praefix, type Aktion, type MitAuswahl } from './menue.js';
+import { DiscordFehler } from '../../discord/fehler.js';
+import type { Druck } from '../../discord/interaktionen.js';
+import type { Server } from '../../discord/server.js';
+import { belegung, sprachraum, verschiebe, type Sprachraum } from '../../discord/sprachkanaele.js';
+import { aktionen, auswahl, formular, mitAuswahl, mitFormular, type Aktion, type MitAuswahl } from './menue.js';
 import { besitzerVon } from './raeume.js';
-import { alsAuswahl, alsModal } from '../../discord/menue.js';
-import { alsEintrag, alsOverwrite } from '../../discord/rechte.js';
-import { serverVon } from '../../discord/server.js';
-import { belegung } from '../../discord/sprachkanaele.js';
 import * as rechte from './raumrechte.js';
-
-// Was die Knöpfe des Menüs bedienen: Knöpfe, die Nutzerauswahl und die Formulare.
-export type MenueInteraktion = ButtonInteraction<'cached'> | UserSelectMenuInteraction<'cached'> | ModalSubmitInteraction<'cached'>;
-
-export function istMenue(i: Interaction): i is MenueInteraktion {
-  return (i.isButton() || i.isUserSelectMenu() || i.isModalSubmit()) && i.inCachedGuild() && i.customId.startsWith(praefix);
-}
 
 export interface KnopfKontext {
   db: Pick<Pool, 'query'>;
@@ -51,7 +30,8 @@ const grund = {
 
 const keinRaum = 'Das ist kein Sprachraum mehr.';
 const nurBesitzer = (besitzer: string) => `Das darf nur der Besitzer: <@${besitzer}>.`;
-const ohneErwaehnung = { parse: [] };
+
+const istAktion = (a: string): a is Aktion => aktionen.some((x) => x === a);
 
 // Die Wartezeit aus einem RateLimitError in Sekunden oder angefangenen
 // Minuten. `retryAfter` enthält 50 ms `offset`; darum gerundet, nicht aufgerundet.
@@ -61,37 +41,35 @@ export function dauer(ms: number): string {
 }
 
 interface Lage {
-  guild: Guild;
-  raum: VoiceChannel;
+  server: Server;
+  raum: Sprachraum;
   besitzer: string;
   nutzer: string;
   bot: string;
 }
 
-const alsEintraege = (cache: Iterable<PermissionOverwrites>): rechte.Eintrag[] => [...cache].map(alsEintrag);
-
-// Setzt alle Einträge des Raums in einem PATCH.
-const setze = (l: Lage, eintraege: rechte.Eintrag[], warum: string) => l.raum.permissionOverwrites.set(eintraege.map(alsOverwrite), warum);
-
 function stand(l: Lage): rechte.Raum {
   return {
-    eintraege: alsEintraege(l.raum.permissionOverwrites.cache.values()),
-    kategorie: alsEintraege(l.raum.parent?.permissionOverwrites.cache.values() ?? []),
-    server: l.guild.id,
+    eintraege: l.raum.eintraege,
+    kategorie: l.raum.kategorieEintraege,
+    server: l.server.id,
     besitzer: l.besitzer,
     bot: l.bot,
   };
 }
 
 // Wer im Raum ist, ohne den Bot.
-const drin = (l: Lage) => belegung(serverVon(l.guild), l.raum.id).filter((id) => id !== l.bot);
+const drin = (l: Lage) => belegung(l.server, l.raum.id).filter((id) => id !== l.bot);
 
 const ja = (wert: boolean) => (wert ? 'ja' : 'nein');
 
-const nichtVerbunden = (fehler: unknown) => fehler instanceof DiscordAPIError && fehler.code === Code.TargetUserIsNotConnectedToVoice;
+const nichtVerbunden = (fehler: unknown) => fehler instanceof DiscordFehler && fehler.code === 'nicht_verbunden';
+
+// Ein Fehler von PostgreSQL wegen eines doppelten Schlüssels.
+const doppelt = (fehler: unknown) => fehler instanceof Error && 'code' in fehler && fehler.code === '23505';
 
 // Die Knöpfe des Menüs. Ein Knopf wirkt auf den Raum, in dessen Chat er
-// steht (`interaction.channelId`); jede Antwort ist ephemeral.
+// steht (`Druck#kanal`); jede Antwort ist ephemeral.
 // Siehe docs/benutzung/sprachraeume.md, „Menü“.
 // Siehe docs/bot/sprachraeume-menue.md, „Antworten“.
 export class Knoepfe {
@@ -101,35 +79,32 @@ export class Knoepfe {
 
   constructor(private readonly k: KnopfKontext) {}
 
-  async bediene(i: MenueInteraktion): Promise<void> {
-    const aktion = i.customId.slice(praefix.length) as Aktion;
+  async bediene(d: Druck): Promise<void> {
+    const { aktion } = d;
     try {
-      if (!aktionen.includes(aktion)) {
-        await i.reply({ content: 'Diesen Knopf kennt der Bot nicht.', flags: MessageFlags.Ephemeral });
+      if (!istAktion(aktion)) {
+        await d.antworte('Diesen Knopf kennt der Bot nicht.');
         return;
       }
       // Formular und Auswahl öffnen nur für den Besitzer; ein Formular muss die erste Antwort sein.
-      if (i.isButton() && (mitFormular(aktion) || mitAuswahl(aktion))) {
-        const l = await this.lage(i);
+      if (d.art === 'knopf' && (mitFormular(aktion) || mitAuswahl(aktion))) {
+        const l = await this.lage(d);
         if (typeof l === 'string' || l.nutzer !== l.besitzer) {
-          const hinweis = typeof l === 'string' ? l : nurBesitzer(l.besitzer);
-          await i.reply({ content: hinweis, flags: MessageFlags.Ephemeral, allowedMentions: ohneErwaehnung });
+          await d.antworte(typeof l === 'string' ? l : nurBesitzer(l.besitzer));
         } else if (mitFormular(aktion)) {
-          await i.showModal(alsModal(formular(aktion, { name: l.raum.name, limit: l.raum.userLimit })));
+          await d.zeigeFormular(formular(aktion, { name: l.raum.name, limit: l.raum.limit }));
         } else {
-          await i.reply({ ...alsAuswahl(auswahl(aktion)), flags: MessageFlags.Ephemeral });
+          await d.zeigeAuswahl(auswahl(aktion));
         }
         return;
       }
       // Vor jedem Aufruf an Discord: Discord wartet höchstens 3 s auf die erste Antwort.
-      if (i.isUserSelectMenu()) await i.deferUpdate();
-      else await i.deferReply({ flags: MessageFlags.Ephemeral });
-      const antwort = await this.nacheinander(i.channelId ?? '', () => this.fuehreAus(i, aktion));
-      await i.editReply({ content: antwort, components: [], allowedMentions: ohneErwaehnung });
+      await d.warte();
+      const antwort = await this.nacheinander(d.kanal ?? '', () => this.fuehreAus(d, aktion));
+      await d.fertig(antwort);
     } catch (fehler) {
       console.error(`Sprachraum-Menü: ${fehlertext(fehler)}`);
-      const antwort = { content: 'Das hat nicht geklappt.', components: [], allowedMentions: ohneErwaehnung };
-      const senden = i.deferred || i.replied ? i.editReply(antwort) : i.reply({ ...antwort, flags: MessageFlags.Ephemeral });
+      const senden = d.beantwortet ? d.fertig('Das hat nicht geklappt.') : d.antworte('Das hat nicht geklappt.');
       await senden.catch((e: unknown) => console.error(`Sprachraum-Menü: Antwort fehlgeschlagen: ${fehlertext(e)}`));
     }
   }
@@ -144,42 +119,39 @@ export class Knoepfe {
     return diese;
   }
 
-  private async lage(i: MenueInteraktion): Promise<Lage | string> {
-    const raum = i.channelId ? i.guild.channels.cache.get(i.channelId) : undefined;
-    if (raum?.type !== ChannelType.GuildVoice) return keinRaum;
+  private async lage(d: Druck): Promise<Lage | string> {
+    const raum = d.kanal ? sprachraum(d.server, d.kanal) : undefined;
+    if (!raum) return keinRaum;
     const besitzer = await besitzerVon(this.k.db, raum.id);
     if (!besitzer) return keinRaum;
-    return { guild: i.guild, raum, besitzer, nutzer: i.user.id, bot: i.client.user.id };
+    return { server: d.server, raum, besitzer, nutzer: d.nutzer, bot: d.bot };
   }
 
   // Führt eine Aktion aus und gibt die Antwort zurück. Fehler, die Discord
   // erwarten lässt, werden zu einem Hinweis; andere wirft sie weiter.
-  private async fuehreAus(i: MenueInteraktion, aktion: Aktion): Promise<string> {
-    const l = await this.lage(i);
+  private async fuehreAus(d: Druck, aktion: Aktion): Promise<string> {
+    const l = await this.lage(d);
     if (typeof l === 'string') return l;
     try {
       if (aktion === 'info') return this.info(l);
       if (aktion === 'uebernehmen') return await this.uebernehmen(l);
       if (l.nutzer !== l.besitzer) return nurBesitzer(l.besitzer);
-      if (i.isUserSelectMenu() && mitAuswahl(aktion)) {
-        const ziel = i.values[0] ?? '';
-        return await this.mitZiel(l, aktion, ziel, i.users.get(ziel)?.bot ?? false);
-      }
-      if (i.isModalSubmit() && aktion === 'umbenennen') return await this.umbenennen(l, i.fields.getTextInputValue('wert'));
-      if (i.isModalSubmit() && aktion === 'limit') return await this.limit(l, i.fields.getTextInputValue('wert'));
-      if (i.isButton() && (aktion === 'sperren' || aktion === 'entsperren' || aktion === 'verstecken' || aktion === 'zeigen')) {
+      if (d.art === 'auswahl' && mitAuswahl(aktion)) return await this.mitZiel(l, aktion, d.ziel?.id ?? '', d.ziel?.bot ?? false);
+      if (d.art === 'formular' && aktion === 'umbenennen') return await this.umbenennen(l, d.wert ?? '');
+      if (d.art === 'formular' && aktion === 'limit') return await this.limit(l, d.wert ?? '');
+      if (d.art === 'knopf' && (aktion === 'sperren' || aktion === 'entsperren' || aktion === 'verstecken' || aktion === 'zeigen')) {
         return await this.zugang(l, aktion);
       }
       return 'Diesen Knopf kennt der Bot nicht.';
     } catch (fehler) {
-      if (fehler instanceof RateLimitError) {
-        const warten = dauer(fehler.retryAfter);
+      if (!(fehler instanceof DiscordFehler)) throw fehler;
+      if (fehler.code === 'zu_schnell') {
+        const warten = dauer(fehler.warten ?? 0);
         return aktion === 'umbenennen' ? `Discord lässt den Raum erst in ${warten} wieder umbenennen.` : `Discord lässt das erst in ${warten} wieder zu.`;
       }
-      if (!(fehler instanceof DiscordAPIError)) throw fehler;
-      if (fehler.code === Code.UnknownChannel) return keinRaum;
-      if (fehler.code === Code.MaximumNumberOfChannelPermissionOverwritesReached) return 'Der Raum hat so viele Rechte-Einträge, dass Discord keinen weiteren nimmt.';
-      if (fehler.code === Code.MissingPermissions) {
+      if (fehler.code === 'nicht_gefunden') return keinRaum;
+      if (fehler.code === 'zu_viele_eintraege') return 'Der Raum hat so viele Rechte-Einträge, dass Discord keinen weiteren nimmt.';
+      if (fehler.code === 'kein_recht') {
         console.error(`Sprachraum-Menü: ${fehlertext(fehler)}`);
         return 'Dem Bot fehlt dafür ein Recht. Sag dem Team Bescheid.';
       }
@@ -197,22 +169,21 @@ export class Knoepfe {
       zeigen: { schon: !zu, hinweis: 'Der Raum ist nicht versteckt.', neu: () => rechte.zeige(r), fertig: 'Wieder sichtbar für alle, die die Kategorie sehen.' },
     }[aktion];
     if (was.schon) return was.hinweis;
-    // Alle Einträge in einem PATCH; ohne `name` gilt das Sublimit nicht.
-    await setze(l, was.neu(), grund[aktion]);
+    await l.raum.setzeRechte(was.neu(), grund[aktion]);
     return was.fertig;
   }
 
   private async umbenennen(l: Lage, wert: string): Promise<string> {
     const name = wert.trim();
     if (name.length < 1 || name.length > 100) return 'Ein Name hat 1 bis 100 Zeichen.';
-    await l.raum.setName(name, grund.umbenennen);
+    await l.raum.benenne(name, grund.umbenennen);
     return 'Umbenannt.';
   }
 
   private async limit(l: Lage, wert: string): Promise<string> {
     if (!/^\d{1,2}$/.test(wert.trim())) return 'Das Limit ist eine Zahl von 0 bis 99.';
     const zahl = Number(wert.trim());
-    await l.raum.setUserLimit(zahl, grund.limit);
+    await l.raum.setzeLimit(zahl, grund.limit);
     return zahl === 0 ? 'Der Raum hat kein Limit mehr.' : `Das Limit ist jetzt ${zahl}.`;
   }
 
@@ -226,20 +197,19 @@ export class Knoepfe {
     const istDrin = drin(l).includes(ziel);
     if (aktion === 'rauswerfen') {
       if (!istDrin) return `${wer} ist nicht im Raum.`;
-      const weg = await l.guild.members.edit(ziel, { channel: null, reason: grund.rauswerfen }).then(
-        () => true,
-        (fehler: unknown) => {
-          if (nichtVerbunden(fehler)) return false;
-          throw fehler;
-        },
-      );
-      return weg ? `${wer} ist raus.` : `${wer} ist nicht im Raum.`;
+      try {
+        await verschiebe(l.server, ziel, null, grund.rauswerfen);
+      } catch (fehler) {
+        if (nichtVerbunden(fehler)) return `${wer} ist nicht im Raum.`;
+        throw fehler;
+      }
+      return `${wer} ist raus.`;
     }
     if (aktion === 'bannen') {
       if (rechte.gebannt(r).includes(ziel)) return `${wer} ist schon gebannt.`;
-      await setze(l, rechte.banne(r, ziel), grund.bannen);
+      await l.raum.setzeRechte(rechte.banne(r, ziel), grund.bannen);
       if (istDrin) {
-        await l.guild.members.edit(ziel, { channel: null, reason: grund.bannen }).catch((fehler: unknown) => {
+        await verschiebe(l.server, ziel, null, grund.bannen).catch((fehler: unknown) => {
           if (!nichtVerbunden(fehler)) throw fehler;
         });
       }
@@ -247,7 +217,7 @@ export class Knoepfe {
     }
     if (aktion === 'entbannen') {
       if (!rechte.gebannt(r).includes(ziel)) return `${wer} ist nicht gebannt.`;
-      await setze(l, rechte.entbanne(r, ziel), grund.entbannen);
+      await l.raum.setzeRechte(rechte.entbanne(r, ziel), grund.entbannen);
       return `${wer} ist nicht mehr gebannt.`;
     }
     // Kein Bot wird Besitzer: Bliebe er im Raum, ginge auch „Übernehmen“ nicht mehr.
@@ -272,11 +242,13 @@ export class Knoepfe {
       const { rowCount } = await this.k.db.query('UPDATE raeume SET besitzer = $1 WHERE kanal = $2 AND besitzer = $3', [neu, l.raum.id, l.besitzer]);
       if (!rowCount) return 'Der Raum hat inzwischen einen anderen Besitzer.';
     } catch (fehler) {
-      if ((fehler as { code?: string }).code === '23505') return hatRaum;
+      if (doppelt(fehler)) return hatRaum;
       throw fehler;
     }
     // Der Besitz gilt schon; scheitern die Rechte, steht nur eine Logzeile da.
-    await setze(l, rechte.mitBesitzer(stand(l), neu), warum).catch((fehler: unknown) => console.error(`Sprachraum-Menü: Rechte des Besitzers nicht gesetzt: ${fehlertext(fehler)}`));
+    await l.raum
+      .setzeRechte(rechte.mitBesitzer(stand(l), neu), warum)
+      .catch((fehler: unknown) => console.error(`Sprachraum-Menü: Rechte des Besitzers nicht gesetzt: ${fehlertext(fehler)}`));
     return fertig;
   }
 
@@ -284,7 +256,7 @@ export class Knoepfe {
     const r = stand(l);
     return [
       `Besitzer: <@${l.besitzer}>`,
-      `Limit: ${l.raum.userLimit === 0 ? 'keins' : l.raum.userLimit}`,
+      `Limit: ${l.raum.limit === 0 ? 'keins' : l.raum.limit}`,
       `Gesperrt: ${ja(rechte.gesperrt(r))}`,
       `Versteckt: ${ja(rechte.versteckt(r))}`,
       `Gebannt: ${rechte.gebannt(r).length}`,

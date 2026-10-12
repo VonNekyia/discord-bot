@@ -21,7 +21,6 @@ export class DiscordFehler extends Error {
 }
 
 function codeVon(fehler: unknown): FehlerCode {
-  if (fehler instanceof RateLimitError) return 'zu_schnell';
   if (!(fehler instanceof DiscordAPIError)) return 'anderes';
   switch (fehler.code) {
     case Code.MissingAccess:
@@ -40,9 +39,13 @@ function codeVon(fehler: unknown): FehlerCode {
 
 export function alsDiscordFehler(fehler: unknown): DiscordFehler {
   if (fehler instanceof DiscordFehler) return fehler;
+  // Ein RateLimitError hat keine Meldung; im Log stünde sonst nichts.
+  if (fehler instanceof RateLimitError) {
+    const meldung = `Rate-Limit bei ${fehler.method.toUpperCase()} ${fehler.route}, noch ${Math.ceil(fehler.retryAfter / 1000)} s`;
+    return new DiscordFehler('zu_schnell', meldung, { cause: fehler, warten: fehler.retryAfter });
+  }
   const meldung = fehler instanceof Error ? fehler.message : String(fehler);
-  const warten = fehler instanceof RateLimitError ? { warten: fehler.retryAfter } : {};
-  return new DiscordFehler(codeVon(fehler), meldung, { cause: fehler, ...warten });
+  return new DiscordFehler(codeVon(fehler), meldung, { cause: fehler });
 }
 
 // Führt einen Aufruf an Discord aus; jeder Fehler wird ein `DiscordFehler`.

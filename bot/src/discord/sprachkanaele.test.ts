@@ -4,7 +4,7 @@ import type { Client, Guild, GuildMember } from 'discord.js';
 import { kontextVon } from './kontext.js';
 import { alsOverwrite } from './rechte.js';
 import { guildVon, serverVon } from './server.js';
-import { eintraegeVon, kategorieVon } from './sprachkanaele.js';
+import { eintraegeVon, kategorieVon, sprachraum } from './sprachkanaele.js';
 import { ChannelType, discordClient, gilde, kanal, mitglied, mockDiscord, R, ROLLE_TEAM, schliesse, type MockDiscord } from '../testhilfe.js';
 
 // Griff, Kontext und Rechte-Einträge der Discord-Schicht, ohne Aufruf an
@@ -26,7 +26,7 @@ before(async () => {
         ...kanal(K.kategorie, ChannelType.GuildCategory, 'Räume', 0, null),
         permission_overwrites: [eintrag(SERVER, 0, 0n, R.ViewChannel), eintrag(ROLLE_TEAM, 0, R.ViewChannel, 0n), eintrag(PERSON, 1, R.Connect, R.Speak)],
       },
-      kanal(K.sprache, ChannelType.GuildVoice, 'Lobby', 0, K.kategorie),
+      { ...kanal(K.sprache, ChannelType.GuildVoice, 'Lobby', 0, K.kategorie), user_limit: 5, permission_overwrites: [eintrag(PERSON, 1, R.Connect, 0n)] },
       kanal(K.text, ChannelType.GuildText, 'text', 1, null),
     ]),
   ]);
@@ -74,4 +74,13 @@ test('eintraegeVon: die Einträge einer Kategorie mit art; kein Ergebnis für an
 test('alsOverwrite macht aus art wieder den Typ von Discord', () => {
   assert.deepEqual(alsOverwrite({ id: SERVER, art: 'rolle', allow: 1n, deny: 2n }), { id: SERVER, type: 0, allow: 1n, deny: 2n });
   assert.deepEqual(alsOverwrite({ id: PERSON, art: 'person', allow: 0n, deny: 3n }), { id: PERSON, type: 1, allow: 0n, deny: 3n });
+});
+
+test('sprachraum: ein Sprachkanal mit Name, Limit und Einträgen, dazu die seiner Kategorie; jeder andere Kanal nicht', () => {
+  const server = serverVon(guild);
+  const raum = sprachraum(server, K.sprache);
+  assert.deepEqual([raum?.id, raum?.name, raum?.limit], [K.sprache, 'Lobby', 5]);
+  assert.deepEqual(raum?.eintraege, [{ id: PERSON, art: 'person', allow: R.Connect, deny: 0n }]);
+  assert.equal(raum?.kategorieEintraege.length, 3);
+  for (const id of [K.kategorie, K.text, '520000000000000099']) assert.equal(sprachraum(server, id), undefined, id);
 });

@@ -110,7 +110,10 @@ entstehen echte `ButtonInteraction`, `UserSelectMenuInteraction` und
 `ModalSubmitInteraction`, und `deferReply`, `showModal` und
 `editReply` gehen als REST an `mockDiscord`. Den Stand des Raums setzt
 der Test mit der Action `ChannelUpdate`, wer drin ist, über die Voice
-States. Die Datei nutzt einen eigenen Server und eigene Personen.
+States. Die Datei nutzt einen eigenen Server und eigene Personen. Jeder
+Test baut in `beforeEach` einen eigenen Client mit `discordClient`: Cache
+und REST fangen frisch an, und kein Test hängt an den Rate-Limits eines
+anderen, auch nicht am globalen Limit von 50 Anfragen je Sekunde.
 `bot/src/module/sprachraeume/raumrechte.test.ts` prüft die Rechnung der Rechte ohne Discord.
 
 ## Rate-Limits zählen
@@ -176,6 +179,8 @@ Millisekunden. Darum:
 | die Warnung kommt einmal beim Erreichen von 1000 … | 999 ohne, die 1000. mit genau einer Zeile, 500 weitere ohne; nach 10 min und wieder 1000 die zweite |
 | je 429 genau eine Logzeile … | Webhook mit Token: die Zeile mit `:token`, kein Token im Stand |
 | nur PATCH /channels/:id wartet nicht auf ein Rate-Limit … | je Route zuerst 429 mit `Retry-After: 0`: `PATCH /channels/:id` wirft `RateLimitError` ohne zweiten Versuch, `POST /channels/:id/messages` und `DELETE /channels/:id` versuchen es noch einmal |
+| auf das globale Limit von @discordjs/rest wartet auch PATCH /channels/:id | `globalRequestsPerSecond: 1`: zwei `PATCH /channels/:id` nacheinander, beide gehen durch |
+| ein 429 beim Umbenennen wirft auch, wenn die Anfragen der Sekunde verbraucht sind | `globalRequestsPerSecond: 1`, 429 mit `Retry-After: 300`: `RateLimitError` mit `global` und 300 050 ms unter 2 s, eine Anfrage |
 | hoechstens rechnet jeden Platzhalter … | längste Werte im Text und im Banner, Emoji zählt zwei |
 | der Text darf mit den längsten Werten genau 2000 Zeichen haben … | Grenze genau, ein Zeichen mehr gibt den Code |
 | jede Prüfregel meldet ihren Code und ihr Feld | `pruefe`: jede Zeile der Tabelle „Einstellung speichern“ |
@@ -255,6 +260,8 @@ Millisekunden. Darum:
 | Umbenennen: das Formular setzt den Namen, ohne Platzhalter … | Body nur `name`, `{name}` bleibt, getrimmt; Cache umbenannt; leerer Name und Nicht-Besitzer ohne PATCH |
 | Umbenennen bei 429 … | `Retry-After: 300`: Antwort unter 2 s, „erst in 5 min“ |
 | Limit: ein Formular mit dem Limit von jetzt … | vorbelegt mit 4; `user_limit` 7 und 0; „zehn“ und Nicht-Besitzer ohne PATCH |
+| ein Formular ohne Feld wert gibt den Hinweis … | `alsDruck` liest `wert` ohne zu werfen; Limit und Umbenennen ohne Feld geben ihren Hinweis, kein PATCH |
+| Rauswerfen: ist das Mitglied beim Trennen schon weg (40032) … | „nicht im Raum“, keine Logzeile |
 | Rauswerfen: die Nutzerauswahl nur für den Besitzer … | Auswahl Typ 5 mit `custom_id`; `deferUpdate`, getrennt mit Grund, Auswahl weg; nicht drin, sich selbst, Bot, Nicht-Besitzer: Hinweise |
 | Bannen: Sehen und Verbinden verboten … | Eintrag mit beiden verboten, PATCH vor dem Trennen; zweimal, sich selbst, Bot: Hinweise |
 | Bannen bei 30060 … | Hinweis, niemand getrennt, kein Log |
@@ -266,16 +273,18 @@ Millisekunden. Darum:
 | Übernehmen: Hinweise … | Besitzer drin, nicht drin, schon Besitzer, eigener Raum; Besitz bleibt |
 | Info: für jeden, der den Chat sieht … | Besitzer, Limit, gesperrt, versteckt, Zahl der Gebannten; „keins“ bei 0 |
 | ein Knopf in einem Kanal, der kein Raum ist … | „kein Sprachraum mehr“, auch für einen Knopf mit Auswahl |
-| istMenue erkennt nur das Präfix … | andere `custom_id` nicht; unbekannte Aktion mit Präfix bekommt einen Hinweis |
+| alsDruck: Art, Aktion, Server, Kanal, Nutzer und Bot … | Knopf, Auswahl mit einem Bot als Ziel (`bot: true`), Formular mit `wert`; `beantwortet` am Anfang falsch |
+| alsDruck erkennt nur das Präfix … | andere `custom_id` gibt keinen `Druck`; eine unbekannte Aktion mit Präfix bekommt gleich einen Hinweis (Typ 4), ohne aufzuschieben |
 | fehlt dem Bot ein Recht (50013) … / ein anderer Fehler … | Hinweis oder „Das hat nicht geklappt.“, je eine Logzeile ohne ID und Token |
 | dauer: Sekunden unter einer Minute … | 50 ms, 12 s, 5 und 6 min |
 | Rechte im Raum: … | `raumrechte` ohne Discord: Sperren und Verstecken hin und zurück ergeben die Einträge vom Anlegen; ohne Kategorie; Zeigen bei gesperrtem Raum; Bann und Entbannen; Gebannte bleiben gebannt; Kategorie-Sperre ist kein Bann; Besitzer und Bot behalten ihre Rechte; neuer Besitzer; der alte behält seinen Eintrag bis Entsperren oder Zeigen, dann wie in der Kategorie |
 | jeder Code, den ein Modul unterscheidet, hat seinen eigenen … | `fehler.test.ts`: 50001 und 50013 `kein_recht`, 10003 `nicht_gefunden`, 40032 `nicht_verbunden`, 30060 `zu_viele_eintraege`, 10007 und 30013 `anderes`; die Meldung bleibt |
-| ein RateLimitError wird zu_schnell mit der Wartezeit … | `warten` aus `retryAfter`; andere Fehler und Nicht-Fehler `anderes`; ein `DiscordFehler` bleibt, wie er ist |
+| ein RateLimitError wird zu_schnell mit der Wartezeit … | `warten` aus `retryAfter`, die Meldung mit Methode, Route und Sekunden, ohne IDs; andere Fehler und Nicht-Fehler `anderes`; ein `DiscordFehler` bleibt, wie er ist |
 | uebersetzt wirft DiscordFehler … | das Ergebnis geht durch, 40032 wird `nicht_verbunden` |
 | der Griff trägt ID und Name … | `sprachkanaele.test.ts`: eingefroren, `guildVon` gibt die Guild; eine Kopie des Griffs hat keine |
 | kontextVon gibt Griff und Mitglied … | ID des Servers, Mitglied mit Name und Zahl |
 | eintraegeVon: die Einträge einer Kategorie mit art … | Rolle und Person mit ihren Bits; Sprach-, Text- und unbekannter Kanal ohne Ergebnis; `kategorieVon` |
+| sprachraum: ein Sprachkanal mit Name, Limit und Einträgen … | `sprachkanaele.test.ts`: `id`, `name`, `limit`, Einträge mit `art`, die drei der Kategorie; Kategorie, Text- und unbekannter Kanal ohne Ergebnis |
 | alsOverwrite macht aus art wieder den Typ … | `rolle` Typ 0, `person` Typ 1 |
 | das Menü: Text, drei Reihen … | `menue.test.ts`: `alsNachricht`: Überschrift, `allowedMentions` leer, 3 × 4 Knöpfe mit Präfix, rot nur Rauswerfen und Bannen |
 | die Auswahl: die Frage und genau ein Mitglied | `alsAuswahl`: Typ 5 mit `custom_id`, Platzhalter, 1 bis 1 |

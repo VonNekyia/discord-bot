@@ -29,7 +29,7 @@ Linter. Warum so, steht in
 |---|---|---|
 | `bot/src/index.ts` | Einstieg: verbindet Kern, Discord-Schicht, API und Module | |
 | `bot/src/kern/` | Datenbank, Cache, Fehlertext fürs Log, Grenzen, Zählung, Aufräumen, der Vertrag des Baukastens; kennt weder Discord noch Module | `datenbank.ts`, `cache.ts`, `fehler.ts`, `grenze.ts`, `zaehlung.ts`, `aufraeumen.ts`, `baukasten.ts` |
-| `bot/src/discord/` | die einzige Schicht, die discord.js importiert | `client.ts`, `ordnung.ts`, `zaehlen.ts`, `oauth.ts`, `kanaele.ts`, `kontext.ts`, `eigentuemer.ts`, `nachrichten.ts`, `server.ts`, `fehler.ts`, `rechte.ts`, `sprachkanaele.ts`, `menue.ts` |
+| `bot/src/discord/` | die einzige Schicht, die discord.js importiert | `client.ts`, `ordnung.ts`, `zaehlen.ts`, `oauth.ts`, `kanaele.ts`, `kontext.ts`, `eigentuemer.ts`, `nachrichten.ts`, `server.ts`, `fehler.ts`, `rechte.ts`, `sprachkanaele.ts`, `menue.ts`, `interaktionen.ts` |
 | `bot/src/api/` | HTTP-API des Dashboards: Server, Anmeldung, Grenzen, Fehler; die Routen der Seiten, die die Module anmelden | `server.ts`, `anmeldung.ts` |
 | `bot/src/module/befehle/` | Slash-Befehle, heute `/ping` | `befehle.ts` |
 | `bot/src/module/begruessung/` | Beitritt und Abschied: Einstellungen, Senden, Banner, Seiten im Dashboard | `begruessung.ts`, `senden.ts`, `banner.ts`, `seiten.ts` |
@@ -139,7 +139,7 @@ PR mit gleichem Verhalten und grünen Tests.
 
 | Was | Wo | Lint |
 |---|---|---|
-| discord.js direkt in Modulen | `befehle.ts`; `knoepfe.ts` bis Stufe 4b, die Interaktionen | 2 Warnungen |
+| discord.js direkt in Modulen | `befehle.ts`, Stufe 5 | 1 Warnung |
 | discord.js direkt in der API | `api/server.ts`, `api/anmeldung.ts` | 2 Warnungen |
 | Aufräumen kennt die Tabellen aller Module | `kern/aufraeumen.ts` | – |
 | Der Einstieg verdrahtet jedes Modul einzeln; nur die Seiten gehen schon als `Bereich` | `index.ts` | – |

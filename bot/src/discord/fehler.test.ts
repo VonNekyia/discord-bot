@@ -26,7 +26,7 @@ test('jeder Code, den ein Modul unterscheidet, hat seinen eigenen; die Meldung b
 test('ein RateLimitError wird zu_schnell mit der Wartezeit; andere Fehler werden anderes', () => {
   const daten = { global: false, method: 'PATCH', url: 'https://discord.example/api', route: '/channels/:id', majorParameter: 'x', hash: 'h', limit: 2, timeToReset: 300_050, retryAfter: 300_050, sublimitTimeout: 300_050, scope: 'user' as const };
   const f = alsDiscordFehler(new RateLimitError(daten));
-  assert.deepEqual([f.code, f.warten], ['zu_schnell', 300_050]);
+  assert.deepEqual([f.code, f.warten, f.message], ['zu_schnell', 300_050, 'Rate-Limit bei PATCH /channels/:id, noch 301 s']);
   assert.equal(alsDiscordFehler(new Error('fetch failed')).code, 'anderes');
   assert.equal(alsDiscordFehler('kaputt').message, 'kaputt');
   const schon = new DiscordFehler('kein_recht', 'x');

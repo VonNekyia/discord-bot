@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
-import { after, before, beforeEach, describe, test } from 'node:test';
+import { after, afterEach, before, beforeEach, describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { ChannelType, Events, PermissionFlagsBits as R, type Client, type Guild, type Interaction } from 'discord.js';
 import type { Pool } from 'pg';
 import { migriere, oeffne, verbindung } from '../../kern/datenbank.js';
-import { dauer, istMenue, Knoepfe } from './knoepfe.js';
+import { alsDruck } from '../../discord/interaktionen.js';
+import { dauer, Knoepfe } from './knoepfe.js';
+import { praefix } from './menue.js';
 import { besitzerRechte, botRechte } from './raumrechte.js';
 import {
   ANWENDUNG,
@@ -94,28 +96,33 @@ describe('Menü der Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_H
     await migriere(ziel, fileURLToPath(new URL('../../../migrationen', import.meta.url)));
     db = oeffne(ziel);
     mock = await mockDiscord();
-    client = discordClient(mock, [server()]);
-    guild = client.guilds.cache.get(SERVER) as Guild;
     knoepfe = new Knoepfe({ db });
   });
 
+  // Jeder Test hat einen eigenen Client: Cache und REST mit seinen
+  // Rate-Limits fangen frisch an, kein Test erbt sie von einem anderen.
   beforeEach(async () => {
     if (!ziel) return;
     for (const liste of [mock.geaendert, mock.verschoben, mock.antworten, mock.anfragen]) liste.length = 0;
     mock.aendernFehler = undefined;
+    mock.verschiebenFehler = undefined;
     mock.umbenennenWarten = undefined;
-    guild.voiceStates.cache.clear();
     mock.kanaele.set(RAUM, raumDaten());
-    aktionen().ChannelUpdate.handle(raumDaten());
+    client = discordClient(mock, [server()]);
+    guild = client.guilds.cache.get(SERVER) as Guild;
     await db.query('DELETE FROM raeume WHERE server = $1', [SERVER]);
     await db.query('INSERT INTO raeume (kanal, server, besitzer) VALUES ($1, $2, $3)', [RAUM, SERVER, BESITZER]);
+  });
+
+  afterEach(async () => {
+    if (!ziel) return;
+    await client.destroy();
   });
 
   after(async () => {
     if (!ziel) return;
     await db.query('DELETE FROM raeume WHERE server = $1', [SERVER]);
     await schliesse(mock);
-    await client.destroy();
     await db.end();
   });
 
@@ -167,8 +174,9 @@ describe('Menü der Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_H
   // Bedient eine Interaktion des Menüs und gibt die Antworten an Discord zurück.
   async function los(von: string, type: 3 | 5, data: object, kanalId = RAUM) {
     const { i, token } = interaktion(von, type, data, kanalId);
-    assert.ok(istMenue(i));
-    await knoepfe.bediene(i);
+    const druck = alsDruck(i, praefix);
+    assert.ok(druck);
+    await knoepfe.bediene(druck);
     return mock.antworten.filter((a) => a.token === token);
   }
   const drueckt = (von: string, aktion: string, kanalId = RAUM) => los(von, 3, { custom_id: `sprachraum:${aktion}`, component_type: 2 }, kanalId);
@@ -305,6 +313,26 @@ describe('Menü der Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_H
     assert.equal(mock.geaendert.length, 2);
   });
 
+  test('ein Formular ohne Feld wert gibt den Hinweis von Limit und Umbenennen und wirft nicht', async () => {
+    const faelle: [string, string][] = [
+      ['limit', 'Das Limit ist eine Zahl von 0 bis 99.'],
+      ['umbenennen', 'Ein Name hat 1 bis 100 Zeichen.'],
+    ];
+    for (const [aktion, hinweis] of faelle) {
+      // `los` ruft `alsDruck` wie der Zuhörer in index.ts; ein Wurf dort liesse den Test fallen.
+      assert.equal(text(await los(BESITZER, 5, { custom_id: `sprachraum:${aktion}`, components: [] })), hinweis);
+    }
+    assert.equal(mock.geaendert.length, 0);
+  });
+
+  test('Rauswerfen: ist das Mitglied beim Trennen schon weg (40032), heisst es nicht im Raum, ohne Logzeile', async (t) => {
+    const log = t.mock.method(console, 'error', () => {});
+    stimme(GAST, RAUM);
+    mock.verschiebenFehler = [400, 40032];
+    assert.equal(text(await waehlt(BESITZER, 'rauswerfen', GAST)), `<@${GAST}> ist nicht im Raum.`);
+    assert.equal(log.mock.callCount(), 0);
+  });
+
   test('Rauswerfen: die Nutzerauswahl nur für den Besitzer; trennt, wer drin ist; Hinweise für alle anderen', async () => {
     const auswahl = await drueckt(BESITZER, 'rauswerfen');
     assert.deepEqual([auswahl[0]?.typ, auswahl[0]?.daten.flags], [4, 64]);
@@ -431,9 +459,35 @@ describe('Menü der Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_H
     assert.equal(mock.geaendert.length, 0);
   });
 
-  test('istMenue erkennt nur das Präfix; einen unbekannten Knopf mit Präfix sagt der Bot an', async () => {
-    assert.equal(istMenue(interaktion(BESITZER, 3, { custom_id: 'anderes:sperren', component_type: 2 }).i), false);
-    assert.equal(text(await drueckt(BESITZER, 'gibt-es-nicht')), 'Diesen Knopf kennt der Bot nicht.');
+  test('alsDruck: Art, Aktion, Server, Kanal, Nutzer und Bot; bei der Auswahl das Ziel mit bot, beim Formular der Wert', () => {
+    const knopf = alsDruck(interaktion(GAST, 3, { custom_id: 'sprachraum:sperren', component_type: 2 }).i, praefix);
+    assert.deepEqual(
+      [knopf?.art, knopf?.aktion, knopf?.server.id, knopf?.kanal, knopf?.nutzer, knopf?.bot, knopf?.ziel, knopf?.wert, knopf?.beantwortet],
+      ['knopf', 'sperren', SERVER, RAUM, GAST, BOT, undefined, undefined, false],
+    );
+    const wahl = alsDruck(
+      interaktion(BESITZER, 3, {
+        custom_id: 'sprachraum:rauswerfen',
+        component_type: 5,
+        values: [MUSIKBOT],
+        resolved: { users: { [MUSIKBOT]: { ...mitglied(MUSIKBOT, []).user, bot: true } }, members: {} },
+      }).i,
+      praefix,
+    );
+    assert.deepEqual([wahl?.art, wahl?.aktion, wahl?.ziel], ['auswahl', 'rauswerfen', { id: MUSIKBOT, bot: true }]);
+    const formular = alsDruck(
+      interaktion(BESITZER, 5, { custom_id: 'sprachraum:umbenennen', components: [{ type: 18, id: 1, component: { type: 4, id: 2, custom_id: 'wert', value: 'Neu' } }] }).i,
+      praefix,
+    );
+    assert.deepEqual([formular?.art, formular?.aktion, formular?.wert], ['formular', 'umbenennen', 'Neu']);
+  });
+
+  test('alsDruck erkennt nur das Präfix; einen unbekannten Knopf mit Präfix sagt der Bot an', async () => {
+    assert.equal(alsDruck(interaktion(BESITZER, 3, { custom_id: 'anderes:sperren', component_type: 2 }).i, praefix), undefined);
+    // Gleich als Antwort (Typ 4), ohne aufzuschieben und ohne die Datenbank.
+    const unbekannt = await drueckt(BESITZER, 'gibt-es-nicht');
+    assert.deepEqual([unbekannt.length, unbekannt[0]?.typ, unbekannt[0]?.daten.flags], [1, 4, 64]);
+    assert.equal(text(unbekannt), 'Diesen Knopf kennt der Bot nicht.');
   });
 
   test('fehlt dem Bot ein Recht (50013), sagt er es; eine Logzeile ohne IDs', async (t) => {
