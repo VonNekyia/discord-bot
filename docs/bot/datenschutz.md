@@ -2,14 +2,15 @@
 title: Datenschutz
 description: Welche Daten von Discord der Bot speichert, wie lange, und was ins Log geht.
 code:
-  - bot/src/befehle.ts
+  - bot/src/module/befehle/befehle.ts
+  - bot/src/kern/fehler.ts
   - bot/src/index.ts
-  - bot/src/cache.ts
-  - bot/src/datenbank.ts
-  - bot/src/client.ts
-  - bot/src/api.ts
-  - bot/src/anmeldung.ts
-  - bot/src/knoepfe.ts
+  - bot/src/kern/cache.ts
+  - bot/src/kern/datenbank.ts
+  - bot/src/discord/client.ts
+  - bot/src/api/server.ts
+  - bot/src/api/anmeldung.ts
+  - bot/src/module/sprachraeume/knoepfe.ts
 ---
 
 # Datenschutz
@@ -34,11 +35,11 @@ Mit den Sprachräumen hält discord.js zudem für jedes Mitglied, das einen
 Sprachkanal betreten hat, einen Voice State mit Discord-ID, Kanal und
 Session im Speicher. Verlässt es den Sprachkanal, bliebe der Eintrag bis
 zum Ende des Prozesses. Darum entfernt ein Sweeper alle 10 Minuten jeden
-Voice State ohne Kanal (`sweepers` in `erstelleClient`, `bot/src/client.ts`).
+Voice State ohne Kanal (`sweepers` in `erstelleClient`, `bot/src/discord/client.ts`).
 
 Für die Grenze von 30 s je neuem Raum merkt sich der Bot je Server und
 Mitglied die Zeit des letzten neuen Raums im Speicher, mit der Discord-ID.
-Ein Timer vergisst den Eintrag nach 30 s (`Raeume`, `bot/src/raeume.ts`),
+Ein Timer vergisst den Eintrag nach 30 s (`Raeume`, `bot/src/module/sprachraeume/raeume.ts`),
 siehe [Sprachräume](../benutzung/sprachraeume.md), „Grenzen“. Der Test „die
 Grenze von 30 s vergisst ein Mitglied nach ihrer Zeit“ prüft das.
 
@@ -58,14 +59,14 @@ Nicht gespeichert werden:
 
 Welche Tabelle was hält, steht in [Datenbank](datenbank.md), „Tabellen“.
 Der Cache von discord.js und der eigene Cache
-(`bot/src/cache.ts`) liegen nur im Speicher und enden mit dem Prozess.
+(`bot/src/kern/cache.ts`) liegen nur im Speicher und enden mit dem Prozess.
 
 discord.js legt jedes Mitglied, das es sieht, mit Spitzname und Rollen im
 Cache der Mitglieder ab und dessen Nutzer mit Name und Avatar im Cache der
 Nutzer (`GuildMember#_patch`): bei jeder Interaktion, bei jeder Prüfung der
 Rechte und mit dem Intent `GuildMembers` bei jedem Beitritt. Ohne Grenze
 blieben sie bis zum Ende des Prozesses. Darum hält `erstelleClient` in
-`bot/src/client.ts` in beiden Caches, `GuildMemberManager` und
+`bot/src/discord/client.ts` in beiden Caches, `GuildMemberManager` und
 `UserManager`, nur den Bot selbst (`maxSize` 0, `keepOverLimit`). Der Test
 „der Cache hält Mitglieder und Nutzer nur für den Bot selbst“ prüft das.
 Die Rechte prüft der Bot ohnehin an der REST-API, nicht im Cache, siehe
@@ -74,8 +75,8 @@ Die Rechte prüft der Bot ohnehin an der REST-API, nicht im Cache, siehe
 ## Was ins Log geht
 
 Nur der Name des Befehls und der Text eines Fehlers (`text` in
-`bot/src/befehle.ts`), nie das Fehlerobjekt: Fehler der REST-API tragen in
-`url` den Token der Interaktion. Nie IDs, Namen, Nachrichteninhalte,
+`bot/src/kern/fehler.ts`), nie das Fehlerobjekt: Fehler der REST-API
+tragen in `url` den Token der Interaktion. Nie IDs, Namen, Nachrichteninhalte,
 Tokens, Cookies oder der Code der Anmeldung. Der Test „ein unbekannter
 Befehl bekommt eine Meldung, das Log keine Nutzerdaten“ prüft die Zeile.
 

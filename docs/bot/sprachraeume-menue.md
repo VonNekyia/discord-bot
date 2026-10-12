@@ -2,9 +2,9 @@
 title: Menü der Sprachräume im Bot
 description: Wie der Bot das Menü im Textchat jedes Raums baut; Module, Knöpfe und custom_id, Antworten mit deferReply, eins nach dem anderen je Raum, Rechte im Raum für Sperren, Verstecken und Bann, Besitzer wechseln, erwartete Fehler, Audit-Log und Log.
 code:
-  - bot/src/knoepfe.ts
-  - bot/src/menue.ts
-  - bot/src/raumrechte.ts
+  - bot/src/module/sprachraeume/knoepfe.ts
+  - bot/src/module/sprachraeume/menue.ts
+  - bot/src/module/sprachraeume/raumrechte.ts
   - bot/src/index.ts
 ---
 
@@ -20,9 +20,9 @@ brechen darf. Wie Räume entstehen und gehen, steht in
 
 | Datei | Inhalt |
 |---|---|
-| `bot/src/menue.ts` | `menue`: die Nachricht mit den zwölf Knöpfen; `auswahl`, `formular`, das Präfix |
-| `bot/src/knoepfe.ts` | `Knoepfe#bediene`: Prüfungen, Antworten, Aufrufe an Discord; `istMenue` |
-| `bot/src/raumrechte.ts` | Sperren, Verstecken, Bann und neuer Besitzer als reine Rechnung auf den Rechte-Einträgen |
+| `bot/src/module/sprachraeume/menue.ts` | `menue`: die Nachricht mit den zwölf Knöpfen; `auswahl`, `formular`, das Präfix |
+| `bot/src/module/sprachraeume/knoepfe.ts` | `Knoepfe#bediene`: Prüfungen, Antworten, Aufrufe an Discord; `istMenue` |
+| `bot/src/module/sprachraeume/raumrechte.ts` | Sperren, Verstecken, Bann und neuer Besitzer als reine Rechnung auf den Rechte-Einträgen |
 
 `Raeume` postet das Menü nach dem Anlegen, siehe
 [Sprachräume im Bot](sprachraeume-bau.md), „Anlegen“. `bot/src/index.ts`
@@ -81,7 +81,7 @@ das nicht; der Cache wüsste erst nach `CHANNEL_UPDATE` vom Gateway davon.
 Gesperrt, versteckt und gebannt stehen nur in den Rechte-Einträgen des
 Kanals, siehe Entscheidung
 [0011](../entscheidungen/0011-sprachraeume-mit-knoepfen.md).
-`bot/src/raumrechte.ts` rechnet aus den Einträgen des Raums und denen seiner
+`bot/src/module/sprachraeume/raumrechte.ts` rechnet aus den Einträgen des Raums und denen seiner
 Kategorie die neue Liste, und der Bot schickt sie in einem `PATCH`
 (`permissionOverwrites.set`). Ohne `name` gilt das Sublimit dafür nicht,
 siehe [Rate-Limits](rate-limits.md), „Kanäle ändern“.
@@ -140,5 +140,5 @@ Belege: [JSON Error Codes](https://docs.discord.com/developers/topics/opcodes-an
 
 Ins Audit-Log schreibt der Bot nur feste Gründe, etwa
 `Sprachraum: gesperrt` oder `Sprachraum: Besitz übergeben` (`grund` in
-`bot/src/knoepfe.ts`). Ins Log kommt nur `Sprachraum-Menü: <Fehler>`, siehe
+`bot/src/module/sprachraeume/knoepfe.ts`). Ins Log kommt nur `Sprachraum-Menü: <Fehler>`, siehe
 [Datenschutz](datenschutz.md), „Was ins Log geht“.

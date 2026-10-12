@@ -3,13 +3,13 @@ title: Intents
 description: Welche Gateway-Intents und Partials der Bot anfordert und warum; welche er bewusst nicht anfordert, und was vor einem neuen privilegierten Intent zu tun ist.
 code:
   - bot/src/index.ts
-  - bot/src/client.ts
+  - bot/src/discord/client.ts
 ---
 
 # Intents
 
 Der Bot fordert `Guilds` und `GuildMembers` an, dazu
-`Partials.GuildMember` (`erstelleClient` in `bot/src/client.ts`).
+`Partials.GuildMember` (`erstelleClient` in `bot/src/discord/client.ts`).
 Slash-Befehle kommen als Interaktion und brauchen keinen weiteren Intent.
 Jeder neue Intent braucht einen Befehl oder eine Funktion, die ihn braucht,
 und eine Zeile hier (`AGENTS.md`, Regel 24).

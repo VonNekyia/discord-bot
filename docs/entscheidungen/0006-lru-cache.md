@@ -5,7 +5,7 @@ status: gilt
 date: 2026-10-10
 issues: []
 code:
-  - bot/src/cache.ts
+  - bot/src/kern/cache.ts
   - bot/package.json
 ---
 
@@ -19,7 +19,7 @@ Bedarf, eingesetzt, wo er Sinn hat.
 ## Entscheidung
 
 `lru-cache` 11.5 (BlueOak-1.0.0, ohne Abhängigkeiten). `ladeCache` in
-`bot/src/cache.ts` setzt die Standardwerte des Bots und lädt fehlende
+`bot/src/kern/cache.ts` setzt die Standardwerte des Bots und lädt fehlende
 Werte über `fetchMethod`. Wann ein Cache Sinn hat, steht in
 [Cache](../bot/cache.md), „Wann cachen“.
 

@@ -1,10 +1,10 @@
 // Das Dashboard: Anmeldung, Serverliste und die Formulare für Beitritt und
 // Abschied. Setzt Skript voraus; ohne zeigt die Seite ein noscript.
 // Siehe docs/frontend/dashboard.md, „Zustände“.
-import { api, ApiFehler, type Ich, type Server } from './api.js';
-import { Begruessung } from './begruessung.js';
-import { SprachraeumeFormular } from './sprachraeume.js';
-import { meldung, satz, type Satz } from './texte.js';
+import { api, ApiFehler, type Ich, type Server } from './api/klient.js';
+import { Begruessung } from './module/begruessung/begruessung.js';
+import { SprachraeumeFormular } from './module/sprachraeume/sprachraeume.js';
+import { meldung, satz, type Satz } from './kern/texte.js';
 
 const element = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 

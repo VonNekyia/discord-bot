@@ -2,18 +2,18 @@
 title: Tests
 description: Wie die Tests des Bots laufen, was die gemockte Discord-API kann und was abgedeckt ist.
 code:
-  - bot/src/befehle.test.ts
-  - bot/src/cache.test.ts
-  - bot/src/datenbank.test.ts
-  - bot/src/api.test.ts
-  - bot/src/begruessung.test.ts
-  - bot/src/banner.test.ts
-  - bot/src/client.test.ts
-  - bot/src/senden.test.ts
+  - bot/src/module/befehle/befehle.test.ts
+  - bot/src/kern/cache.test.ts
+  - bot/src/kern/datenbank.test.ts
+  - bot/src/api/server.test.ts
+  - bot/src/module/begruessung/begruessung.test.ts
+  - bot/src/module/begruessung/banner.test.ts
+  - bot/src/discord/client.test.ts
+  - bot/src/module/begruessung/senden.test.ts
   - bot/src/testhilfe.ts
-  - bot/src/sprachraeume.test.ts
-  - bot/src/knoepfe.test.ts
-  - bot/src/raumrechte.test.ts
+  - bot/src/module/sprachraeume/sprachraeume.test.ts
+  - bot/src/module/sprachraeume/knoepfe.test.ts
+  - bot/src/module/sprachraeume/raumrechte.test.ts
   - bot/package.json
   - .github/workflows/backend.yml
 ---
@@ -30,12 +30,12 @@ npm test
 ```
 
 `npm test` baut mit `tsc` nach `bot/dist/` und startet
-`node --test dist/*.test.js`. Gibt es `bot/.env`, liest `npm test` sie mit
+`node --test dist/**/*.test.js`. Gibt es `bot/.env`, liest `npm test` sie mit
 `--env-file-if-exists`; kein Test gibt die Umgebung aus.
 
 ## Die gemockte API
 
-`mockApi` in `bot/src/befehle.test.ts` startet einen `node:http`-Server
+`mockApi` in `bot/src/module/befehle/befehle.test.ts` startet einen `node:http`-Server
 auf einem freien Port und gibt ein `REST` zurück, dessen `api` auf ihn
 zeigt. Er antwortet der Reihe nach mit den Statuscodes, die der Test
 vorgibt, danach mit 200, und merkt sich jede Anfrage mit Methode, Pfad
@@ -46,9 +46,9 @@ Interaktionen ersetzt `interaktion` durch ein Objekt mit nur dem, was
 
 ## Die API des Dashboards
 
-`bot/src/api.test.ts` startet die API mit `erstelleApi` auf einem freien
+`bot/src/api/server.test.ts` startet die API mit `erstelleApi` auf einem freien
 Port und spricht sie mit `fetch` an, ohne Weiterleitungen zu folgen.
-`bot/src/senden.test.ts` ruft `begruesse` mit Mitgliedern auf, wie
+`bot/src/module/begruessung/senden.test.ts` ruft `begruesse` mit Mitgliedern auf, wie
 discord.js sie bei Beitritt und Abschied bringt. Dort gibt die Bremse nur
 200 ms Ruhe statt 30 s (`erstelleBremse`); mit falschen Uhren hängen
 REST von discord.js und `fetch`. Die Zeiten selbst prüfen die Tests der
@@ -67,7 +67,7 @@ Bremse ohne Netz, mit `t.mock.timers`. Beide nutzen
   Person und Mitglieder ändern, Anlegen, Ändern, Verschieben und Senden
   können mit einem Code von Discord scheitern, und Umbenennen kann mit 429
   und `Retry-After` antworten.
-- `bot/src/sprachraeume.test.ts` setzt Voice States über den Cache von
+- `bot/src/module/sprachraeume/sprachraeume.test.ts` setzt Voice States über den Cache von
   discord.js, wie Discord sie meldet, und ruft dann `Raeume#aenderung`.
   Es nutzt einen eigenen Server und eine eigene Person, weil die
   Testdateien gleichzeitig laufen.
@@ -88,14 +88,14 @@ zurückrollt, weil die Dateien gleichzeitig laufen. Alle IDs sind erfunden
 
 ## Das Menü der Sprachräume
 
-`bot/src/knoepfe.test.ts` baut Interaktionen so, wie Discord sie schickt,
+`bot/src/module/sprachraeume/knoepfe.test.ts` baut Interaktionen so, wie Discord sie schickt,
 und gibt sie durch die Action `InteractionCreate` von discord.js. So
 entstehen echte `ButtonInteraction`, `UserSelectMenuInteraction` und
 `ModalSubmitInteraction`, und `deferReply`, `showModal` und
 `editReply` gehen als REST an `mockDiscord`. Den Stand des Raums setzt
 der Test mit der Action `ChannelUpdate`, wer drin ist, über die Voice
 States. Die Datei nutzt einen eigenen Server und eigene Personen.
-`bot/src/raumrechte.test.ts` prüft die Rechnung der Rechte ohne Discord.
+`bot/src/module/sprachraeume/raumrechte.test.ts` prüft die Rechnung der Rechte ohne Discord.
 
 ## Was abgedeckt ist
 
@@ -216,7 +216,7 @@ States. Die Datei nutzt einen eigenen Server und eigene Personen.
 
 ## Tests gegen PostgreSQL
 
-`bot/src/datenbank.test.ts` braucht eine PostgreSQL mit den Variablen aus
+`bot/src/kern/datenbank.test.ts` braucht eine PostgreSQL mit den Variablen aus
 [Datenbank](../bot/datenbank.md), „Verbindung“. Lokal startet sie
 `docker compose up -d` in `bot/`, und `npm test` findet die Werte in
 `bot/.env`; fehlt `DB_HOST`, werden diese Tests übersprungen. In der CI

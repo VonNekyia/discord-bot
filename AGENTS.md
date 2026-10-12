@@ -176,6 +176,14 @@ Vor dem Arbeitsschritt die `SKILL.md` ganz lesen und ihr folgen.
     Aufgabe, Skill `renovate-pr-bewerten`. Ein offener Konflikt steht in
     jeder Antwort an den Maintainer zuerst, bis er entschieden ist.
 
+### Struktur
+
+32. Jede Feature-Suite ist ein Modul: ein Ordner unter `bot/src/module/`
+    und, mit Oberfläche, unter `web/src/module/`. Ein Modul importiert
+    kein anderes. Nur `bot/src/discord/` spricht mit discord.js, nur
+    `web/src/api/` mit dem Bot. Der Linter prüft die Grenzen, siehe
+    [Struktur von Bot und Oberfläche](docs/entwicklung/struktur.md).
+
 ## Gliederung von `docs/`
 
 | Pfad | Inhalt |
@@ -185,5 +193,5 @@ Vor dem Arbeitsschritt die `SKILL.md` ganz lesen und ihr folgen.
 | `docs/bot/` | wie der Bot arbeitet: Intents, Rate-Limits, Wiederanlauf, Datenschutz, Datenbank, Cache |
 | `docs/schnittstelle/` | der Vertrag zwischen Bot und Dashboard: Routen der API, Anmeldung, Sitzung, Rechte, Sprachräume |
 | `docs/frontend/` | Design der Oberfläche, der Design-Guide (`design.html`, `design.css`, MIT), Auslieferung und Header |
-| `docs/entwicklung/` | CI, Ablauf einer PR, Tests, Lint, Updates mit Renovate |
+| `docs/entwicklung/` | CI, Ablauf einer PR, Tests, Lint, Updates mit Renovate, Struktur |
 | `docs/entscheidungen/` | `NNNN-titel.md`, eine Datei je Entscheidung |

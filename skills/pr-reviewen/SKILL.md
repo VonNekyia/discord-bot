@@ -70,3 +70,5 @@ gh pr merge <nr> --merge --match-head-commit <kopf>
 - [ ] Keine Quelle für Ideen genannt, Regel 26.
 - [ ] PR von Renovate: Skill
       [`renovate-pr-bewerten`](../renovate-pr-bewerten/SKILL.md).
+- [ ] Neuer Code im Ordner seines Moduls oder seiner Schicht; `npm run lint`
+      meldet keine neue Grenzverletzung, Regel 32.

@@ -28,13 +28,13 @@ import {
   type OAuth,
   type Sitzung,
 } from './anmeldung.js';
-import { BildFehler, bereiteVor } from './banner.js';
-import { text } from './befehle.js';
-import { lese, loescheBild, pruefe, speichere, speichereBild, type Art } from './begruessung.js';
-import { wieDiscord } from './ordnung.js';
-import { raeumeVon } from './raeume.js';
-import { banner, sendeTest } from './senden.js';
-import { liesSprachraeume, liste as sprachkanaele, pruefe as pruefeSprachraeume, speichereSprachraeume } from './sprachraeume.js';
+import { BildFehler, bereiteVor } from '../module/begruessung/banner.js';
+import { text } from '../kern/fehler.js';
+import { lese, loescheBild, pruefe, speichere, speichereBild, type Art } from '../module/begruessung/begruessung.js';
+import { wieDiscord } from '../discord/ordnung.js';
+import { raeumeVon } from '../module/sprachraeume/raeume.js';
+import { banner, sendeTest } from '../module/begruessung/senden.js';
+import { liesSprachraeume, liste as sprachkanaele, pruefe as pruefeSprachraeume, speichereSprachraeume } from '../module/sprachraeume/sprachraeume.js';
 
 export interface ApiUmgebung {
   geheimnis: string;

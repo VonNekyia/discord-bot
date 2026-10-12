@@ -13,7 +13,7 @@ import {
   type VoiceChannel,
 } from 'discord.js';
 import type { Pool } from 'pg';
-import { text as fehlertext } from './befehle.js';
+import { text as fehlertext } from '../../kern/fehler.js';
 import { aktionen, auswahl, formular, mitAuswahl, mitFormular, praefix, type Aktion, type MitAuswahl } from './menue.js';
 import { belegung, besitzerVon } from './raeume.js';
 import * as rechte from './raumrechte.js';

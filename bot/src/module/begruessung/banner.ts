@@ -11,7 +11,7 @@ export const hoehe = 440;
 // Koreanisch. Siehe docs/entscheidungen/0010-ersatzschriften-im-banner.md.
 const schriften = { Inter: 'Inter-SemiBold.ttf', 'Noto Color Emoji': 'Noto-COLRv1.ttf', 'Noto Sans CJK': 'NotoSansCJKjp-Bold.otf' };
 for (const [familie, datei] of Object.entries(schriften)) {
-  GlobalFonts.registerFromPath(fileURLToPath(new URL(`../schrift/${datei}`, import.meta.url)), familie);
+  GlobalFonts.registerFromPath(fileURLToPath(new URL(`../../../schrift/${datei}`, import.meta.url)), familie);
 }
 
 // Fehlt einer Schrift ein Zeichen, nimmt @napi-rs/canvas die nächste, Zeichen

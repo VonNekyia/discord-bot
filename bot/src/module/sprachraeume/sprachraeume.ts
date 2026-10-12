@@ -1,6 +1,6 @@
 import { ChannelType, PermissionFlagsBits as R, type CategoryChannel, type Guild, type VoiceChannel } from 'discord.js';
 import type { Pool } from 'pg';
-import { vergleiche, wieDiscord } from './ordnung.js';
+import { vergleiche, wieDiscord } from '../../discord/ordnung.js';
 
 // Siehe docs/schnittstelle/sprachraeume.md, „Typen“.
 export interface Erzeuger {

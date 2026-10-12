@@ -7,7 +7,7 @@ import {
   type Guild,
 } from 'discord.js';
 import type { Pool } from 'pg';
-import { text as fehlertext } from './befehle.js';
+import { text as fehlertext } from '../../kern/fehler.js';
 import { menue } from './menue.js';
 import { besitzerRechte, botRechte, erlaube, type Eintrag } from './raumrechte.js';
 import type { Sprachraeume } from './sprachraeume.js';

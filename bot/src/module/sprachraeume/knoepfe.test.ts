@@ -3,7 +3,7 @@ import { after, before, beforeEach, describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { ChannelType, Events, PermissionFlagsBits as R, type Client, type Guild, type Interaction } from 'discord.js';
 import type { Pool } from 'pg';
-import { migriere, oeffne, verbindung } from './datenbank.js';
+import { migriere, oeffne, verbindung } from '../../kern/datenbank.js';
 import { dauer, istMenue, Knoepfe } from './knoepfe.js';
 import { besitzerRechte, botRechte } from './raumrechte.js';
 import {
@@ -20,7 +20,7 @@ import {
   schliesse,
   type MockDiscord,
   type Ueberschreibung,
-} from './testhilfe.js';
+} from '../../testhilfe.js';
 
 // Das Menü der Sprachräume: echte Interaktionen von discord.js gegen eine
 // gemockte Discord-API und eine echte PostgreSQL; ohne DB_HOST übersprungen,
@@ -91,7 +91,7 @@ describe('Menü der Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_H
 
   before(async () => {
     if (!ziel) return;
-    await migriere(ziel, fileURLToPath(new URL('../migrationen', import.meta.url)));
+    await migriere(ziel, fileURLToPath(new URL('../../../migrationen', import.meta.url)));
     db = oeffne(ziel);
     mock = await mockDiscord();
     client = discordClient(mock, [server()]);

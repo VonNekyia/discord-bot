@@ -9,7 +9,7 @@
   "scripts": {
     "build": "tsc",
     "lint": "oxlint",
-    "test": "tsc && node --env-file-if-exists=.env --test dist/*.test.js",
+    "test": "tsc && node --env-file-if-exists=.env --test \"dist/**/*.test.js\"",
     "start": "node --env-file=.env dist/index.js"
   },
   "dependencies": {

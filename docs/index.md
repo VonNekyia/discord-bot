@@ -46,6 +46,7 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 ## Entwicklung
 
 - [CI und Ablauf einer PR](entwicklung/ci.md): Ruleset von `main`, „Basis aktuell“, Rebase, die Prüfung der Doku, Backend, Frontend mit Lighthouse, Header, Lizenzen als SPDX-Ausdruck, Actions und Images fest an SHA und Digest.
+- [Struktur von Bot und Oberfläche](entwicklung/struktur.md): Schichten `kern/`, `discord/`, `api/` und Feature-Module, wer wen importieren darf, was ein Modul bündelt, die eigene Schicht über discord.js, was vom Umbau noch fehlt.
 - [Lint mit oxlint](entwicklung/lint.md): `npm run lint`, die Regeln und warum, moderne Sprachmittel mit ES2025 im Bot und ES2024 im Web, Tests, Altlasten mit `maxWarnings`, eine Regel begründet abschalten.
 - [Updates mit Renovate](entwicklung/renovate.md): was Renovate wann aktualisiert, Automerge für Minor, Patch und Digest, Bewertung durch den Orchestrator, Konflikte, Labels, Einrichten.
 - [Tests](entwicklung/tests.md): `node --test`, die gemockte Discord-API, was abgedeckt ist, Tests gegen PostgreSQL.
@@ -66,3 +67,4 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 - [0012: Actions und Images in der CI fest an Commit und Digest](entscheidungen/0012-actions-und-images-fest.md): voller Commit-SHA je Action, Digest für PostgreSQL, `persist-credentials: false`; keine Tags; teilweise abgelöst durch 0013.
 - [0013: Updates mit Renovate](entscheidungen/0013-renovate.md): Renovate als GitHub-App, wöchentlich, npm erst nach 3 Tagen; Automerge für Minor, Patch und Digest stabiler Pakete, alles andere bewertet der Orchestrator, ein Konflikt wird ein Issue für den Maintainer; nicht Dependabot, kein Automerge für Hauptversionen.
 - [0014: oxlint als Linter, moderne Sprachmittel](entscheidungen/0014-oxlint-und-moderne-sprachmittel.md): oxlint mit typbasierten Regeln über TypeScript 7, Altlasten als Warnung mit Obergrenze, ES2025 im Bot, ES2024 im Web; kein ESLint, kein Biome.
+- [0015: Feature-Module und eigene Schichten](entscheidungen/0015-feature-module-und-schichten.md): ein Ordner je Feature-Suite, nur `discord/` spricht mit discord.js, nur `web/src/api/` mit dem Bot, Grenzen per Lint, Umbau in Stufen; nicht nach Art ordnen, keine Workspaces.
