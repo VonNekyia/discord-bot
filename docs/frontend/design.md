@@ -160,7 +160,7 @@ stehen. Stand 2026-10-11, alle für das [Dashboard](dashboard.md).
 | `.link-button` | zweite Aktion auf hellem Grund: ein `button`, der aussieht wie ein Link im Text |
 | `.field-error textarea`, `.field-error select` | Fehler wie bei `.field-error input` |
 | `.form .field input::file-selector-button` | Datei-Feld: Rahmen, Höhe, Fokus und Fehler wie das Textfeld; der Knopf darin in `--sans`, `--ink` auf `--cream`, ohne Rand |
-| `.picture`, `.picture img` | `.picture` ohne `min-height`; darin ein `img` mit `width` 1100 und `height` 440 und diesem Seitenverhältnis |
+| `.picture`, `.picture img` | `.picture` ohne `min-height`; darin ein `img` mit `width` und `height` aus `breite` und `hoehe` der `vorschau`; daraus folgt das Seitenverhältnis, ohne eigene Regel |
 | `#tab-4` bis `#tab-6` | wie `#tab-1` bis `#tab-3` im Guide: der aktive Tab mit `--ink` und Strich in `--gold`, sein Panel sichtbar; das Dashboard hat höchstens 6 Tabs |
 
 Ohne eigene Regel, ebenso festgelegt:

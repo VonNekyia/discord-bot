@@ -21,7 +21,10 @@ export const text: Bauer<Text> = (b, u, start) => {
     feld.zeigeHilfe();
   };
   rest();
+  // Ob der Fehler am Feld aus einer Antwort des Bots kommt.
+  let vomBot = false;
   eingabe.addEventListener('input', () => {
+    vomBot = false;
     feld.fehler(null);
     rest();
     u.geaendert();
@@ -30,6 +33,7 @@ export const text: Bauer<Text> = (b, u, start) => {
   // Erst NUL, das der Bot als ungueltig ablehnt, dann Pflicht, dann die Länge.
   // Siehe docs/schnittstelle/baukasten.md, „Prüfen in der Oberfläche“.
   const pruefe = (alles: boolean): boolean => {
+    vomBot = false;
     const wert = eingabe.value;
     const l = laenge(wert, b.platzhalter);
     if (wert.includes('\0')) feld.fehler(u.satz('steuerzeichen'));
@@ -45,8 +49,13 @@ export const text: Bauer<Text> = (b, u, start) => {
   // Die Oberfläche schickt immer Text; ungueltig heisst darum NUL.
   const melde = (code: string): boolean => {
     feld.fehler(u.satz(code === 'ungueltig' ? 'steuerzeichen' : code));
+    vomBot = true;
     return true;
   };
 
-  return { elemente: [feld.element], wert: () => eingabe.value, pruefe, melde };
+  const vergiss = () => {
+    if (vomBot) pruefe(false);
+  };
+
+  return { elemente: [feld.element], wert: () => eingabe.value, pruefe, melde, vergiss };
 };

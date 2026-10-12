@@ -809,7 +809,7 @@ i.card-icon {
   border: 0;
 }
 
-/* Picture with caption mit img: Seitenverhältnis des Banners, ohne min-height. */
+/* Picture with caption mit img, ohne min-height; das Seitenverhältnis kommt aus width und height des img. */
 .picture {
   position: relative;
   overflow: hidden;
@@ -824,7 +824,6 @@ i.card-icon {
   display: block;
   width: 100%;
   height: auto;
-  aspect-ratio: 1100 / 440;
 }
 
 @media (max-width: 760px) {

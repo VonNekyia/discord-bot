@@ -14,6 +14,9 @@ export interface Teil {
   // Zeigt den Satz zu `code` am Feld; `pfad` führt in eine Liste. false,
   // wenn der Baustein dort keinen Fehler zeigen kann.
   melde?(code: string, pfad: readonly string[]): boolean;
+  // Vergisst einen Fehler, den `melde` gezeigt hat, und zeigt wieder, was die
+  // eigene Prüfung findet; etwa wenn sich ein anderes Feld desselben Eintrags ändert.
+  vergiss?(): void;
   // Etwas auf der Seite hat sich geändert. true, wenn der Baustein dabei
   // seinen Wert selbst geändert hat, etwa ein gesperrter Schalter.
   aktualisiere?(): boolean;
