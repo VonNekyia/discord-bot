@@ -12,6 +12,9 @@ code:
 
 # 0012: Actions und Images in der CI fest an Commit und Digest
 
+Teilweise abgelöst durch [0013](0013-renovate.md): SHAs und Digest
+erneuert jetzt Renovate.
+
 ## Anlass
 
 Eine Prüfung der CI auf Manipulation fand die Actions mit dem Tag `v4` und

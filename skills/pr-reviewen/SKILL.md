@@ -7,6 +7,9 @@ description: Der Workflow des Orchestrators. Nutzen, wenn ein Auftrag an Backend
 
 ## Auftrag verteilen
 
+Vorher: offene Konflikte und PRs von Renovate, die warten (`AGENTS.md`,
+Regel 31, Skill [`renovate-pr-bewerten`](../renovate-pr-bewerten/SKILL.md)).
+
 1. **Zerlegen.** Ein Auftrag betrifft eine Seite: `bot/` an den
    Backend-Developer, `web/` an den Frontend-Developer. Braucht er beide,
    zuerst die Schnittstelle in `docs/` festlegen, dann zwei Aufträge.
@@ -65,5 +68,7 @@ gh pr merge <nr> --merge --match-head-commit <kopf>
       erfundenen Werte.
 - [ ] Keine Secrets, keine IDs, keine Interna, Regeln 20 und 21.
 - [ ] Keine Quelle für Ideen genannt, Regel 26.
+- [ ] PR von Renovate: Skill
+      [`renovate-pr-bewerten`](../renovate-pr-bewerten/SKILL.md).
 - [ ] Neuer Code im Ordner seines Moduls oder seiner Schicht; `npm run lint`
       meldet keine neue Grenzverletzung, Regel 32.

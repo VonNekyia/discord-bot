@@ -167,7 +167,9 @@ Lighthouse laufen. Kein Schritt braucht es danach: Die Probe der Doku
 nutzt Git nur lokal, „Basis aktuell“ checkt nichts aus und fragt die API
 mit `GH_TOKEN`.
 
-Erneuern geht in einer eigenen PR. Den SHA zu einem Tag zeigt
+SHAs und Digest erneuert Renovate einmal die Woche, siehe
+[Updates mit Renovate](renovate.md). Von Hand geht es in einer eigenen
+PR. Den SHA zu einem Tag zeigt
 
 ```bash
 git ls-remote --tags https://github.com/actions/checkout 'v4*'
