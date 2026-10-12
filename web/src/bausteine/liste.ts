@@ -82,17 +82,19 @@ export const liste: Bauer<Liste> = (b, u, start) => {
     karte.element.querySelector<HTMLElement>('select, input, textarea')?.focus();
   });
 
-  // Nummern, Köpfe, gesperrte Optionen, leerer Zustand und der Knopf.
+  // Nummern, Köpfe, gesperrte Optionen, leerer Zustand und der Knopf. Gibt
+  // `true`, wenn ein Eintrag sich selbst geändert hat, wie ein Teil der Seite.
   const aktualisiere = (): boolean => {
+    let selbst = false;
     for (const [i, k] of karten.entries()) {
-      for (const teil of k.teile.values()) teil.aktualisiere?.();
+      for (const teil of k.teile.values()) if (teil.aktualisiere?.()) selbst = true;
       const name = b.kopf ? k.teile.get(b.kopf)?.option?.()?.name : undefined;
       k.kopf.textContent = name ? `${b.eintrag} ${i + 1} · ${name}` : `${b.eintrag} ${i + 1}`;
     }
     leer.hidden = karten.length > 0;
     hinzufuegen.disabled = karten.length >= b.hoechstens;
     voll.hidden = karten.length < b.hoechstens;
-    return false;
+    return selbst;
   };
 
   // Alle Einträge auf einmal, je Feld der erste Fehler.

@@ -39,6 +39,7 @@
           {
             "patterns": [
               { "regex": "^\\./", "message": "Ein Baustein importiert keinen anderen; eine Liste baut ihre Einträge über die Umgebung." },
+              { "regex": "^\\.\\./bausteine/", "message": "Ein Baustein importiert keinen anderen; eine Liste baut ihre Einträge über die Umgebung." },
               { "regex": "^\\.\\./(seite|dashboard|main)", "message": "Ein Baustein kennt die Seite nicht; die Seite bindet die Bausteine ein." }
             ]
           }

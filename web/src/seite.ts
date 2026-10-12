@@ -133,9 +133,12 @@ export function baueSeite(seite: Seite, server: string, abgemeldet: () => void):
   const elemente = (bausteine: Baustein[]) => bausteine.flatMap((b) => teile.get(b.id)?.elemente ?? []);
   form.append(...elemente(seite.bausteine.filter((b) => b.art !== 'aktion')), knopf, meldungen, ...elemente(aktionen));
 
-  // Beim Laden: was schon gespeichert nicht geht, und der Fund des Bots.
+  // Beim Laden: was schon gespeichert nicht geht, und der Fund des Bots. Geht
+  // er an kein Feld, etwa an einen Schalter oder ohne `feld`, steht er als
+  // Warnung unter „Speichern“. Siehe docs/schnittstelle/baukasten.md, „Fehler am Feld“.
   pruefe(false);
-  if (seite.fund?.feld) amFeld(seite.fund.code, seite.fund.feld);
+  const fund = seite.fund;
+  if (fund && !(fund.feld !== undefined && amFeld(fund.code, fund.feld))) meldung(meldungen, 'warn', satz(fund.code, seite.saetze));
   geaendert(true);
   basis = werte();
 

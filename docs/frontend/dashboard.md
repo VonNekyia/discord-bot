@@ -100,7 +100,9 @@ meldet auch nicht mehr an, siehe [Baukasten](../schnittstelle/baukasten.md),
 
 Beim Laden prüft die Seite jeden Baustein, ohne Pflichtfelder, und zeigt
 dann `fund` am Feld. Was so am Feld steht, ging schon gespeichert nicht,
-etwa ein Kanal, den es nicht mehr gibt.
+etwa ein Kanal, den es nicht mehr gibt. Geht `fund` an kein Feld, ohne
+`feld` oder an einem `schalter`, steht es als `.message-warn` unter
+„Speichern“.
 
 Ob das Formular vom gespeicherten Stand abweicht, vergleicht die Seite mit
 den Werten, wie sie nach dem Laden und nach dem letzten Speichern im
