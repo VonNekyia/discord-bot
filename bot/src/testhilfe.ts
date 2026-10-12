@@ -133,6 +133,7 @@ export interface MockDiscord {
   // Antwortet Discord mit einem Fehler: Status und Code, sonst undefined.
   anlegenFehler?: [number, number];
   verschiebenFehler?: [number, number];
+  loeschenFehler?: [number, number];
   aendernFehler?: [number, number];
   nachrichtFehler?: [number, number];
   // Sekunden in `Retry-After`, wenn ein `PATCH /channels/{id}` einen Namen setzt.
@@ -288,6 +289,7 @@ export async function mockDiscord(): Promise<MockDiscord> {
       }
       const kanalWeg = /^\/api\/v10\/channels\/(\d+)$/.exec(pfad);
       if (kanalWeg && req.method === 'DELETE') {
+        if (mock.loeschenFehler) return antworte(mock.loeschenFehler[0], { message: 'Fehler', code: mock.loeschenFehler[1] });
         mock.geloescht.push(kanalWeg[1] ?? '');
         return antworte(200, { id: kanalWeg[1], type: 2 });
       }

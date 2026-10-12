@@ -1,15 +1,4 @@
-import {
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  LabelBuilder,
-  ModalBuilder,
-  TextInputBuilder,
-  TextInputStyle,
-  UserSelectMenuBuilder,
-  type MessageCreateOptions,
-  type VoiceChannel,
-} from 'discord.js';
+import type { Auswahl, Formular, Menue } from '../../discord/menue.js';
 
 // Festes Präfix in `custom_id`: Daran erkennt `interactionCreate` das Menü,
 // auch nach einem Neustart. Siehe docs/bot/sprachraeume-menue.md, „Knöpfe“.
@@ -46,24 +35,16 @@ export const aktionen: readonly Aktion[] = reihen.flat().map(([aktion]) => aktio
 export const mitFormular = (a: Aktion): a is MitFormular => a === 'umbenennen' || a === 'limit';
 export const mitAuswahl = (a: Aktion): a is MitAuswahl => a === 'rauswerfen' || a === 'bannen' || a === 'entbannen' || a === 'uebergeben';
 
-// Die Nachricht im Textchat eines neuen Raums.
-export function menue(): MessageCreateOptions {
+// Die Nachricht im Textchat eines neuen Raums; die Discord-Schicht baut die Knöpfe.
+export function menue(): Menue {
   return {
-    content:
+    text:
       '## Dein Sprachraum\n' +
       'Der Besitzer steuert den Raum mit den Knöpfen. „Übernehmen“ geht, wenn der Besitzer nicht im Raum ist, „Info“ für alle. ' +
       'Die Antworten sieht nur, wer drückt.',
-    components: reihen.map((reihe) =>
-      new ActionRowBuilder<ButtonBuilder>().addComponents(
-        reihe.map(([aktion, text]) =>
-          new ButtonBuilder()
-            .setCustomId(praefix + aktion)
-            .setLabel(text)
-            .setStyle(aktion === 'rauswerfen' || aktion === 'bannen' ? ButtonStyle.Danger : ButtonStyle.Secondary),
-        ),
-      ),
+    reihen: reihen.map((reihe) =>
+      reihe.map(([aktion, text]) => ({ id: praefix + aktion, text, rot: aktion === 'rauswerfen' || aktion === 'bannen' })),
     ),
-    allowedMentions: { parse: [] },
   };
 }
 
@@ -75,30 +56,15 @@ const fragen: Record<MitAuswahl, string> = {
 };
 
 // Die Nutzerauswahl von Discord; sie zeigt alle Mitglieder des Servers.
-export function auswahl(aktion: MitAuswahl) {
-  return {
-    content: fragen[aktion],
-    components: [
-      new ActionRowBuilder<UserSelectMenuBuilder>().addComponents(
-        new UserSelectMenuBuilder().setCustomId(praefix + aktion).setPlaceholder('Mitglied wählen').setMinValues(1).setMaxValues(1),
-      ),
-    ],
-  };
+export function auswahl(aktion: MitAuswahl): Auswahl {
+  return { id: praefix + aktion, frage: fragen[aktion], platzhalter: 'Mitglied wählen' };
 }
 
 // Das Formular für Umbenennen und Limit, mit dem Wert von jetzt. Das Feld heisst `wert`.
-export function formular(aktion: MitFormular, raum: VoiceChannel): ModalBuilder {
-  const feld = new TextInputBuilder().setCustomId('wert').setStyle(TextInputStyle.Short).setRequired(true);
-  const label = new LabelBuilder();
-  if (aktion === 'umbenennen') {
-    feld.setMinLength(1).setMaxLength(100).setValue(raum.name);
-    label.setLabel('Neuer Name').setDescription('1 bis 100 Zeichen');
-  } else {
-    feld.setMinLength(1).setMaxLength(2).setValue(String(raum.userLimit));
-    label.setLabel('Höchstens so viele im Raum').setDescription('0 bis 99; 0 heisst unbegrenzt');
-  }
-  return new ModalBuilder()
-    .setCustomId(praefix + aktion)
-    .setTitle(aktion === 'umbenennen' ? 'Raum umbenennen' : 'Limit des Raums')
-    .addLabelComponents(label.setTextInputComponent(feld));
+export function formular(aktion: MitFormular, raum: { name: string; limit: number }): Formular {
+  const feld =
+    aktion === 'umbenennen'
+      ? { id: 'wert', label: 'Neuer Name', beschreibung: '1 bis 100 Zeichen', min: 1, max: 100, wert: raum.name }
+      : { id: 'wert', label: 'Höchstens so viele im Raum', beschreibung: '0 bis 99; 0 heisst unbegrenzt', min: 1, max: 2, wert: String(raum.limit) };
+  return { id: praefix + aktion, titel: aktion === 'umbenennen' ? 'Raum umbenennen' : 'Limit des Raums', feld };
 }

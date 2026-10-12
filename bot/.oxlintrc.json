@@ -4,7 +4,7 @@
   "extends": ["../.oxlintrc.json"],
   "ignorePatterns": ["dist"],
   "options": {
-    "maxWarnings": 21
+    "maxWarnings": 17
   },
   "overrides": [
     {
@@ -59,7 +59,14 @@
         "eslint/no-restricted-imports": [
           "warn",
           {
-            "paths": [{ "name": "discord.js", "message": "Nur src/discord/ spricht mit discord.js." }],
+            "paths": [
+              { "name": "discord.js", "message": "Nur src/discord/ spricht mit discord.js." },
+              {
+                "name": "../../discord/server.js",
+                "importNames": ["guildVon"],
+                "message": "Die Guild bleibt in der Discord-Schicht; Module nutzen den Griff Server."
+              }
+            ],
             "patterns": [
               { "group": ["@discordjs/*"], "message": "Nur src/discord/ spricht mit discord.js." },
               { "regex": "^\\.\\./[^./][^/]*/", "message": "Ein Modul importiert kein anderes Modul." },

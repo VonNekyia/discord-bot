@@ -27,15 +27,16 @@ Discord-Schicht“:
 | Funktion oder Typ | Inhalt |
 |---|---|
 | `Mitglied`, `alsMitglied` | ID, Anzeigename, URL des Avatars als PNG mit 256 px, Server mit ID, Name und Zahl der Mitglieder; auch aus einem Partial |
-| `Textkanal`, `textkanal` | ein Text- oder Ankündigungskanal, in dem der Bot sehen und senden darf, mit `anhaengen` für „Dateien anhängen“; sonst `undefined` |
+| `Textkanal`, `textkanal` | über den Griff `Server`: ein Text- oder Ankündigungskanal, in dem der Bot sehen und senden darf, mit `anhaengen` für „Dateien anhängen“; sonst `undefined` |
 | `textkanalAuf` | dasselbe über die IDs von Server und Kanal, für Ereignisse und die Bremse |
 | `Nachricht`, `Textkanal#sende` | Text, Datei, `pingt`; daraus `allowedMentions`, siehe „Platzhalter und Erwähnungen“ |
-| `DiscordFehler` | was `sende` wirft: `kein_recht` (50001, 50013), `nicht_gefunden` (10003), `zu_schnell` (RateLimitError), sonst `anderes`; die Meldung bleibt die von Discord |
+| `DiscordFehler` | aus `bot/src/discord/fehler.ts`, was `sende` wirft: `kein_recht` (50001, 50013), `nicht_gefunden` (10003), `zu_schnell` (RateLimitError), sonst `anderes`; die Meldung bleibt die von Discord |
 
 `bot/src/index.ts` wandelt jedes Mitglied aus `guildMemberAdd` und
 `guildMemberRemove` mit `alsMitglied` und gibt `begruesse` den Kanal über
 `textkanalAuf`. Die Seiten in `bot/src/module/begruessung/seiten.ts`
-nehmen `alsMitglied` und `textkanal` für Vorschau und Testnachricht.
+bekommen Griff und `Mitglied` aus `Kontext` und nehmen `textkanal` für
+die Testnachricht.
 
 ## Ablauf
 
