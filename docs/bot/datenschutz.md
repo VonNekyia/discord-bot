@@ -11,6 +11,8 @@ code:
   - bot/src/api/server.ts
   - bot/src/api/anmeldung.ts
   - bot/src/module/sprachraeume/knoepfe.ts
+  - bot/src/kern/zaehlung.ts
+  - bot/src/discord/oauth.ts
 ---
 
 # Datenschutz
@@ -47,6 +49,10 @@ Grenze von 30 s vergisst ein Mitglied nach ihrer Zeit“ prüft das.
 aus war. Beim Start gleicht er ab und löscht dann, siehe
 [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md),
 „Wenn etwas fehlt“.
+
+Die Zählung der Anfragen an Discord hält nur Methoden, Routen ohne IDs
+und Tokens, Zahlen und Zeiten, nichts über Personen, und nur im Speicher,
+siehe [Rate-Limits](rate-limits.md), „Zählen“.
 
 Nicht gespeichert werden:
 
@@ -92,6 +98,18 @@ etwa `Sprachraum: nicht angelegt: <Fehler>`; das Menü nur
 Token der Interaktion. Die Tests „fehlt dem Bot ein Recht (50013), sagt er
 es …“ und „ein anderer Fehler …“ prüfen, dass keine ID und kein Token in
 der Zeile steht.
+
+Die Zählung der Rate-Limits loggt nur `Rate-Limit: …` mit Methode, Route,
+Scope, `global` und Zahlen, siehe [Rate-Limits](rate-limits.md), „Zählen“.
+Die Route rechnet der Bot selbst, ohne IDs und Tokens; `url`, Pfad und
+`majorParameter` von `@discordjs/rest` kommen nie ins Log, denn sie tragen
+IDs und bei Webhooks und Interaktionen den Token. Ein Fehler der Anmeldung
+nennt nur Schritt und Status. Er trägt auch keine `cause`: Fehler von
+`@discordjs/rest` halten in `requestBody` den Code oder den Token. Die
+Tests „ein 429 mit Headern gibt genau eine Logzeile ohne ID und Token …“,
+„Tokens von Interaktionen und Webhooks stehen weder im Stand noch im Log
+…“ und „verlangt Discord länger als die Frist, scheitert die Anmeldung
+gleich …“ prüfen das.
 
 Fehler der Datenbank gehen ebenso nur mit ihrer Meldung ins Log, auch
 `Datenbank: <Meldung>` aus dem Pool, siehe [Datenbank](datenbank.md),

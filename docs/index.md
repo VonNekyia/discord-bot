@@ -27,7 +27,7 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 ## Bot
 
 - [Intents](bot/intents.md): heute nur `Guilds`, `GuildMembers` und `Partials.GuildMember` kommen mit der Begrüssung, welche privilegierten nicht und warum, Reihenfolge bei einem neuen privilegierten Intent.
-- [Rate-Limits](bot/rate-limits.md): Befehle registrieren, 429, Kanäle ändern ohne Warten, 5xx, Zeitlimit.
+- [Rate-Limits](bot/rate-limits.md): Befehle registrieren, 429, Kanäle ändern ohne Warten, Anmeldung mit Frist, Anfragen und 429 zählen und loggen, ungültige Anfragen mit Warnung, eigene Grenzen, 5xx.
 - [Wiederanlauf](bot/wiederanlauf.md): Neuverbinden durch discord.js, Codes, nach denen der Bot endet, was nicht getestet ist.
 - [Datenschutz](bot/datenschutz.md): was der Bot speichert, was ins Log geht.
 - [Datenbank](bot/datenbank.md): PostgreSQL über `pg`, Verbindung, Discord-IDs als `bigint`, Pool und seine Werte, Migrationen unter Sperre und in Transaktionen, Dev-Datenbank in Docker, was noch fehlt.

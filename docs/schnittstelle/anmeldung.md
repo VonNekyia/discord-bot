@@ -27,17 +27,23 @@ Routen stehen in [API des Dashboards](api.md).
 2. Discord leitet zurück auf `/api/anmelden/zurueck` mit `code` und
    `state`. Fehlt das Cookie oder passt `state` nicht, ist die Anmeldung
    gescheitert.
-3. Der Bot tauscht `code` bei `https://discord.com/api/oauth2/token` gegen
+3. Der Bot tauscht `code` bei `https://discord.com/api/v10/oauth2/token` gegen
    einen Access Token, mit Client-ID und `DISCORD_CLIENT_SECRET`.
 4. Er liest `GET /users/@me` und `GET /users/@me/guilds`. Er merkt sich die
    Server, auf denen die Person Eigentümer ist (`owner`) oder „Server
    verwalten“ oder „Administrator“ hat (`permissions`).
-5. Er widerruft den Token bei `https://discord.com/api/oauth2/token/revoke`.
+5. Er widerruft den Token bei `https://discord.com/api/v10/oauth2/token/revoke`.
    Gespeichert wird der Token nie. Er steht nur im Header `Authorization`
    der Aufrufe aus Schritt 4 und im Body des Widerrufs, nie in einer URL,
    im Log oder in einem Fehler, der geloggt wird.
 6. Er legt die Sitzung an, setzt das Cookie `sitzung`, löscht `anmeldung`
    und leitet auf `/dashboard/`.
+
+Die Aufrufe aus Schritt 3 bis 5 laufen über `@discordjs/rest` wie jede
+Anfrage des Bots, aber in einer eigenen Instanz und mit eigenem Header
+`Authorization` statt des Tokens des Bots. Jeder hat eine Frist von 10 s, Warten auf ein Rate-Limit
+eingeschlossen; verlangt Discord länger, scheitert der Schritt gleich.
+Siehe [Rate-Limits](../bot/rate-limits.md), „Anmeldung“.
 
 Scheitert ein Schritt, auch wenn die Person bei Discord ablehnt, leitet der
 Bot auf `/dashboard/?fehler=anmeldung`. Ins Log kommen nur der Schritt und

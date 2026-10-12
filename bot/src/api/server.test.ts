@@ -13,6 +13,8 @@ import { bereiteVor, masse } from '../module/begruessung/banner.js';
 import { behalteNur, vergiss } from '../kern/aufraeumen.js';
 import { speichere, speichereBild, standard, type Einstellung } from '../module/begruessung/begruessung.js';
 import { migriere, oeffne, verbindung } from '../kern/datenbank.js';
+import { Zaehlung, type DebugRoute, type EigeneGrenze } from '../kern/zaehlung.js';
+import { zaehleAnfragen } from '../discord/zaehlen.js';
 import {
   ANWENDUNG,
   ChannelType,
@@ -123,6 +125,11 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
   let basis: string;
   let port: number;
   const verwalter = mitglied(PERSON, [ROLLE_TEAM]);
+  // Zählt wie im Bot; die Zeilen zu 429 landen hier statt im Log.
+  const ratenLog: string[] = [];
+  const zaehlung = new Zaehlung({ log: (zeile) => ratenLog.push(zeile) });
+  const gegriffen = (name: EigeneGrenze) => zaehlung.stand([0]).eigene.find((e) => e.name === name)?.gegriffen ?? 0;
+  const anfragenAuf = (routen: DebugRoute[], weg: string) => routen.find((r) => `${r.methode} ${r.route}` === weg)?.anfragen ?? 0;
 
   before(async () => {
     if (!ziel) return;
@@ -131,13 +138,14 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
     mock = await mockDiscord();
     mock.meineServer = meineServer;
     client = discordClient(mock, gilden);
+    zaehleAnfragen(client.rest, zaehlung);
     api = erstelleApi({
       client,
+      zaehlung,
       db,
       anwendung: ANWENDUNG,
       geheimnis: GEHEIMNIS,
       dashboard: DASHBOARD,
-      discord: `${mock.url}/api/v10`,
       einstellungen: { delete: (server) => geleert.push(server) },
       uhr: () => jetzt,
     });
@@ -239,6 +247,40 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
       ]);
     });
 
+    test('bei 429 wartet die Anmeldung ein kurzes Retry-After ab; alle vier Aufrufe zählen mit', async () => {
+      const state = 'k'.repeat(43);
+      const vorher = mock.anfragen.length;
+      const routenVorher = zaehlung.stand([0]).routen;
+      mock.tauschWarten.push(0);
+      const antwort = await frage(basis, `/api/anmelden/zurueck?code=${CODE}&state=${state}`, { headers: { cookie: `anmeldung=${state}` } });
+      assert.equal(antwort.headers.get('location'), '/dashboard/');
+      assert.deepEqual(
+        mock.anfragen.slice(vorher).map((a) => `${a.methode} ${a.pfad}`),
+        ['POST /api/v10/oauth2/token', 'POST /api/v10/oauth2/token', 'GET /api/v10/users/@me', 'GET /api/v10/users/@me/guilds', 'POST /api/v10/oauth2/token/revoke'],
+      );
+      const routen = zaehlung.stand([0]).routen;
+      for (const [weg, mehr] of [['POST /oauth2/token', 2], ['GET /users/@me', 1], ['GET /users/@me/guilds', 1], ['POST /oauth2/token/revoke', 1]] as const) {
+        assert.equal(anfragenAuf(routen, weg) - anfragenAuf(routenVorher, weg), mehr, weg);
+      }
+      assert.equal(ratenLog.at(-1), 'Rate-Limit: 429 bei POST /oauth2/token, Scope user, global nein, Retry-After 0 s, Limit -, Remaining -, Reset-After - s.');
+    });
+
+    test('verlangt Discord länger als die Frist, scheitert die Anmeldung gleich, ohne Code und Token im Log', async (t) => {
+      const log = t.mock.method(console, 'error', () => {});
+      const state = 'l'.repeat(43);
+      const vorher = mock.anfragen.length;
+      mock.tauschWarten.push(60);
+      const los = Date.now();
+      const antwort = await frage(basis, `/api/anmelden/zurueck?code=${CODE}&state=${state}`, { headers: { cookie: `anmeldung=${state}` } });
+      assert.ok(Date.now() - los < 2_000);
+      assert.equal(antwort.headers.get('location'), '/dashboard/?fehler=anmeldung');
+      assert.deepEqual(mock.anfragen.slice(vorher).map((a) => `${a.methode} ${a.pfad}`), ['POST /api/v10/oauth2/token']);
+      const zeilen = log.mock.calls.map((c) => String(c.arguments[0]));
+      assert.deepEqual(zeilen, ['Anmeldung: Tausch: Discord antwortet 429, Retry-After 60 s']);
+      assert.equal(ratenLog.at(-1), 'Rate-Limit: 429 bei POST /oauth2/token, Scope user, global nein, Retry-After 60 s, Limit -, Remaining -, Reset-After - s.');
+      for (const zeile of [...zeilen, ...ratenLog]) assert.doesNotMatch(zeile, new RegExp(`${CODE}|${TOKEN}|${state}|\\d{17,}`));
+    });
+
     test('der Token wird auch widerrufen, wenn das Lesen der Person scheitert', async (t) => {
       const log = t.mock.method(console, 'error', () => {});
       mock.person = 500;
@@ -254,7 +296,7 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
     });
 
     test('mit https tragen die Cookies Secure', async () => {
-      const sicher = erstelleApi({ client, db, anwendung: ANWENDUNG, geheimnis: GEHEIMNIS, dashboard: 'https://dashboard.example', discord: `${mock.url}/api/v10` });
+      const sicher = erstelleApi({ client, db, anwendung: ANWENDUNG, geheimnis: GEHEIMNIS, dashboard: 'https://dashboard.example' });
       await new Promise<void>((fertig) => sicher.listen(0, '127.0.0.1', fertig));
       try {
         const antwort = await frage(`http://127.0.0.1:${(sicher.address() as AddressInfo).port}`, '/api/anmelden');
@@ -316,6 +358,7 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
     test('nach 60 Anfragen je Minute kommt 429 mit Retry-After, ohne Discord zu fragen', async () => {
       const kennung = await sitzung();
       const vorher = mitgliederAbrufe();
+      const griffe = gegriffen('sitzung');
       for (let i = 0; i < 60; i++) assert.equal((await frage(basis, `/api/server/${SERVER}/kanaele`, { sitzung: kennung })).status, 200);
       const antwort = await frage(basis, `/api/server/${SERVER}/kanaele`, { sitzung: kennung });
       assert.equal(antwort.status, 429);
@@ -323,6 +366,7 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
       const warten = Number(antwort.headers.get('retry-after'));
       assert.ok(warten >= 1 && warten <= 60, String(warten));
       assert.equal(mitgliederAbrufe(), vorher + 60);
+      assert.equal(gegriffen('sitzung'), griffe + 1);
       assert.equal((await frage(basis, '/api/ich', { sitzung: kennung })).status, 200);
     });
 
@@ -583,6 +627,7 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
     test('Bild und Vorschau zusammen höchstens 20 je Minute, mit Retry-After, ohne Discord zu fragen', async () => {
       const kennung = await sitzung();
       const vorher = mitgliederAbrufe();
+      const griffe = gegriffen('bilder');
       for (let i = 0; i < 10; i++) {
         assert.equal((await frage(basis, `${pfad}/vorschau`, { sitzung: kennung })).status, 404);
         assert.equal((await hoch(kennung, 'image/gif', pngBild(10, 10))).status, 415);
@@ -593,6 +638,7 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
       const warten = Number(antwort.headers.get('retry-after'));
       assert.ok(warten >= 1 && warten <= 60, String(warten));
       assert.equal(mitgliederAbrufe(), vorher + 20);
+      assert.equal(gegriffen('bilder'), griffe + 1);
       assert.equal((await frage(basis, `/api/server/${SERVER}/kanaele`, { sitzung: kennung })).status, 200);
     });
   });
@@ -691,12 +737,14 @@ Hallo <@${PERSON}>, nutzer\-02!`);
       for (let i = 0; i < 5; i++) assert.equal((await teste(fremd)).status, 403);
       const kennung = await sitzung();
       const vorher = mock.nachrichten.length;
+      const griffe = gegriffen('testnachricht');
       for (let i = 0; i < 3; i++) assert.equal((await teste(kennung)).status, 200);
       const antwort = await teste(kennung);
       assert.equal(antwort.status, 429);
       assert.deepEqual(await antwort.json(), { code: 'zu_viele' });
       assert.equal(antwort.headers.get('retry-after'), '60');
       assert.equal(mock.nachrichten.length, vorher + 3);
+      assert.equal(gegriffen('testnachricht'), griffe + 1);
     });
   });
 

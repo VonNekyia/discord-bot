@@ -3,7 +3,8 @@ import { Client, GatewayIntentBits, Options, Partials, type ClientOptions, type 
 // Nur `PATCH /channels/:id` wartet bei einem Rate-Limit nicht, sondern wirft
 // einen `RateLimitError`: Umbenennen kann bis zu 10 Minuten warten, und das
 // Menü nennt dann die Wartezeit. Alles andere, auch Nachrichten in
-// `/channels/:id/messages`, wartet weiter. Siehe docs/bot/rate-limits.md, „Kanäle ändern“.
+// `/channels/:id/messages`, wartet weiter. Die Anmeldung hat eine eigene
+// REST-Instanz (`oauthUeber`). Siehe docs/bot/rate-limits.md, „Kanäle ändern“.
 export function wartetNicht(daten: Pick<RateLimitData, 'method' | 'route'>): boolean {
   return daten.method.toUpperCase() === 'PATCH' && daten.route === '/channels/:id';
 }

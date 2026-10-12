@@ -31,7 +31,9 @@ import {
 import { BildFehler, bereiteVor } from '../module/begruessung/banner.js';
 import { text } from '../kern/fehler.js';
 import { lese, loescheBild, pruefe, speichere, speichereBild, type Art } from '../module/begruessung/begruessung.js';
+import { oauthUeber } from '../discord/oauth.js';
 import { wieDiscord } from '../discord/ordnung.js';
+import type { Zaehlung } from '../kern/zaehlung.js';
 import { raeumeVon } from '../module/sprachraeume/raeume.js';
 import { banner, sendeTest } from '../module/begruessung/senden.js';
 import { liesSprachraeume, liste as sprachkanaele, pruefe as pruefeSprachraeume, speichereSprachraeume } from '../module/sprachraeume/sprachraeume.js';
@@ -63,8 +65,9 @@ export interface ApiOptionen {
   anwendung: string;
   geheimnis: string;
   dashboard: string;
-  // Basis der REST-API von Discord für OAuth2; in Tests die gemockte.
-  discord?: string;
+  // Zählt, wie oft eine Grenze unten greift. Siehe docs/bot/rate-limits.md, „Eigene Grenzen“.
+  // Zählt auch die Anfragen der Anmeldung an Discord.
+  zaehlung?: Pick<Zaehlung, 'griff' | 'antwort'>;
   // Der Cache der Einstellungen; wer schreibt, löscht dort den Server.
   // Siehe docs/bot/cache.md, „So geht es“.
   einstellungen?: { delete(server: string): unknown };
@@ -99,6 +102,8 @@ export class Grenze {
     private readonly hoechstens: number,
     private readonly fenster = 60_000,
     private readonly uhr = () => Date.now(),
+    // Wenn die Grenze greift; für die Zählung.
+    private readonly griff?: () => void,
   ) {}
 
   // 0, wenn die Anfrage zählt; sonst die Sekunden, bis wieder eine geht.
@@ -108,6 +113,7 @@ export class Grenze {
     this.zeiten.set(schluessel, liste);
     const aelteste = liste[0];
     if (aelteste !== undefined && liste.length >= this.hoechstens) {
+      this.griff?.();
       return Math.ceil((aelteste + this.fenster - jetzt) / 1000);
     }
     liste.push(jetzt);
@@ -236,16 +242,18 @@ export function erstelleApi(o: ApiOptionen): Server {
   const origin = new URL(o.dashboard).origin;
   const sicher = o.dashboard.startsWith('https://');
   const oauth: OAuth = {
-    discord: o.discord ?? 'https://discord.com/api/v10',
+    // Über eine eigene REST-Instanz mit der Basis des Clients.
+    // Siehe docs/bot/rate-limits.md, „Anmeldung“.
+    frage: oauthUeber(o.client.rest, { zaehlung: o.zaehlung }),
     anwendung: o.anwendung,
     geheimnis: o.geheimnis,
     zurueck: `${o.dashboard}/api/anmelden/zurueck`,
   };
   const zeit = o.uhr ?? (() => Date.now());
-  const grenze = new Grenze(60, 60_000, zeit);
-  const grenzeBild = new Grenze(20, 60_000, zeit);
+  const grenze = new Grenze(60, 60_000, zeit, () => o.zaehlung?.griff('sitzung'));
+  const grenzeBild = new Grenze(20, 60_000, zeit, () => o.zaehlung?.griff('bilder'));
   // Je Server über alle Sitzungen. Siehe docs/schnittstelle/api.md, „Grenzen je Sitzung“.
-  const grenzeTest = new Grenze(3, 60_000, zeit);
+  const grenzeTest = new Grenze(3, 60_000, zeit, () => o.zaehlung?.griff('testnachricht'));
   const bildtypen = new Set(['image/png', 'image/jpeg', 'image/webp']);
   const sortierer = new Intl.Collator('de');
   const anmeldungWeg = cookie('anmeldung', '', '/api/anmelden', 0, sicher);

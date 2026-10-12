@@ -123,6 +123,8 @@ export interface MockDiscord {
   nachrichtFehler?: [number, number];
   // Sekunden in `Retry-After`, wenn ein `PATCH /channels/{id}` einen Namen setzt.
   umbenennenWarten?: number;
+  // Je kommendem `POST /oauth2/token` die Sekunden in `Retry-After` eines 429; leer: kein 429.
+  tauschWarten: number[];
 }
 
 // Eine Nachricht des Bots, wie Discord sie zurückgibt.
@@ -180,6 +182,7 @@ export async function mockDiscord(): Promise<MockDiscord> {
     kanaele: new Map(),
     geaendert: [],
     antworten: [],
+    tauschWarten: [],
   } as unknown as MockDiscord;
   let naechsterKanal = 800000000000000001n;
   mock.server = createServer((req, res) => {
@@ -201,6 +204,11 @@ export async function mockDiscord(): Promise<MockDiscord> {
         return res.writeHead(200, { 'content-type': 'image/png' }).end(avatarPng);
       }
       if (pfad === '/api/v10/oauth2/token') {
+        const warten = mock.tauschWarten.shift();
+        if (warten !== undefined) {
+          res.writeHead(429, { 'content-type': 'application/json', 'retry-after': String(warten), 'x-ratelimit-scope': 'user' });
+          return res.end(JSON.stringify({ message: 'You are being rate limited.', retry_after: warten, global: false }));
+        }
         const passt = req.headers.authorization === basic && form.get('code') === CODE && form.get('grant_type') === 'authorization_code';
         return passt ? antworte(200, { access_token: TOKEN, token_type: 'Bearer', expires_in: 604800, scope: 'identify guilds' }) : antworte(400, { error: 'invalid_grant' });
       }
