@@ -121,7 +121,8 @@ ID und Name. Die Guild dahinter liest nur die Discord-Schicht mit
 gibt sie zurück. Der Linter verbietet Modulen den Import von `guildVon`.
 Den Griff baut nur `serverVon`; eine Guild oder ein Objekt mit ID und Name
 passt nicht, wo ein Griff verlangt ist. `Kontext` aus `discord/kontext.ts`
-gibt den Modulen Griff und `Mitglied`.
+gibt den Modulen Griff und `Mitglied`; die API bekommt ihn von `verwaltet`,
+nach der Prüfung der Rechte.
 
 - Ein Test eines Moduls braucht dann keinen nachgebauten Client von
   discord.js mehr, nur eine Fälschung der Schicht.

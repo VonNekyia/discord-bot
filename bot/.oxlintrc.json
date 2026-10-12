@@ -4,7 +4,7 @@
   "extends": ["../.oxlintrc.json"],
   "ignorePatterns": ["dist"],
   "options": {
-    "maxWarnings": 13
+    "maxWarnings": 5
   },
   "overrides": [
     {
@@ -77,17 +77,15 @@
       }
     },
     {
-      // Altlasten: Casts und `!` an Eingaben von aussen. Sie sind Warnungen,
-      // bis der Umbau sie beseitigt; mehr als `maxWarnings` dürfen es nicht
-      // werden. Siehe docs/entwicklung/lint.md, „Altlasten“.
+      // Altlasten: Casts an Eingaben von aussen. Sie sind Warnungen, bis der
+      // Umbau sie beseitigt; mehr als `maxWarnings` dürfen es nicht werden.
+      // Siehe docs/entwicklung/lint.md, „Altlasten“.
       "files": [
-        "src/api/server.ts",
         "src/module/begruessung/begruessung.ts",
         "src/module/sprachraeume/sprachraeume.ts"
       ],
       "rules": {
-        "typescript/no-unsafe-type-assertion": "warn",
-        "typescript/no-non-null-assertion": "warn"
+        "typescript/no-unsafe-type-assertion": "warn"
       }
     }
   ]

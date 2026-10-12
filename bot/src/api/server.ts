@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage, type OutgoingHttpHeaders, type Server, type ServerResponse } from 'node:http';
-import { DiscordAPIError, PermissionFlagsBits, RESTJSONErrorCodes, type Client, type Guild, type GuildMember } from 'discord.js';
+import type { Client, Guild } from 'discord.js';
 import type { Pool } from 'pg';
 import {
   anmeldeFrist,
@@ -23,7 +23,7 @@ import { text } from '../kern/fehler.js';
 import { Grenze } from '../kern/grenze.js';
 import { Zaehlung } from '../kern/zaehlung.js';
 import { Berechtigte } from '../discord/eigentuemer.js';
-import { kontextVon, type Kontext } from '../discord/kontext.js';
+import { verwaltet, type Kontext, type NichtVerwalten } from '../discord/kontext.js';
 import { oauthUeber } from '../discord/oauth.js';
 import { debugStand } from '../discord/zaehlen.js';
 
@@ -79,21 +79,19 @@ class ApiFehler extends Error {
   }
 }
 
-// Der Bot ist auf dem Server, und die Person darf ihn jetzt verwalten.
+// Status und Code, wenn eine Person einen Server nicht verwalten darf.
 // Siehe docs/schnittstelle/anmeldung.md, „Rechte“.
-async function pruefeRechte(client: Client, id: string, nutzer: string): Promise<{ guild: Guild; mitglied: GuildMember }> {
-  const guild = client.guilds.cache.get(id);
-  if (!guild) throw new ApiFehler(404, 'nicht_gefunden');
-  if (!guild.available) throw new ApiFehler(503, 'nicht_erreichbar');
-  const mitglied = await guild.members.fetch({ user: nutzer, force: true }).catch((fehler: unknown) => {
-    const keinMitglied = [RESTJSONErrorCodes.UnknownMember, RESTJSONErrorCodes.UnknownUser];
-    if (fehler instanceof DiscordAPIError && keinMitglied.includes(fehler.code as RESTJSONErrorCodes)) {
-      throw new ApiFehler(403, 'kein_recht');
-    }
-    throw fehler;
-  });
-  if (!mitglied.permissions.has(PermissionFlagsBits.ManageGuild)) throw new ApiFehler(403, 'kein_recht');
-  return { guild, mitglied };
+const nichtVerwalten: Record<NichtVerwalten, [number, string]> = {
+  kein_server: [404, 'nicht_gefunden'],
+  nicht_erreichbar: [503, 'nicht_erreichbar'],
+  kein_recht: [403, 'kein_recht'],
+};
+
+// Ist die Grenze für `schluessel` erreicht, 429 mit Retry-After.
+// Siehe docs/bot/dashboard-api.md, „Grenzen und Zeitlimits“.
+function halte(grenze: Grenze, schluessel: string): void {
+  const warten = grenze.pruefe(schluessel);
+  if (warten > 0) throw new ApiFehler(429, 'zu_viele', undefined, { 'retry-after': String(warten) });
 }
 
 // Liest den Body bis `grenze` Byte. Wird er grösser, hört es auf zu lesen
@@ -133,32 +131,36 @@ interface Anfrage {
   res: ServerResponse;
   url: URL;
   cookies: Map<string, string>;
-  teile: string[];
-  sitzung?: Sitzung;
-  server?: Guild;
-  mitglied?: GuildMember;
 }
 
-interface Route {
+// Eine Anfrage mit gültiger Sitzung.
+interface MitSitzung extends Anfrage {
+  sitzung: Sitzung;
+}
+
+// Eine Anfrage an einen Server, nach Grenzen und Prüfung der Rechte.
+interface MitServer extends MitSitzung {
+  kontext: Kontext;
+}
+
+interface Pfad {
   methode: string;
   muster: RegExp;
   // Für das Log; nie der Pfad, er trägt IDs.
   name: string;
-  sitzung: boolean;
-  // Mit {id}: Grenze und Rechte vorher.
-  server: boolean;
-  // Ohne {id}, zählt aber zur Grenze je Sitzung, etwa GET /api/debug.
-  grenze?: boolean;
-  // Zählt auch zur Grenze für Bilder, Vorschau und Aktionen.
-  teuer?: boolean;
-  tue(a: Anfrage): Promise<void>;
 }
 
-// Server und Person einer Route mit {id}, nach der Prüfung der Rechte.
-function kontext(a: Anfrage): Kontext {
-  if (!a.server || !a.mitglied) throw new Error('Route ohne geprüften Server');
-  return kontextVon(a.server, a.mitglied);
-}
+// Eine Route nach Zugang; was `tue` bekommt, hat `fuehreAus` vorher
+// geprüft. Siehe docs/bot/dashboard-api.md, „Ablauf einer Anfrage“.
+type Route =
+  | (Pfad & { zugang: 'offen'; tue(a: Anfrage): Promise<void> })
+  // `grenze`: zählt zur Grenze je Sitzung, etwa GET /api/debug.
+  | (Pfad & { zugang: 'sitzung'; grenze?: boolean; tue(a: MitSitzung): Promise<void> })
+  // `muster` fängt als erste Gruppe die ID des Servers. Immer mit Grenze je
+  // Sitzung und Rechten; `teuer` zählt auch zur Grenze für Bilder, Vorschau und Aktionen.
+  | (Pfad & { zugang: 'server'; teuer?: boolean; tue(a: MitServer): Promise<void> });
+
+type ServerRoute = Extract<Route, { zugang: 'server' }>;
 
 // Jede Antwort trägt diese Header. Liegt noch ungelesener Body an, schliesst
 // die Verbindung danach, statt ihn zu lesen.
@@ -176,6 +178,45 @@ function sende(a: Anfrage, status: number, kopf: OutgoingHttpHeaders, body?: str
 function json(a: Anfrage, status: number, wert: unknown, kopf: OutgoingHttpHeaders = {}): void {
   const body = JSON.stringify(wert);
   sende(a, status, { 'content-type': 'application/json; charset=utf-8', 'content-length': Buffer.byteLength(body), ...kopf }, body);
+}
+
+// Was eine Methode an einem Baustein tut; fehlt dem Bereich die Methode,
+// startet die API nicht.
+function handlung(bereich: Bereich<Kontext>, seite: string, baustein: string, methode: Methode): ServerRoute['tue'] {
+  const fehlt = (was: string) => new Error(`Seite ${seite}: ${baustein} braucht ${was}.`);
+  const handlungen: Record<Methode, () => ServerRoute['tue']> = {
+    PUT() {
+      const ladeHoch = bereich.ladeHoch?.bind(bereich);
+      if (!ladeHoch) throw fehlt('ladeHoch');
+      return async (a) => {
+        const typ = (a.req.headers['content-type'] ?? '').split(';')[0]?.trim().toLowerCase() ?? '';
+        await ladeHoch(a.kontext, seite, baustein, { typ, lies: (hoechstens, code) => liesBody(a.req, hoechstens, code) });
+        sende(a, 204, {});
+      };
+    },
+    DELETE() {
+      const loesche = bereich.loesche?.bind(bereich);
+      if (!loesche) throw fehlt('loesche');
+      return async (a) => {
+        await loesche(a.kontext, seite, baustein);
+        sende(a, 204, {});
+      };
+    },
+    GET() {
+      const zeichne = bereich.zeichne?.bind(bereich);
+      if (!zeichne) throw fehlt('zeichne');
+      return async (a) => {
+        const png = await zeichne(a.kontext, seite, baustein);
+        sende(a, 200, { 'content-type': 'image/png', 'content-length': png.length }, png);
+      };
+    },
+    POST() {
+      const loeseAus = bereich.loeseAus?.bind(bereich);
+      if (!loeseAus) throw fehlt('loeseAus');
+      return async (a) => json(a, 200, await loeseAus(a.kontext, seite, baustein));
+    },
+  };
+  return handlungen[methode]();
 }
 
 // Die API des Dashboards. Lauscht noch nicht; das tut der Aufrufer, nur auf 127.0.0.1.
@@ -212,19 +253,18 @@ export function erstelleApi(o: ApiOptionen): Server {
 
   // Je Seite eine Route zum Speichern, je Baustein mit eigener Route die
   // Methoden seiner Art.
-  function seitenRouten(): Route[] {
-    const routen: Route[] = [];
+  function seitenRouten(): ServerRoute[] {
+    const routen: ServerRoute[] = [];
     for (const { id, bausteine, bereich } of seiten) {
       const pfad = `^/api/server/(\\d{1,20})/seiten/${id}`;
       routen.push({
         methode: 'PUT',
         muster: new RegExp(`${pfad}$`),
         name: `seiten/${id}`,
-        sitzung: true,
-        server: true,
+        zugang: 'server',
         async tue(a) {
           const eingabe = await liesJson(a.req);
-          json(a, 200, await bereich.speichere(kontext(a), id, eingabe));
+          json(a, 200, await bereich.speichere(a.kontext, id, eingabe));
         },
       });
       for (const [baustein, art] of Object.entries(bausteine)) {
@@ -232,50 +272,11 @@ export function erstelleApi(o: ApiOptionen): Server {
         for (const methode of methoden[art]) {
           const tue = handlung(bereich, id, baustein, methode);
           // Hochladen, Zeichnen und Auslösen sind teuer, Löschen nicht.
-          routen.push({ methode, muster, name: `seiten/${id}/${baustein}`, sitzung: true, server: true, teuer: methode !== 'DELETE', tue });
+          routen.push({ methode, muster, name: `seiten/${id}/${baustein}`, zugang: 'server', teuer: methode !== 'DELETE', tue });
         }
       }
     }
     return routen;
-  }
-
-  // Was eine Methode an einem Baustein tut; fehlt dem Bereich die Methode,
-  // startet die API nicht.
-  function handlung(bereich: Bereich<Kontext>, seite: string, baustein: string, methode: Methode): Route['tue'] {
-    const fehlt = (was: string) => new Error(`Seite ${seite}: ${baustein} braucht ${was}.`);
-    const handlungen: Record<Methode, () => Route['tue']> = {
-      PUT() {
-        const ladeHoch = bereich.ladeHoch?.bind(bereich);
-        if (!ladeHoch) throw fehlt('ladeHoch');
-        return async (a) => {
-          const typ = (a.req.headers['content-type'] ?? '').split(';')[0]?.trim().toLowerCase() ?? '';
-          await ladeHoch(kontext(a), seite, baustein, { typ, lies: (hoechstens, code) => liesBody(a.req, hoechstens, code) });
-          sende(a, 204, {});
-        };
-      },
-      DELETE() {
-        const loesche = bereich.loesche?.bind(bereich);
-        if (!loesche) throw fehlt('loesche');
-        return async (a) => {
-          await loesche(kontext(a), seite, baustein);
-          sende(a, 204, {});
-        };
-      },
-      GET() {
-        const zeichne = bereich.zeichne?.bind(bereich);
-        if (!zeichne) throw fehlt('zeichne');
-        return async (a) => {
-          const png = await zeichne(kontext(a), seite, baustein);
-          sende(a, 200, { 'content-type': 'image/png', 'content-length': png.length }, png);
-        };
-      },
-      POST() {
-        const loeseAus = bereich.loeseAus?.bind(bereich);
-        if (!loeseAus) throw fehlt('loeseAus');
-        return async (a) => json(a, 200, await loeseAus(kontext(a), seite, baustein));
-      },
-    };
-    return handlungen[methode]();
   }
 
   const routen: Route[] = [
@@ -283,8 +284,7 @@ export function erstelleApi(o: ApiOptionen): Server {
       methode: 'GET',
       muster: /^\/api\/anmelden$/,
       name: 'anmelden',
-      sitzung: false,
-      server: false,
+      zugang: 'offen',
       async tue(a) {
         const state = zufall();
         sende(a, 302, { location: zuDiscord(oauth, state), 'set-cookie': cookie('anmeldung', state, '/api/anmelden', anmeldeFrist, sicher) });
@@ -294,8 +294,7 @@ export function erstelleApi(o: ApiOptionen): Server {
       methode: 'GET',
       muster: /^\/api\/anmelden\/zurueck$/,
       name: 'anmelden/zurueck',
-      sitzung: false,
-      server: false,
+      zugang: 'offen',
       // Siehe docs/schnittstelle/anmeldung.md, „Ablauf“.
       async tue(a) {
         try {
@@ -323,10 +322,9 @@ export function erstelleApi(o: ApiOptionen): Server {
       methode: 'POST',
       muster: /^\/api\/abmelden$/,
       name: 'abmelden',
-      sitzung: true,
-      server: false,
+      zugang: 'sitzung',
       async tue(a) {
-        await loescheSitzung(o.db, a.sitzung!.kennung);
+        await loescheSitzung(o.db, a.sitzung.kennung);
         sende(a, 204, { 'set-cookie': cookie('sitzung', '', '/', 0, sicher) });
       },
     },
@@ -334,10 +332,9 @@ export function erstelleApi(o: ApiOptionen): Server {
       methode: 'GET',
       muster: /^\/api\/ich$/,
       name: 'ich',
-      sitzung: true,
-      server: false,
+      zugang: 'sitzung',
       async tue(a) {
-        const { nutzer, name, avatar } = a.sitzung!;
+        const { nutzer, name, avatar } = a.sitzung;
         // `GET /api/ich` scheitert nicht daran, dass Discord die Anwendung nicht liefert.
         const debug = await berechtigte.darf(nutzer).catch((fehler: unknown) => {
           console.error(`API ich: Eigentümer nicht gelesen: ${text(fehler)}`);
@@ -350,14 +347,12 @@ export function erstelleApi(o: ApiOptionen): Server {
       methode: 'GET',
       muster: /^\/api\/debug$/,
       name: 'debug',
-      sitzung: true,
-      server: false,
+      zugang: 'sitzung',
       grenze: true,
       // Scheitert das Lesen der Anwendung, wird es wie jeder andere Fehler 503.
       // Siehe docs/schnittstelle/debug.md.
       async tue(a) {
-        const { sitzung } = a;
-        if (!sitzung || !(await berechtigte.darf(sitzung.nutzer))) throw new ApiFehler(403, 'kein_recht');
+        if (!(await berechtigte.darf(a.sitzung.nutzer))) throw new ApiFehler(403, 'kein_recht');
         json(a, 200, debugStand(o.client, zaehlung));
       },
     },
@@ -365,10 +360,9 @@ export function erstelleApi(o: ApiOptionen): Server {
       methode: 'GET',
       muster: /^\/api\/server$/,
       name: 'server',
-      sitzung: true,
-      server: false,
+      zugang: 'sitzung',
       async tue(a) {
-        const liste = a.sitzung!.server
+        const liste = a.sitzung.server
           .map((id) => o.client.guilds.cache.get(id))
           .filter((guild): guild is Guild => guild?.available === true)
           .map((guild) => ({ id: guild.id, name: guild.name, icon: guild.iconURL({ size: 128 }) }))
@@ -380,48 +374,51 @@ export function erstelleApi(o: ApiOptionen): Server {
       methode: 'GET',
       muster: /^\/api\/server\/(\d{1,20})\/seiten$/,
       name: 'seiten',
-      sitzung: true,
-      server: true,
+      zugang: 'server',
       // Siehe docs/schnittstelle/baukasten.md, „Routen“.
       async tue(a) {
-        const k = kontext(a);
-        json(a, 200, (await Promise.all(o.bereiche.map((b) => b.zeige(k)))).flat());
+        json(a, 200, (await Promise.all(o.bereiche.map((b) => b.zeige(a.kontext)))).flat());
       },
     },
     ...seitenRouten(),
   ];
 
+  // Prüft, was der Zugang der Route verlangt, und gibt ihr das Ergebnis.
+  async function fuehreAus(route: Route, a: Anfrage, treffer: RegExpExecArray): Promise<void> {
+    if (route.zugang === 'offen') return route.tue(a);
+    const sitzung = await findeSitzung(o.db, a.cookies.get('sitzung'));
+    if (!sitzung) throw new ApiFehler(401, 'nicht_angemeldet');
+    const schluessel = sitzung.kennung.toString('hex');
+    if (route.zugang === 'sitzung') {
+      if (route.grenze) halte(grenze, schluessel);
+      return route.tue({ ...a, sitzung });
+    }
+    // Die Grenzen vor den Rechten: Eine abgelehnte Anfrage kostet Discord nichts.
+    halte(grenze, schluessel);
+    if (route.teuer) halte(grenzeBild, schluessel);
+    const id = treffer[1];
+    if (id === undefined) throw new Error(`Route ${route.name} ohne ID des Servers`);
+    const kontext = await verwaltet(o.client, id, sitzung.nutzer);
+    if (typeof kontext === 'string') throw new ApiFehler(...nichtVerwalten[kontext]);
+    return route.tue({ ...a, sitzung, kontext });
+  }
+
   async function bearbeite(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const url = new URL(req.url ?? '/', 'http://api');
-    const a: Anfrage = { req, res, url, cookies: liesCookies(req.headers.cookie), teile: [] };
-    let route: Route | undefined;
-    for (const r of routen) {
-      const treffer = r.methode === req.method ? r.muster.exec(url.pathname) : null;
+    const a: Anfrage = { req, res, url, cookies: liesCookies(req.headers.cookie) };
+    let gefunden: { route: Route; treffer: RegExpExecArray } | undefined;
+    for (const route of routen) {
+      const treffer = route.methode === req.method ? route.muster.exec(url.pathname) : null;
       if (treffer) {
-        route = r;
-        a.teile = [...treffer];
+        gefunden = { route, treffer };
         break;
       }
     }
     try {
-      if (!route) throw new ApiFehler(404, 'nicht_gefunden');
+      if (!gefunden) throw new ApiFehler(404, 'nicht_gefunden');
       // Siehe docs/schnittstelle/anmeldung.md, „Origin“.
-      if (route.methode !== 'GET' && req.headers.origin !== origin) throw new ApiFehler(403, 'origin_falsch');
-      if (route.sitzung) {
-        a.sitzung = await findeSitzung(o.db, a.cookies.get('sitzung'));
-        if (!a.sitzung) throw new ApiFehler(401, 'nicht_angemeldet');
-      }
-      if (route.server || route.grenze) {
-        // Die Grenze vor den Rechten: Eine abgelehnte Anfrage kostet Discord nichts.
-        const warten = grenze.pruefe(a.sitzung!.kennung.toString('hex'));
-        if (warten > 0) throw new ApiFehler(429, 'zu_viele', undefined, { 'retry-after': String(warten) });
-      }
-      if (route.server) {
-        const wartenBild = route.teuer ? grenzeBild.pruefe(a.sitzung!.kennung.toString('hex')) : 0;
-        if (wartenBild > 0) throw new ApiFehler(429, 'zu_viele', undefined, { 'retry-after': String(wartenBild) });
-        ({ guild: a.server, mitglied: a.mitglied } = await pruefeRechte(o.client, a.teile[1]!, a.sitzung!.nutzer));
-      }
-      await route.tue(a);
+      if (gefunden.route.methode !== 'GET' && req.headers.origin !== origin) throw new ApiFehler(403, 'origin_falsch');
+      await fuehreAus(gefunden.route, a, gefunden.treffer);
     } catch (fehler) {
       if (fehler instanceof ApiFehler) {
         return json(a, fehler.status, fehler.feld ? { code: fehler.code, feld: fehler.feld } : { code: fehler.code }, fehler.kopf);
@@ -430,7 +427,7 @@ export function erstelleApi(o: ApiOptionen): Server {
         const kopf = fehler.warten ? { 'retry-after': String(fehler.warten) } : {};
         return json(a, fehler.status, fehler.feld ? { code: fehler.code, feld: fehler.feld } : { code: fehler.code }, kopf);
       }
-      console.error(`API ${route?.name ?? '?'}: ${text(fehler)}`);
+      console.error(`API ${gefunden?.route.name ?? '?'}: ${text(fehler)}`);
       json(a, 503, { code: 'nicht_erreichbar' });
     }
   }
