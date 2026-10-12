@@ -1,7 +1,7 @@
 // Rechnet die Länge eines Texts so, wie das Backend sie prüft: jeder
 // Platzhalter mit seinem längsten Wert, ein Zeichen ist eine UTF-16-Einheit.
 // Siehe docs/benutzung/begruessung.md, „Platzhalter“, und
-// docs/schnittstelle/api.md, „Einstellung speichern“.
+// docs/schnittstelle/begruessung.md, „Einstellung speichern“.
 
 type Werte = { nutzer: number; name: number; server: number; anzahl: number };
 

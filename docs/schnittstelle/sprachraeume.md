@@ -1,40 +1,50 @@
 ---
 title: API der Sprachräume
-description: Die Routen, mit denen das Dashboard die Sprachräume eines Servers einstellt; Typen, Prüfregeln, Codes.
+description: Die Seite Sprachräume im Baukasten des Dashboards; ihre Bausteine, Sprachkanäle und Kategorien als Optionen mit bereit, der Wert, Prüfregeln und Codes.
 code:
-  - bot/src/index.ts
+  - bot/src/module/sprachraeume/seiten.ts
   - bot/src/module/sprachraeume/sprachraeume.ts
   - bot/src/api/server.ts
-  - web/serve.mjs
 ---
 
 # API der Sprachräume
 
-Mit diesen Routen stellt das Team im Dashboard die Sprachräume eines
-Servers ein: Erzeuger, Kategorien, Namensvorlagen und Limits. Ein Menü-Kanal
-gehört nicht dazu; jeder Raum bekommt sein Menü im eigenen Textchat. Was
-die Sprachräume in Discord tun, steht in
-[Sprachräume](../benutzung/sprachraeume.md). Grundregeln, Rechte, Fehlerformat
-und Grenzen je Sitzung gelten wie in [API des Dashboards](api.md).
+Das Modul Sprachräume meldet im [Baukasten](baukasten.md) eine Seite an:
+`sprachraeume`. Mit ihr stellt das Team die Sprachräume eines Servers ein:
+Erzeuger, Kategorien, Namensvorlagen und Limits. Ein Menü-Kanal gehört
+nicht dazu; jeder Raum bekommt sein Menü im eigenen Textchat. Was die
+Sprachräume in Discord tun, steht in [Sprachräume](../benutzung/sprachraeume.md).
+Routen, Typen der Bausteine, Fehlerformat und Grenzen gelten wie im
+Baukasten und in [API des Dashboards](api.md).
 
-## Routen
+## Seite
 
-| Methode und Pfad | Antwort |
-|---|---|
-| `GET /api/server/{id}/sprachkanaele` | `200` `{ sprachkanaele: Sprachkanal[], kategorien: Kategorie[], ohneKategorie: { bereit: boolean } }` |
-| `GET /api/server/{id}/sprachraeume` | `200` `Sprachraeume` |
-| `PUT /api/server/{id}/sprachraeume` | `200` `Sprachraeume`, so wie gespeichert |
+| Seite | Titel | Bausteine mit Route |
+|---|---|---|
+| `sprachraeume` | Sprachräume | keine |
+
+Gespeichert wird mit `PUT /api/server/{id}/seiten/sprachraeume`. Die Texte
+der Bausteine und die Sätze zu den Codes stehen in
+`bot/src/module/sprachraeume/seiten.ts`.
+
+## Bausteine
+
+| ID | Art | Was |
+|---|---|---|
+| `rechte` | `hinweis`, `warn` | nur ohne `ohneKategorie.bereit`, siehe „Typen“; nennt die Rechte aus [Sprachräume](../benutzung/sprachraeume.md), „Rechte und Intent“ |
+| `an` | `schalter` | Aktiv |
+| `erzeuger` | `liste` | höchstens 10, Kopf „Erzeuger“ mit dem Namen des Sprachkanals; neu mit `{name}s Raum`, Limit 0, ohne Kategorie |
+| `erzeuger.<i>.kanal` | `auswahl` | die Sprachkanäle; `pflicht` `erzeuger_fehlt`, `unbekannt` `erzeuger_unbekannt`, `einmalig` `erzeuger_doppelt`; ohne `bereit` gesperrt mit `erzeuger_ohne_recht` |
+| `erzeuger.<i>.kategorie` | `auswahl` | die Kategorien; `leer` heisst „Kategorie des Erzeugers“, `unbekannt` `kategorie_unbekannt`; ohne `bereit` gesperrt mit `kategorie_ohne_recht` |
+| `erzeuger.<i>.name` | `text` | eine Zeile, `grenze` 100, `platzhalter` `{ name: 32 }`, `pflicht` `name_leer` |
+| `erzeuger.<i>.limit` | `zahl` | 0 bis 99, `ungueltig` `limit_ungueltig` |
+
+`erzeuger_fehlt` meldet nur die Oberfläche, wenn kein Sprachkanal gewählt
+ist; der Bot sieht dann einen leeren Wert und meldet `ungueltig`.
 
 ## Typen
 
 ```ts
-type Sprachkanal = {
-  id: string;
-  name: string;
-  kategorie: { id: string; name: string } | null;
-  bereit: boolean;
-};
-type Kategorie = { id: string; name: string; bereit: boolean };
 type Erzeuger = {
   kanal: string;
   kategorie: string | null; // null: die Kategorie des Erzeugers
@@ -47,31 +57,39 @@ type Sprachraeume = {
 };
 ```
 
-- `GET …/sprachkanaele` liefert die Sprachkanäle und die Kategorien des
-  Servers, sortiert wie `GET …/kanaele`, siehe [API des Dashboards](api.md),
-  „Typen“. Bühnen gehören nicht dazu, die Räume selbst auch nicht; darum
-  ist ein Raum als Erzeuger `erzeuger_unbekannt`.
-- `Sprachkanal.bereit`: Der Bot darf dort den Kanal sehen, sich verbinden
-  und Mitglieder verschieben. Nur dann taugt er als Erzeuger.
-- `ohneKategorie.bereit`: Der Bot hat auf dem ganzen Server alle Rechte aus
-  [Sprachräume](../benutzung/sprachraeume.md), „Rechte und Intent“. Ohne
-  sie kann er nirgends Räume anlegen.
-- `Kategorie.bereit`: `ohneKategorie.bereit`, die Kategorie nimmt dem Bot
-  keins dieser Rechte, und jedes Recht, das ein Rechte-Eintrag der
-  Kategorie erlaubt oder verbietet, hat der Bot auf dem Server. Nur dann
-  kann er dort Räume anlegen, denn er kopiert diese Einträge in jeden Raum,
-  siehe [Sprachräume](../benutzung/sprachraeume.md), „Ablauf“. Ist
-  `kategorie` `null` und steht der Erzeuger in keiner Kategorie, gilt
-  `ohneKategorie.bereit`. So kann die Oberfläche `kategorie_ohne_recht`
-  vor dem Speichern erkennen.
-- Ohne gespeicherte Zeile liefert `GET …/sprachraeume`
-  `{ an: false, erzeuger: [] }`.
-- Gespeicherte IDs kommen, wie sie sind, auch wenn es den Kanal nicht mehr
-  gibt, wie bei der Begrüssung.
+`Sprachraeume` ist der Wert der Seite. Ohne gespeicherte Zeile ist er
+`{ an: false, erzeuger: [] }`. Gespeicherte IDs kommen, wie sie sind, auch
+wenn es den Kanal nicht mehr gibt, wie bei der Begrüssung.
+
+Die Optionen der beiden Auswahlen kommen aus `liste` in
+`bot/src/module/sprachraeume/sprachraeume.ts`:
+
+- Sprachkanäle und Kategorien des Servers, sortiert wie die Kanäle der
+  Begrüssung, siehe [API der Begrüssung](begruessung.md), „Bausteine“.
+  Bühnen gehören nicht dazu, die Räume selbst auch nicht; darum ist ein
+  Raum als Erzeuger `erzeuger_unbekannt`. `gruppe` eines Sprachkanals ist
+  seine Kategorie.
+- Ein Sprachkanal ist `bereit`, wenn der Bot dort den Kanal sehen, sich
+  verbinden und Mitglieder verschieben darf. Nur dann taugt er als
+  Erzeuger.
+- `ohneKategorie.bereit`: Der Bot hat auf dem ganzen Server alle Rechte
+  aus [Sprachräume](../benutzung/sprachraeume.md), „Rechte und Intent“.
+  Ohne sie kann er nirgends Räume anlegen.
+- Eine Kategorie ist `bereit`, wenn `ohneKategorie.bereit` gilt, die
+  Kategorie dem Bot keins dieser Rechte nimmt und er jedes Recht, das ein
+  Rechte-Eintrag der Kategorie erlaubt oder verbietet, auf dem Server hat.
+  Nur dann kann er dort Räume anlegen, denn er kopiert diese Einträge in
+  jeden Raum, siehe [Sprachräume](../benutzung/sprachraeume.md), „Ablauf“.
+  Ist `kategorie` `null` und steht der Erzeuger in keiner Kategorie, gilt
+  `ohneKategorie.bereit`.
+
+Ob die Kategorie eines Erzeugers ohne eigene Kategorie geht, hängt von
+zwei Feldern ab. Das prüft nur der Bot; gespeichert steht es als `fund` in
+der Seite.
 
 ## Sprachräume einstellen
 
-`PUT …/sprachraeume` nimmt `Sprachraeume`. Das Backend prüft in dieser
+`PUT …/seiten/sprachraeume` nimmt `Sprachraeume`. Der Bot prüft in dieser
 Reihenfolge und antwortet beim ersten Fehler mit `400`, dem Code und dem
 Feld. Bei einem Erzeuger nennt das Feld seine Stelle in der Liste, etwa
 `erzeuger.0.kanal`.
@@ -80,10 +98,10 @@ Feld. Bei einem Erzeuger nennt das Feld seine Stelle in der Liste, etwa
 |---|---|---|
 | alle | jedes Feld da, mit dem richtigen Typ; `erzeuger` ist eine Liste; kein NUL (`\0`) in `name` | `ungueltig` |
 | `erzeuger` | höchstens 10 Einträge | `zu_viele_erzeuger` |
-| `erzeuger.<i>.kanal` | ein Sprachkanal aus `GET …/sprachkanaele` | `erzeuger_unbekannt` |
-| `erzeuger.<i>.kanal` | mit `bereit: true` | `erzeuger_ohne_recht` |
+| `erzeuger.<i>.kanal` | ein Sprachkanal aus den Optionen | `erzeuger_unbekannt` |
+| `erzeuger.<i>.kanal` | mit `bereit` | `erzeuger_ohne_recht` |
 | `erzeuger.<i>.kanal` | jeder Kanal nur einmal in der Liste | `erzeuger_doppelt` |
-| `erzeuger.<i>.kategorie` | `null` oder eine Kategorie aus `GET …/sprachkanaele` | `kategorie_unbekannt` |
+| `erzeuger.<i>.kategorie` | `null` oder eine Kategorie aus den Optionen | `kategorie_unbekannt` |
 | `erzeuger.<i>.kategorie` | der Bot darf dort Räume anlegen, siehe `bereit` oben | `kategorie_ohne_recht` |
 | `erzeuger.<i>.name` | nicht leer, nicht nur Leerzeichen | `name_leer` |
 | `erzeuger.<i>.name` | höchstens 100 Zeichen, wenn `{name}` 32 Zeichen hat | `name_zu_lang` |
@@ -94,10 +112,12 @@ Feld. Bei einem Erzeuger nennt das Feld seine Stelle in der Liste, etwa
   `erzeuger.1.limit` oder `erzeuger.0.name` bei NUL. Ist `erzeuger` keine
   Liste, heisst das Feld `erzeuger`; ist der Body kein Objekt, `an`, wie
   bei der Begrüssung.
-- Zeichen zählen wie in [API des Dashboards](api.md), „Einstellung
-  speichern“. 32 ist die längste Länge eines Anzeigenamens, siehe
+- Zeichen zählen wie in [Baukasten](baukasten.md), „Länge eines Texts“.
+  32 ist die längste Länge eines Anzeigenamens, siehe
   [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md),
   „Platzhalter“.
+- Die Antwort ist `{ wert, meldung }`; `meldung` sagt, wie viele Erzeuger
+  wirken, oder dass keine neuen Räume entstehen.
 - Neue Werte gelten für Räume, die danach entstehen. Bestehende Räume
   bleiben, wie sie sind.
 - Ist `an` aus, legt der Bot keine neuen Räume an. Bestehende bleiben, bis

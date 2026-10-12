@@ -103,7 +103,7 @@ In `**/*.test.ts` und `bot/src/testhilfe.ts` gilt anders:
 Was beim Einführen schon da war und nicht schnell geht, ist eine Warnung
 statt eines Fehlers: je Datei unter `overrides` in `bot/.oxlintrc.json`
 und `web/.oxlintrc.json`. `maxWarnings` ist die Zahl dieser Warnungen,
-im Bot zusammen mit den 14 Grenzverletzungen aus
+im Bot zusammen mit den 9 Grenzverletzungen aus
 [Struktur von Bot und Oberfläche](struktur.md), „Was noch fehlt“. Eine
 neue Warnung lässt die Prüfung scheitern.
 
@@ -111,8 +111,8 @@ Stand 2026-10-12:
 
 | Paket | Regel | Funde | wo |
 |---|---|---|---|
-| `bot/` | `no-non-null-assertion` | 30 | `api/server.ts`: `a.sitzung!` und `a.server!` in den Routen |
-| `bot/` | `no-unsafe-type-assertion` | 11 | Pfadteile wie `a.teile[2] as Art` in `api/server.ts`, `custom_id` in `module/sprachraeume/knoepfe.ts`, Zeilen der Datenbank |
+| `bot/` | `no-non-null-assertion` | 7 | `api/server.ts`: `a.sitzung!` in den Routen und beim Prüfen der Rechte |
+| `bot/` | `no-unsafe-type-assertion` | 6 | der Code eines Fehlers von Discord in `api/server.ts`, `custom_id` und ein Fehler in `module/sprachraeume/knoepfe.ts`, die geprüfte Eingabe in `pruefe` der Begrüssung und der Sprachräume |
 | `web/` | `no-unsafe-type-assertion` | 22 | `querySelector(…) as T` und Antworten der API |
 | `web/` | `no-unnecessary-type-parameters` | 4 | die Helfer `finde` und `element` |
 | `web/` | `no-new` | 2 | Formulare, die sich im Konstruktor selbst anhängen |

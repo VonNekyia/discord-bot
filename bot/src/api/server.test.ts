@@ -7,10 +7,15 @@ import { fileURLToPath } from 'node:url';
 import type { Client } from 'discord.js';
 import type { Pool } from 'pg';
 import { legeSitzungAn, raeumeAuf } from './anmeldung.js';
-import { apiUmgebung, erstelleApi, Grenze } from './server.js';
+import { apiUmgebung, erstelleApi } from './server.js';
 import { createCanvas, loadImage } from '@napi-rs/canvas';
 import { bereiteVor, masse } from '../module/begruessung/banner.js';
 import { behalteNur, vergiss } from '../kern/aufraeumen.js';
+import type { Bereich } from '../kern/baukasten.js';
+import { Grenze } from '../kern/grenze.js';
+import type { Kontext } from '../discord/kontext.js';
+import { begruessungsBereich } from '../module/begruessung/seiten.js';
+import { sprachraeumeBereich } from '../module/sprachraeume/seiten.js';
 import { speichere, speichereBild, standard, type Einstellung } from '../module/begruessung/begruessung.js';
 import { migriere, oeffne, verbindung } from '../kern/datenbank.js';
 import { Zaehlung, type DebugRoute, type EigeneGrenze } from '../kern/zaehlung.js';
@@ -113,6 +118,22 @@ test('Grenze lässt 60 Anfragen je Minute zu und nennt die Sekunden bis zur näc
   assert.equal(grenze.pruefe('a'), 0);
 });
 
+test('erstelleApi weist doppelte, zu viele und ungültige Seiten ab', () => {
+  const bereich = (seiten: Bereich<Kontext>['seiten'], mehr: Partial<Bereich<Kontext>> = {}): Bereich<Kontext> => ({
+    seiten,
+    zeige: async () => [],
+    speichere: async () => ({ wert: {}, meldung: { titel: '', text: '' } }),
+    ...mehr,
+  });
+  const api = (...bereiche: Bereich<Kontext>[]) =>
+    erstelleApi({ client: { rest: { options: { api: 'http://127.0.0.1:1', version: '10', retries: 0, timeout: 1000 } } } as unknown as Client, db: {} as Pool, anwendung: ANWENDUNG, geheimnis: GEHEIMNIS, dashboard: DASHBOARD, bereiche });
+  assert.throws(() => api(bereich({ a: {} }), bereich({ a: {} })), /a ist doppelt/);
+  assert.throws(() => api(bereich(Object.fromEntries(['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((id) => [id, {}])))), /Mehr als 6 Seiten/);
+  assert.throws(() => api(bereich({ 'a/b': {} })), /taugt nicht als Pfad/);
+  assert.throws(() => api(bereich({ a: { b: 'aktion' } })), /b braucht loeseAus/);
+  api(bereich({ a: { b: 'aktion' } }, { loeseAus: async () => ({ titel: '', text: '' }) })).close();
+});
+
 describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt' }, () => {
   let db: Pool;
   let mock: MockDiscord;
@@ -146,8 +167,11 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
       anwendung: ANWENDUNG,
       geheimnis: GEHEIMNIS,
       dashboard: DASHBOARD,
-      einstellungen: { delete: (server) => geleert.push(server) },
       uhr: () => jetzt,
+      bereiche: [
+        begruessungsBereich({ db, einstellungen: { delete: (server) => geleert.push(server) }, uhr: () => jetzt, zaehlung }),
+        sprachraeumeBereich({ db }),
+      ],
     });
     await new Promise<void>((fertig) => api.listen(0, '127.0.0.1', fertig));
     port = (api.address() as AddressInfo).port;
@@ -173,6 +197,21 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
   }
 
   const mitgliederAbrufe = () => mock.anfragen.filter((a) => a.pfad.includes('/members/')).length;
+
+  type SeiteAntwort = {
+    id: string;
+    titel: string;
+    wert: Record<string, unknown>;
+    bausteine: { id: string; art: string; optionen?: unknown[] }[];
+    daneben: { id: string; art: string }[];
+    fund: unknown;
+  };
+  // Eine Seite aus GET …/seiten.
+  async function seite(kennung: string, id: string): Promise<SeiteAntwort | undefined> {
+    const liste = (await (await frage(basis, `/api/server/${SERVER}/seiten`, { sitzung: kennung })).json()) as SeiteAntwort[];
+    return liste.find((s) => s.id === id);
+  }
+  const gespeichert = (text: string) => ({ titel: 'Gespeichert.', text });
 
   describe('Anmeldung', () => {
     test('anmelden setzt ein state-Cookie und leitet zu Discord', async () => {
@@ -296,7 +335,7 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
     });
 
     test('mit https tragen die Cookies Secure', async () => {
-      const sicher = erstelleApi({ client, db, anwendung: ANWENDUNG, geheimnis: GEHEIMNIS, dashboard: 'https://dashboard.example' });
+      const sicher = erstelleApi({ client, db, anwendung: ANWENDUNG, geheimnis: GEHEIMNIS, dashboard: 'https://dashboard.example', bereiche: [] });
       await new Promise<void>((fertig) => sicher.listen(0, '127.0.0.1', fertig));
       try {
         const antwort = await frage(`http://127.0.0.1:${(sicher.address() as AddressInfo).port}`, '/api/anmelden');
@@ -336,31 +375,31 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
     test('Bot nicht auf dem Server gibt 404, kein Mitglied und Recht entzogen geben 403', async () => {
       const kennung = await sitzung();
       const vorher = mitgliederAbrufe();
-      const ohneBot = await frage(basis, `/api/server/${OHNE_BOT}/kanaele`, { sitzung: kennung });
+      const ohneBot = await frage(basis, `/api/server/${OHNE_BOT}/seiten`, { sitzung: kennung });
       assert.equal(ohneBot.status, 404);
       assert.deepEqual(await ohneBot.json(), { code: 'nicht_gefunden' });
       assert.equal(mitgliederAbrufe(), vorher);
 
-      const keinMitglied = await frage(basis, `/api/server/${SERVER}/kanaele`, { sitzung: await legeSitzungAn(db, { nutzer: FREMD, name: 'x', avatar: null, server: [] }) });
+      const keinMitglied = await frage(basis, `/api/server/${SERVER}/seiten`, { sitzung: await legeSitzungAn(db, { nutzer: FREMD, name: 'x', avatar: null, server: [] }) });
       assert.equal(keinMitglied.status, 403);
       assert.deepEqual(await keinMitglied.json(), { code: 'kein_recht' });
 
-      assert.equal((await frage(basis, `/api/server/${SERVER}/begruessung`, { sitzung: kennung })).status, 200);
+      assert.equal((await frage(basis, `/api/server/${SERVER}/seiten`, { sitzung: kennung })).status, 200);
       mock.mitglieder.set(`${SERVER}/${PERSON}`, mitglied(PERSON, []));
-      const entzogen = await frage(basis, `/api/server/${SERVER}/begruessung`, { sitzung: kennung });
+      const entzogen = await frage(basis, `/api/server/${SERVER}/seiten`, { sitzung: kennung });
       assert.equal(entzogen.status, 403);
       assert.deepEqual(await entzogen.json(), { code: 'kein_recht' });
 
       mock.mitglieder.set(`${EIGENER}/${PERSON}`, mitglied(PERSON, []));
-      assert.equal((await frage(basis, `/api/server/${EIGENER}/kanaele`, { sitzung: kennung })).status, 200);
+      assert.equal((await frage(basis, `/api/server/${EIGENER}/seiten`, { sitzung: kennung })).status, 200);
     });
 
     test('nach 60 Anfragen je Minute kommt 429 mit Retry-After, ohne Discord zu fragen', async () => {
       const kennung = await sitzung();
       const vorher = mitgliederAbrufe();
       const griffe = gegriffen('sitzung');
-      for (let i = 0; i < 60; i++) assert.equal((await frage(basis, `/api/server/${SERVER}/kanaele`, { sitzung: kennung })).status, 200);
-      const antwort = await frage(basis, `/api/server/${SERVER}/kanaele`, { sitzung: kennung });
+      for (let i = 0; i < 60; i++) assert.equal((await frage(basis, `/api/server/${SERVER}/seiten`, { sitzung: kennung })).status, 200);
+      const antwort = await frage(basis, `/api/server/${SERVER}/seiten`, { sitzung: kennung });
       assert.equal(antwort.status, 429);
       assert.deepEqual(await antwort.json(), { code: 'zu_viele' });
       const warten = Number(antwort.headers.get('retry-after'));
@@ -375,51 +414,77 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
       const kennung = await sitzung();
       mock.mitglieder.set(`${SERVER}/${PERSON}`, 500);
       t.after(() => mock.mitglieder.set(`${SERVER}/${PERSON}`, verwalter));
-      const antwort = await frage(basis, `/api/server/${SERVER}/kanaele`, { sitzung: kennung });
+      const antwort = await frage(basis, `/api/server/${SERVER}/seiten`, { sitzung: kennung });
       assert.equal(antwort.status, 503);
       assert.deepEqual(await antwort.json(), { code: 'nicht_erreichbar' });
       const zeilen = log.mock.calls.map((c) => String(c.arguments[0]));
       assert.equal(zeilen.length, 1);
-      assert.match(zeilen[0] ?? '', /^API kanaele: /);
+      assert.match(zeilen[0] ?? '', /^API seiten: /);
       assert.doesNotMatch(zeilen[0] ?? '', /\d{17}/);
     });
   });
 
   describe('Kanäle und Begrüssung', () => {
-    test('kanaele liefert Text- und Ankündigungskanäle, sortiert wie in Discord', async () => {
-      const antwort = await frage(basis, `/api/server/${SERVER}/kanaele`, { sitzung: await sitzung() });
+    test('seiten liefert Beitritt, Abschied und Sprachräume; der Kanal bietet Text- und Ankündigungskanäle, sortiert wie in Discord', async () => {
+      const antwort = await frage(basis, `/api/server/${SERVER}/seiten`, { sitzung: await sitzung() });
       assert.equal(antwort.headers.get('cache-control'), 'no-store');
       assert.equal(antwort.headers.get('x-content-type-options'), 'nosniff');
+      const liste = (await antwort.json()) as SeiteAntwort[];
+      assert.deepEqual(
+        liste.map((s) => [s.id, s.titel]),
+        [
+          ['beitritt', 'Beitritt'],
+          ['abschied', 'Abschied'],
+          ['sprachraeume', 'Sprachräume'],
+        ],
+      );
+      const beitritt = liste[0];
+      assert.deepEqual(
+        beitritt?.bausteine.map((b) => `${b.art}:${b.id}`),
+        ['schalter:an', 'auswahl:kanal', 'text:text', 'schalter:banner', 'bild:bild', 'text:bannerText', 'aktion:test'],
+      );
+      assert.deepEqual(beitritt?.daneben.map((b) => `${b.art}:${b.id}`), ['vorschau:vorschau']);
       const allgemein = { id: K.allgemein, name: 'Allgemein' };
       const infos = { id: K.infos, name: 'Infos' };
-      assert.deepEqual(await antwort.json(), [
-        { id: K.ohne, name: 'ohne-kategorie', banner: true, kategorie: null },
-        { id: K.willkommen, name: 'willkommen', banner: true, kategorie: allgemein },
-        { id: K.regeln, name: 'regeln', banner: false, kategorie: allgemein },
-        { id: K.neues, name: 'neues', banner: true, kategorie: infos },
-        { id: K.hallo, name: 'hallo', banner: true, kategorie: infos },
+      const option = (id: string, name: string, gruppe: unknown, banner = true) => ({ id, name, gruppe, merkmale: banner ? ['banner'] : [], gesperrt: null });
+      assert.deepEqual(beitritt?.bausteine.find((b) => b.id === 'kanal')?.optionen, [
+        option(K.ohne, '#ohne-kategorie', null),
+        option(K.willkommen, '#willkommen', allgemein),
+        option(K.regeln, '#regeln', allgemein, false),
+        option(K.neues, '#neues', infos),
+        option(K.hallo, '#hallo', infos),
       ]);
     });
 
-    test('begruessung liefert Standardwerte, speichert und liefert, was gespeichert ist', async () => {
+    test('eine Seite liefert Standardwerte, speichert und liefert, was gespeichert ist', async () => {
       const kennung = await sitzung();
-      const leer = await (await frage(basis, `/api/server/${SERVER}/begruessung`, { sitzung: kennung })).json();
-      assert.deepEqual(leer, {
-        beitritt: { an: false, kanal: null, text: 'Willkommen auf {server}, {nutzer}!', banner: false, bannerText: 'Willkommen, {name}!', bild: false },
-        abschied: { an: false, kanal: null, text: '{name} hat den Server verlassen.', banner: false, bannerText: 'Tschüss, {name}!', bild: false },
+      assert.deepEqual((await seite(kennung, 'beitritt'))?.wert, {
+        an: false,
+        kanal: null,
+        text: 'Willkommen auf {server}, {nutzer}!',
+        banner: false,
+        bannerText: 'Willkommen, {name}!',
+        bild: false,
+      });
+      assert.deepEqual((await seite(kennung, 'abschied'))?.wert, {
+        an: false,
+        kanal: null,
+        text: '{name} hat den Server verlassen.',
+        banner: false,
+        bannerText: 'Tschüss, {name}!',
+        bild: false,
       });
       const neu = { an: true, kanal: K.willkommen, text: `{server}${'x'.repeat(1800)}`, banner: false, bannerText: 'Hallo {name}' };
       const kopf = { origin: DASHBOARD, 'content-type': 'application/json' };
-      const antwort = await frage(basis, `/api/server/${SERVER}/begruessung/abschied`, { method: 'PUT', sitzung: kennung, headers: kopf, body: JSON.stringify(neu) });
+      const antwort = await frage(basis, `/api/server/${SERVER}/seiten/abschied`, { method: 'PUT', sitzung: kennung, headers: kopf, body: JSON.stringify(neu) });
       assert.equal(antwort.status, 200);
-      assert.deepEqual(await antwort.json(), { ...neu, bild: false });
-      const gelesen = (await (await frage(basis, `/api/server/${SERVER}/begruessung`, { sitzung: kennung })).json()) as { abschied: unknown };
-      assert.deepEqual(gelesen.abschied, { ...neu, bild: false });
+      assert.deepEqual(await antwort.json(), { wert: { ...neu, bild: false }, meldung: gespeichert('kitty schreibt ab jetzt in #willkommen.') });
+      assert.deepEqual((await seite(kennung, 'abschied'))?.wert, { ...neu, bild: false });
     });
 
     test('Speichern prüft Origin, Content-Type und Regeln', async () => {
       const kennung = await sitzung();
-      const pfad = `/api/server/${SERVER}/begruessung/beitritt`;
+      const pfad = `/api/server/${SERVER}/seiten/beitritt`;
       const gut = { an: false, kanal: null, text: 'Hallo', banner: false, bannerText: 'Hallo' };
       const put = (headers: Record<string, string>, body: unknown) =>
         frage(basis, pfad, { method: 'PUT', sitzung: kennung, headers, body: typeof body === 'string' ? body : JSON.stringify(body) });
@@ -434,7 +499,7 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
         [json, { ...gut, text: `{server}${'x'.repeat(1801)}` }, 400, { code: 'text_zu_lang', feld: 'text' }],
         [json, { ...gut, kanal: K.willkommen, banner: true }, 400, { code: 'banner_ohne_bild', feld: 'banner' }],
         [json, { ...gut, an: true }, 400, { code: 'an_ohne_kanal', feld: 'an' }],
-        [json, gut, 200, { ...gut, bild: false }],
+        [json, gut, 200, { wert: { ...gut, bild: false }, meldung: gespeichert('Solange „Aktiv“ aus ist, schickt kitty nichts.') }],
       ];
       for (const [headers, body, status, erwartet] of faelle) {
         const antwort = await put(headers, body);
@@ -445,7 +510,7 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
 
     test('ein Body über 16 KiB gibt 413, ohne ihn ganz zu lesen', { timeout: 5_000 }, async () => {
       const kennung = await sitzung();
-      const kopf = `PUT /api/server/${SERVER}/begruessung/beitritt HTTP/1.1\r\nHost: localhost\r\nOrigin: ${DASHBOARD}\r\nCookie: sitzung=${kennung}\r\nContent-Type: application/json\r\n`;
+      const kopf = `PUT /api/server/${SERVER}/seiten/beitritt HTTP/1.1\r\nHost: localhost\r\nOrigin: ${DASHBOARD}\r\nCookie: sitzung=${kennung}\r\nContent-Type: application/json\r\n`;
       // Content-Length über der Grenze, ohne Body: Der Server wartet nicht darauf.
       assert.match(await roh(port, `${kopf}Content-Length: 1000000\r\n\r\n`), /^HTTP\/1\.1 413 [^]*\r\n\r\n\{"code":"zu_gross"\}$/);
       // Chunked, 16 KiB und ein Byte, ohne Ende: Der Server hört nach der Grenze auf.
@@ -513,25 +578,38 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
       }
     });
 
-    test('unbekannte Routen, Arten und Methoden geben 404', async () => {
+    test('unbekannte Routen, Seiten, Bausteine und Methoden geben 404, ohne Discord zu fragen', async () => {
       const kennung = await sitzung();
+      const vorher = mitgliederAbrufe();
       for (const [method, pfad] of [
         ['GET', '/api/gibt-es-nicht'],
-        ['GET', '/api/server/abc/kanaele'],
-        ['PUT', `/api/server/${SERVER}/begruessung/geburtstag`],
-        ['POST', `/api/server/${SERVER}/begruessung/beitritt/bild`],
-        ['GET', `/api/server/${SERVER}/begruessung/beitritt/bild`],
+        ['GET', '/api/server/abc/seiten'],
+        ['PUT', `/api/server/${SERVER}/seiten/geburtstag`],
+        ['GET', `/api/server/${SERVER}/seiten/beitritt`],
+        ['POST', `/api/server/${SERVER}/seiten/beitritt/bild`],
+        ['GET', `/api/server/${SERVER}/seiten/beitritt/bild`],
+        ['PUT', `/api/server/${SERVER}/seiten/beitritt/test`],
+        ['PUT', `/api/server/${SERVER}/seiten/sprachraeume/bild`],
         ['DELETE', '/api/ich'],
       ] as const) {
         const antwort = await frage(basis, pfad, { method, sitzung: kennung, headers: { origin: DASHBOARD } });
         assert.equal(antwort.status, 404, `${method} ${pfad}`);
         assert.deepEqual(await antwort.json(), { code: 'nicht_gefunden' });
       }
+      assert.equal(mitgliederAbrufe(), vorher);
+    });
+
+    test('was der gespeicherte Stand nicht mehr besteht, steht als fund in der Seite', async () => {
+      const kennung = await sitzung();
+      await speichere(db, SERVER, 'abschied', { ...standard('abschied'), an: true, kanal: K.versteckt });
+      assert.deepEqual((await seite(kennung, 'abschied'))?.fund, { code: 'kanal_unbekannt', feld: 'kanal' });
+      await speichere(db, SERVER, 'abschied', standard('abschied'));
+      assert.equal((await seite(kennung, 'abschied'))?.fund, null);
     });
   });
 
   describe('Bilder und Vorschau', () => {
-    const pfad = `/api/server/${SERVER}/begruessung/beitritt`;
+    const pfad = `/api/server/${SERVER}/seiten/beitritt`;
     const hoch = (kennung: string, typ: string, body: Buffer) =>
       frage(basis, `${pfad}/bild`, { method: 'PUT', sitzung: kennung, headers: { origin: DASHBOARD, 'content-type': typ }, body });
     const json = { origin: DASHBOARD, 'content-type': 'application/json' };
@@ -590,19 +668,18 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
       assert.ok((oben[0] ?? 0) > 200 && (oben[2] ?? 0) < 60, `oben ${oben.join(',')}`);
       assert.ok((unten[2] ?? 0) > 200 && (unten[0] ?? 0) < 60, `unten ${unten.join(',')}`);
 
-      const gelesen = (await (await frage(basis, `/api/server/${SERVER}/begruessung`, { sitzung: kennung })).json()) as Record<string, { bild: boolean }>;
-      assert.deepEqual([gelesen.beitritt?.bild, gelesen.abschied?.bild], [true, false]);
+      assert.deepEqual([(await seite(kennung, 'beitritt'))?.wert.bild, (await seite(kennung, 'abschied'))?.wert.bild], [true, false]);
       const mitBanner = { an: true, kanal: K.willkommen, text: '', banner: true, bannerText: 'Hallo {name}' };
-      const gespeichert = await frage(basis, pfad, { method: 'PUT', sitzung: kennung, headers: json, body: JSON.stringify(mitBanner) });
-      assert.equal(gespeichert.status, 200);
-      assert.deepEqual(await gespeichert.json(), { ...mitBanner, bild: true });
+      const antwort = await frage(basis, pfad, { method: 'PUT', sitzung: kennung, headers: json, body: JSON.stringify(mitBanner) });
+      assert.equal(antwort.status, 200);
+      assert.deepEqual(await antwort.json(), { wert: { ...mitBanner, bild: true }, meldung: gespeichert('kitty schreibt ab jetzt in #willkommen.') });
       const ohneRecht = await frage(basis, pfad, { method: 'PUT', sitzung: kennung, headers: json, body: JSON.stringify({ ...mitBanner, kanal: K.regeln }) });
       assert.deepEqual(await ohneRecht.json(), { code: 'banner_ohne_recht', feld: 'banner' });
     });
 
     test('Vorschau: 404 ohne Bild, sonst ein PNG mit 1100 × 440; DELETE löscht Bild und Banner', async () => {
       const kennung = await sitzung();
-      const ohne = await frage(basis, `/api/server/${SERVER}/begruessung/abschied/vorschau?v=1`, { sitzung: kennung });
+      const ohne = await frage(basis, `/api/server/${SERVER}/seiten/abschied/vorschau?v=1`, { sitzung: kennung });
       assert.equal(ohne.status, 404);
       assert.deepEqual(await ohne.json(), { code: 'kein_bild' });
       const avatare = mock.avatare.length;
@@ -619,8 +696,8 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
       const weg = await frage(basis, `${pfad}/bild`, { method: 'DELETE', sitzung: kennung, headers: { origin: DASHBOARD } });
       assert.equal(weg.status, 204);
       assert.deepEqual(geleert, [SERVER]);
-      const gelesen = (await (await frage(basis, `/api/server/${SERVER}/begruessung`, { sitzung: kennung })).json()) as Record<string, { bild: boolean; banner: boolean }>;
-      assert.deepEqual([gelesen.beitritt?.bild, gelesen.beitritt?.banner], [false, false]);
+      const gelesen = await seite(kennung, 'beitritt');
+      assert.deepEqual([gelesen?.wert.bild, gelesen?.wert.banner], [false, false]);
       assert.equal((await frage(basis, `${pfad}/vorschau`, { sitzung: kennung })).status, 404);
     });
 
@@ -639,12 +716,12 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
       assert.ok(warten >= 1 && warten <= 60, String(warten));
       assert.equal(mitgliederAbrufe(), vorher + 20);
       assert.equal(gegriffen('bilder'), griffe + 1);
-      assert.equal((await frage(basis, `/api/server/${SERVER}/kanaele`, { sitzung: kennung })).status, 200);
+      assert.equal((await frage(basis, `/api/server/${SERVER}/seiten`, { sitzung: kennung })).status, 200);
     });
   });
 
   describe('Testnachricht', () => {
-    const pfad = `/api/server/${SERVER}/begruessung/beitritt/test`;
+    const pfad = `/api/server/${SERVER}/seiten/beitritt/test`;
     const teste = (kennung: string) => frage(basis, pfad, { method: 'POST', sitzung: kennung, headers: { origin: DASHBOARD } });
     // Jeder Test in seiner eigenen Minute, damit die Grenze je Server neu zählt.
     const neueMinute = async () => {
@@ -683,7 +760,7 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
       await stelle({ an: false, kanal: K.willkommen, text: 'Hallo {nutzer}, {name}!' });
       const antwort = await teste(kennung);
       assert.equal(antwort.status, 200);
-      assert.deepEqual(await antwort.json(), { banner: false });
+      assert.deepEqual(await antwort.json(), { titel: 'Gesendet.', text: 'Die Testnachricht steht in #willkommen.' });
       const n = mock.nachrichten.at(-1);
       assert.equal(n?.kanal, K.willkommen);
       assert.equal(n?.json.content, String.raw`-# Testnachricht aus dem Dashboard
@@ -701,18 +778,18 @@ Hallo <@${PERSON}>, nutzer\-02!`);
       assert.equal(mock.nachrichten.at(-1)?.json.content, text);
     });
 
-    test('mit Banner antwortet sie banner: true, im Kanal ohne Dateien geht nur der Text', async () => {
+    test('mit Banner heisst sie „Gesendet.“, im Kanal ohne Dateien geht nur der Text, „ohne Banner“', async () => {
       await neueMinute();
       const kennung = await sitzung();
       await speichereBild(db, SERVER, 'beitritt', await bereiteVor(pngBild(400, 300)));
       await stelle({ kanal: K.willkommen, text: '', banner: true });
       const mitBanner = await teste(kennung);
-      assert.deepEqual(await mitBanner.json(), { banner: true });
+      assert.deepEqual(await mitBanner.json(), { titel: 'Gesendet.', text: 'Die Testnachricht steht in #willkommen.' });
       const n = mock.nachrichten.at(-1);
       assert.equal(n?.json.content, '-# Testnachricht aus dem Dashboard');
       assert.deepEqual(n?.dateien.map((d) => d.name), ['beitritt.png']);
       await stelle({ kanal: K.regeln, text: 'Hallo', banner: true });
-      assert.deepEqual(await (await teste(kennung)).json(), { banner: false });
+      assert.deepEqual(await (await teste(kennung)).json(), { titel: 'Gesendet, ohne Banner.', text: 'Die Testnachricht steht in #regeln.' });
       assert.deepEqual(mock.nachrichten.at(-1)?.dateien, []);
     });
 
@@ -763,7 +840,7 @@ Hallo <@${PERSON}>, nutzer\-02!`);
     await frage(basis, `/api/anmelden/zurueck?code=falsch&state=${state}`, { headers: { cookie: `anmeldung=${state}` } });
     await frage(basis, `/api/anmelden/zurueck?state=${state}`, { headers: { cookie: 'anmeldung=anders' } });
     mock.mitglieder.set(`${SERVER}/${PERSON}`, 500);
-    await frage(basis, `/api/server/${SERVER}/kanaele`, { sitzung: kennung });
+    await frage(basis, `/api/server/${SERVER}/seiten`, { sitzung: kennung });
     mock.mitglieder.set(`${SERVER}/${PERSON}`, verwalter);
 
     assert.ok(zeilen.length >= 4, zeilen.join('\n'));

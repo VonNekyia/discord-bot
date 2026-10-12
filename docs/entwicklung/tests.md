@@ -52,8 +52,9 @@ Interaktionen ersetzt `interaktion` durch ein Objekt mit nur dem, was
 
 ## Die API des Dashboards
 
-`bot/src/api/server.test.ts` startet die API mit `erstelleApi` auf einem freien
-Port und spricht sie mit `fetch` an, ohne Weiterleitungen zu folgen.
+`bot/src/api/server.test.ts` startet die API mit `erstelleApi` und den
+Bereichen von Begrüssung und Sprachräumen auf einem freien Port und
+spricht sie mit `fetch` an, ohne Weiterleitungen zu folgen.
 `bot/src/module/begruessung/senden.test.ts` ruft `begruesse` mit Mitgliedern auf, wie
 discord.js sie bei Beitritt und Abschied bringt. Dort gibt die Bremse nur
 200 ms Ruhe statt 30 s (`erstelleBremse`); mit falschen Uhren hängen
@@ -161,6 +162,7 @@ und prüft dort die Anmeldung und die eigenen Grenzen.
 | ersetze maskiert im Text, lässt das Banner roh … | `<@…>` im Text, `@Name` im Banner; unbekannte Platzhalter bleiben; ein eingesetztes `{server}` bleibt stehen |
 | apiUmgebung braucht Secret und Adresse des Dashboards | ohne eins keine API, Standardport, falsche Adresse oder Port beendet den Start |
 | Grenze lässt 60 Anfragen je Minute zu … | mit falscher Uhr: 61. Anfrage, Sekunden bis zur nächsten, gleitendes Fenster |
+| erstelleApi weist doppelte, zu viele und ungültige Seiten ab | eine ID doppelt, 7 Seiten, `a/b` als ID, eine `aktion` ohne `loeseAus`; mit `loeseAus` startet sie |
 | anmelden setzt ein state-Cookie und leitet zu Discord | Parameter der Weiterleitung, Cookie mit `HttpOnly`, `SameSite=Lax`, ohne `Secure` bei http |
 | ohne state-Cookie oder mit falschem state … | Weiterleitung mit Fehler, keine Anfrage an Discord |
 | bei 429 wartet die Anmeldung ein kurzes Retry-After ab … | `Retry-After: 0`: zweimal `POST /oauth2/token`, dann Erfolg; alle vier Routen zählen mit, eine Zeile `Rate-Limit: 429 bei POST /oauth2/token, …` |
@@ -173,22 +175,23 @@ und prüft dort die Anmeldung und die eigenen Grenzen.
 | Bot nicht auf dem Server gibt 404 … | `404` ohne Aufruf an Discord, Unknown Member `403`, Recht entzogen `403`, Eigentümer ohne Rolle darf |
 | nach 60 Anfragen je Minute kommt 429 … | `Retry-After` 1 bis 60, die 61. Anfrage fragt Discord nicht; `sitzung` zählt eins mehr |
 | antwortet Discord nicht, gibt es 503 … | eine Logzeile mit dem Namen der Route, ohne ID |
-| kanaele liefert Text- und Ankündigungskanäle … | ohne Kategorie zuerst, Kategorien und Kanäle nach Position, bei gleicher nach ID; ohne Sehen kein Kanal, ohne Anhängen `banner: false` |
-| begruessung liefert Standardwerte, speichert … | Standardwerte, `PUT` und wieder lesen |
+| seiten liefert Beitritt, Abschied und Sprachräume … | Reihenfolge der Seiten und ihrer Bausteine, die Vorschau daneben; Optionen des Kanals: ohne Kategorie zuerst, Kategorien und Kanäle nach Position, bei gleicher nach ID; ohne Sehen keine Option, ohne Anhängen kein Merkmal `banner` |
+| eine Seite liefert Standardwerte, speichert … | Standardwerte in `wert`, `PUT` mit `meldung`, wieder lesen |
 | Speichern prüft Origin, Content-Type und Regeln | `403`, `415`, kaputtes JSON, Regeln mit Code und Feld |
 | ein Body über 16 KiB gibt 413, ohne ihn ganz zu lesen | `Content-Length` zu gross ohne Body; chunked ohne Ende; danach `Connection: close` |
 | verlässt der Bot einen Server, gehen Einstellungen und Bilder … | `vergiss` und `behalteNur` für beide Tabellen |
 | mit dem ShardingManager gleicht ein Prozess nur … | Shard 1 von 2: der Server auf Shard 0 bleibt |
-| unbekannte Routen, Arten und Methoden geben 404 | auch `POST` und `GET` auf `…/bild` |
+| unbekannte Routen, Seiten, Bausteine und Methoden geben 404 … | eine unbekannte Seite, `GET` auf eine Seite, `POST` und `GET` auf `…/bild`, `PUT` auf `…/test`, ein Baustein einer anderen Seite; kein Aufruf an Discord |
+| was der gespeicherte Stand nicht mehr besteht, steht als fund … | ein Kanal ohne Recht gibt `kanal_unbekannt` an `kanal`; der Standard gibt `null` |
 | ein Bild wird geprüft, bevor es dekodiert wird | `bildtyp`; ein PNG nur mit Kopf und 20000 × 20000 px gibt `bild_zu_gross`, nicht `bild_unlesbar`; zu klein, kein Bild; SVG und GIF unter `image/png` geben `bild_unlesbar` an der Signatur |
 | ein Bild über 4 MiB gibt 413, ohne es zu lesen | `Content-Length` über 4 MiB ohne Body |
 | ein JPEG mit GPS wird gedreht … | WebP mit 1100 × 440, ohne `Exif`, ohne Beschreibung; Drehung 6 an den Farben; danach `bild: true`, `banner_ohne_recht` |
 | Vorschau: 404 ohne Bild, sonst ein PNG … | `kein_bild`, PNG mit 1100 × 440, Avatar vom CDN; `DELETE` löscht Bild und `banner` |
-| Bild und Vorschau zusammen höchstens 20 je Minute … | die 21. Anfrage `429` ohne Aufruf an Discord; `kanaele` geht weiter; `bilder` zählt eins mehr |
+| Bild und Vorschau zusammen höchstens 20 je Minute … | die 21. Anfrage `429` ohne Aufruf an Discord; `seiten` geht weiter; `bilder` zählt eins mehr |
 | die Regeln der Testnachricht gelten in ihrer Reihenfolge | `test_ohne_kanal`, `kanal_unbekannt`, `test_ohne_inhalt` mit Leerzeichen, ohne Bild und im Kanal ohne „Dateien anhängen“; keine Nachricht |
-| die Testnachricht geht auch, wenn an aus ist … | `200` `{ banner: false }`, Zeile `-# Testnachricht aus dem Dashboard` vorn, `allowed_mentions` leer trotz `{nutzer}` |
+| die Testnachricht geht auch, wenn an aus ist … | `200` „Gesendet.“ mit dem Kanal, Zeile `-# Testnachricht aus dem Dashboard` vorn, `allowed_mentions` leer trotz `{nutzer}` |
 | würde die Nachricht mit der Zeile länger als 2000 Zeichen … | bei 1990 Zeichen Text geht nur der Text |
-| mit Banner antwortet sie banner: true … | Datei `beitritt.png`, nur die Zeile als Text; im Kanal ohne Dateien `{ banner: false }` |
+| mit Banner heisst sie „Gesendet.“ … | Datei `beitritt.png`, nur die Zeile als Text; im Kanal ohne Dateien „Gesendet, ohne Banner.“ und keine Datei |
 | ist der Text leer und scheitert das Banner … | `503`, keine Nachricht |
 | die Grenze je Server zählt erst nach den Rechten … | fünfmal `403` für eine fremde Sitzung, danach dreimal `200` und `429` mit `Retry-After: 60`; `testnachricht` zählt eins mehr |
 | kein Code, Token, Cookie, state und keine ID im Log | Anmeldung mit Erfolg und drei Fehlern, eine Route mit `503`; keine Zeile enthält einen der Werte |
@@ -204,12 +207,13 @@ und prüft dort die Anmeldung und die eigenen Grenzen.
 | fehlt dem Bot ein Recht (50013) … | nichts angelegt, nicht verschoben, eine Logzeile ohne ID |
 | ist die Art aus oder der Kanal kein Erzeuger … | nichts angelegt |
 | die Grenze von 30 s vergisst ein Mitglied nach ihrer Zeit | mit `abstand` 1 s: nach dem Anlegen ein Eintrag, nach 1,1 s keiner. Die Grenze läuft schon während `betritt`; mit 50 ms war sie in der CI manchmal vor der ersten Prüfung abgelaufen |
-| Räume stehen nicht in sprachkanaele … | ein Raum fehlt in der Liste, als Erzeuger `erzeuger_unbekannt` |
+| Räume stehen nicht unter den Optionen … | ein Raum fehlt unter den Optionen des Erzeugers, als Erzeuger `erzeuger_unbekannt` |
 | der Abgleich beim Start … | Zeile ohne Kanal weg, leerer Raum gelöscht, belegter bleibt |
 | channelDelete vergisst den Raum … | `geloescht`, `vergiss` und `behalteNur` für Sprachräume und Räume |
-| sprachkanaele liefert Sprachkanäle und Kategorien mit bereit … | Sortierung, ohne Text und Bühne; ohne „Mitglieder verschieben“ nicht bereit; eine Kategorie, die „Streamen“ verbietet, das der Bot nicht hat, nicht bereit |
-| sprachraeume liefert ohne Zeile die Standardwerte … | `{ an: false, erzeuger: [] }`, Speichern mit 100 Zeichen Vorlage, fremde Felder fallen weg, Cache geleert |
+| die Seite bietet Sprachkanäle und Kategorien … | Bausteine der Seite und der Liste; Sortierung, ohne Text und Bühne; ohne „Mitglieder verschieben“ gesperrt mit `erzeuger_ohne_recht`; eine Kategorie, die „Streamen“ verbietet, das der Bot nicht hat, gesperrt mit `kategorie_ohne_recht` |
+| die Seite liefert ohne Zeile die Standardwerte … | `{ an: false, erzeuger: [] }`, `fund` `null`, Speichern mit 100 Zeichen Vorlage und `meldung`, fremde Felder fallen weg, Cache geleert |
 | jede Prüfregel meldet ihren Code und den Pfad des Felds | alle Zeilen der Tabelle „Sprachräume einstellen“, mit Pfaden wie `erzeuger.1.limit` |
+| ein gespeicherter Erzeuger, der nicht mehr geht, steht als fund … | eine Kategorie ohne `bereit` gibt `kategorie_ohne_recht` an `erzeuger.0.kategorie` |
 | Sperren: deferReply vor dem PATCH … | Callback mit Typ 5 und Flag 64 vor `PATCH /channels/{id}`; Body nur `permission_overwrites`; @everyone und Rollen ohne „Verbinden“, wer drin ist, mit eigenem; Grund im Audit-Log |
 | Sperren: wer nicht Besitzer ist, bekommt den Hinweis … | Hinweis mit dem Besitzer, `allowed_mentions` leer; gesperrt bleibt gesperrt; kein PATCH |
 | Entsperren: Verbinden wieder wie in der Kategorie … | Einträge wieder wie beim Anlegen; Hinweise für nicht gesperrt und Nicht-Besitzer |

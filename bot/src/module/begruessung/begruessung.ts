@@ -2,16 +2,16 @@ import type { Pool } from 'pg';
 
 export type Art = 'beitritt' | 'abschied';
 
-// Eine Einstellung, wie die API sie liefert und nimmt.
-// Siehe docs/schnittstelle/api.md, „Typen“.
-export interface Einstellung {
+// Eine Einstellung, der Wert einer Seite der Begrüssung.
+// Siehe docs/schnittstelle/begruessung.md, „Wert“.
+export type Einstellung = {
   an: boolean;
   kanal: string | null;
   text: string;
   banner: boolean;
   bannerText: string;
   bild: boolean;
-}
+};
 
 // Siehe docs/benutzung/begruessung.md, „Standardwerte“.
 export function standard(art: Art): Einstellung {
@@ -22,7 +22,7 @@ export function standard(art: Art): Einstellung {
 
 // Der längste Wert je Platzhalter, im Text und im Banner.
 // Siehe docs/benutzung/begruessung.md, „Platzhalter“.
-const laengste = {
+export const laengste = {
   text: { '{nutzer}': 23, '{name}': 64, '{server}': 200, '{anzahl}': 10 },
   banner: { '{nutzer}': 33, '{name}': 32, '{server}': 100, '{anzahl}': 10 },
 } as const;
@@ -42,9 +42,9 @@ export type Geprueft = { einstellung: Einstellung } | { code: string; feld: stri
 const typen = { an: 'boolean', kanal: 'kanal', text: 'string', banner: 'boolean', bannerText: 'string' } as const;
 
 // Prüft eine Einstellung Regel für Regel in der Reihenfolge der Tabelle und
-// meldet die erste, die nicht passt. `kanaele` sind die Kanäle aus
-// GET …/kanaele, `bild` sagt, ob ein Bild hochgeladen ist.
-// Siehe docs/schnittstelle/api.md, „Einstellung speichern“.
+// meldet die erste, die nicht passt. `kanaele` sind die Optionen des
+// Kanals, `bild` sagt, ob ein Bild hochgeladen ist.
+// Siehe docs/schnittstelle/begruessung.md, „Einstellung speichern“.
 export function pruefe(eingabe: unknown, kanaele: ReadonlyMap<string, { banner: boolean }>, bild: boolean): Geprueft {
   const felder = (typeof eingabe === 'object' && eingabe !== null && !Array.isArray(eingabe) ? eingabe : {}) as Record<string, unknown>;
   for (const [feld, typ] of Object.entries(typen)) {
@@ -134,7 +134,7 @@ export async function speichereBild(db: Pick<Pool, 'query'>, server: string, art
 }
 
 // Löscht das Bild und setzt `banner` auf false, in einer Anweisung.
-// Siehe docs/schnittstelle/api.md, „Bild“.
+// Siehe docs/schnittstelle/begruessung.md, „Bild“.
 export async function loescheBild(db: Pick<Pool, 'query'>, server: string, art: Art): Promise<void> {
   await db.query(
     `WITH weg AS (DELETE FROM bilder WHERE server = $1 AND art = $2)

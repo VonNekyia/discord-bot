@@ -3,17 +3,17 @@ import type { Pool } from 'pg';
 import { vergleiche, wieDiscord } from '../../discord/ordnung.js';
 
 // Siehe docs/schnittstelle/sprachraeume.md, „Typen“.
-export interface Erzeuger {
+export type Erzeuger = {
   kanal: string;
   kategorie: string | null;
   name: string;
   limit: number;
-}
+};
 
-export interface Sprachraeume {
+export type Sprachraeume = {
   an: boolean;
   erzeuger: Erzeuger[];
-}
+};
 
 export type Sprachkanal = { id: string; name: string; kategorie: { id: string; name: string } | null; bereit: boolean };
 export type Kategorie = { id: string; name: string; bereit: boolean };
