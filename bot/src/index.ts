@@ -3,11 +3,12 @@ import { fileURLToPath } from 'node:url';
 import { Events, type Client } from 'discord.js';
 import { raeumeAuf } from './api/anmeldung.js';
 import { apiUmgebung, erstelleApi, type ApiUmgebung } from './api/server.js';
-import { beantworte, registriere } from './module/befehle/befehle.js';
+import { befehle as allgemeineBefehle } from './module/befehle/befehle.js';
 import { text } from './kern/fehler.js';
 import { behalteNur, vergiss } from './kern/aufraeumen.js';
 import { lese } from './module/begruessung/begruessung.js';
 import { ladeCache } from './kern/cache.js';
+import { beantworte, registriere } from './discord/befehle.js';
 import { erstelleClient } from './discord/client.js';
 import { alsMitglied, textkanalAuf } from './discord/nachrichten.js';
 import { alsDruck } from './discord/interaktionen.js';
@@ -57,6 +58,9 @@ const einstellungen = ladeCache((server: string) => lese(db, server));
 const sprachraeume = ladeCache((server: string) => liesSprachraeume(db, server));
 const raeume = new Raeume({ db, einstellungen: sprachraeume });
 const knoepfe = new Knoepfe({ db });
+// Die Slash-Befehle; registrieren und beantworten tut die Discord-Schicht.
+// Siehe docs/benutzung/befehle.md.
+const befehle = allgemeineBefehle({ db });
 
 // Zählt jede Anfrage an Discord, nur im Speicher. Siehe docs/bot/rate-limits.md, „Zählen“.
 const zaehlung = new Zaehlung();
@@ -68,7 +72,7 @@ let api: Server | undefined;
 // und der Dienst startet ihn neu. Siehe docs/bot/wiederanlauf.md, „Was der Bot loggt“.
 async function nachDemVerbinden(bereit: Client<true>): Promise<void> {
   console.log('Verbunden.');
-  await registriere(bereit.rest, bereit.application.id).catch((e: unknown) =>
+  await registriere(bereit.rest, bereit.application.id, befehle).catch((e: unknown) =>
     console.error(`Befehle nicht registriert: ${text(e)}`),
   );
   // Server, die den Bot entfernt haben, während er aus war.
@@ -126,7 +130,7 @@ client.on(Events.ChannelDelete, (kanal) => {
 
 client.on(Events.InteractionCreate, (interaction) => {
   if (interaction.isChatInputCommand()) {
-    void beantworte(interaction, { db });
+    void beantworte(interaction, befehle);
     return;
   }
   // Das Menü der Sprachräume, erkannt am Präfix in `custom_id`. Siehe docs/bot/sprachraeume-menue.md, „Knöpfe“.

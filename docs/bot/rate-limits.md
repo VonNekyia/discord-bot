@@ -2,8 +2,8 @@
 title: Rate-Limits
 description: Was der Bot tut, wenn Discord mit 429 oder 5xx antwortet, wie oft er Befehle registriert, warum das Ändern von Kanälen und lange Wartezeiten der Anmeldung nicht warten, wie er Anfragen, 429, ungültige Anfragen und eigene Grenzen zählt und loggt.
 code:
-  - bot/src/module/befehle/befehle.ts
-  - bot/src/module/befehle/befehle.test.ts
+  - bot/src/discord/befehle.ts
+  - bot/src/discord/befehle.test.ts
   - bot/src/discord/client.ts
   - bot/src/discord/client.test.ts
   - bot/src/discord/fehler.ts
@@ -23,11 +23,13 @@ und loggt sie. Die Regeln von Discord stehen in der
 
 ## Befehle registrieren
 
-`registriere` in `bot/src/module/befehle/befehle.ts` ersetzt beim Start alle globalen
+`registriere` in `bot/src/discord/befehle.ts` ersetzt beim Start alle globalen
 Befehle mit einem `PUT` auf `/applications/{id}/commands`. Das ist eine
 Anfrage je Start, egal wie viele Befehle es gibt. Schlägt sie fehl, läuft
 der Bot weiter mit den Befehlen, die Discord schon kennt, und das Log
-sagt „Befehle nicht registriert“.
+sagt „Befehle nicht registriert“. Den Body baut `SlashCommandBuilder` aus
+`name` und `beschreibung` jedes `Befehl`; einen Namen, den Discord nicht
+nimmt, lehnt er ab, bevor der Bot Discord fragt.
 
 ## Was der Bot bei 429 tut
 

@@ -3,6 +3,7 @@ title: Tests
 description: Wie die Tests des Bots laufen, was die gemockte Discord-API kann und was abgedeckt ist.
 code:
   - bot/src/module/befehle/befehle.test.ts
+  - bot/src/discord/befehle.test.ts
   - bot/src/kern/cache.test.ts
   - bot/src/kern/datenbank.test.ts
   - bot/src/api/server.test.ts
@@ -45,14 +46,17 @@ mehr gibt, liefe sonst mit. Gibt es `bot/.env`, liest `npm test` sie mit
 
 ## Die gemockte API
 
-`mockApi` in `bot/src/module/befehle/befehle.test.ts` startet einen `node:http`-Server
+`mockApi` in `bot/src/discord/befehle.test.ts` startet einen `node:http`-Server
 auf einem freien Port und gibt ein `REST` zurück, dessen `api` auf ihn
 zeigt. Er antwortet der Reihe nach mit den Statuscodes, die der Test
 vorgibt, danach mit 200, und merkt sich jede Anfrage mit Methode, Pfad
 und Body. Ein 429 kommt mit `Retry-After: 0`.
 
-Interaktionen ersetzt `interaktion` durch ein Objekt mit nur dem, was
-`beantworte` braucht.
+Slash-Befehle ruft `ruft` in derselben Datei so auf, wie Discord sie
+schickt: durch die Action `InteractionCreate` eines eigenen Clients aus
+`discordClient`, die Antworten gehen an `mockDiscord`. Die Befehle des
+Moduls prüft `bot/src/module/befehle/befehle.test.ts` ohne Discord, mit
+einem `Aufruf`, der nur die Antworten sammelt.
 
 ## Die API des Dashboards
 
@@ -73,11 +77,13 @@ gegen `mockDiscord`. Die Tests der API und der Schicht nutzen
   auch mit Dateien, für das CDN der Avatare, für Kanäle anlegen, ändern
   (`PATCH /channels/{id}`) und löschen, für Mitglieder verschieben und für
   die Antworten auf Interaktionen (`POST /interactions/{id}/{token}/callback`,
-  `PATCH /webhooks/{id}/{token}/messages/@original`). Er merkt sich jede
+  `PATCH /webhooks/{id}/{token}/messages/@original`, `POST /webhooks/{id}/{token}`
+  für `followUp`). Er merkt sich jede
   Anfrage, Nachricht, Anlage, Änderung mit dem Grund im Audit-Log,
   Verschiebung, Löschung und Antwort; je Test lässt sich die Antwort für
   Person und Mitglieder ändern, Anlegen, Ändern, Verschieben, Löschen und
-  Senden können mit einem Code von Discord scheitern, und Umbenennen kann mit 429
+  Senden können mit einem Code von Discord scheitern, mit `antwortFehler`
+  auch jede Antwort auf eine Interaktion, und Umbenennen kann mit 429
   und `Retry-After` antworten. Mit `tauschWarten` antwortet
   `POST /oauth2/token` mit 429 und den Sekunden in `Retry-After`, einmal je
   Eintrag. `GET /applications/@me` liefert `anwendung`: eine Anwendung aus
@@ -149,13 +155,18 @@ Millisekunden. Darum:
 
 | Test | prüft |
 |---|---|
-| registriere ersetzt alle Befehle mit einem PUT | Methode, Pfad, Namen der Befehle |
+| registriere ersetzt alle Befehle mit einem PUT | Methode, Pfad, der Body je Befehl wie von `SlashCommandBuilder`: Name, Beschreibung, keine Optionen, Typ 1 |
 | registriere wartet nach 429 | genau ein zweiter Versuch |
 | registriere gibt nach 5xx auf | der Fehler kommt beim Aufrufer an |
-| /ping antwortet nur dem Nutzer, mit der Zeit der Datenbank | Text mit ms und Flag `Ephemeral` (64) |
+| registriere wirft bei einem Namen, den Discord nicht nimmt … | Grossbuchstaben und Leerzeichen: Fehler, keine Anfrage |
+| ein Befehl antwortet gleich, nur dem Nutzer und ohne Erwähnungen | Typ 4, Flag `Ephemeral` (64), `allowed_mentions` mit leerem `parse`; keine Logzeile |
+| ein unbekannter Befehl … | Meldung an den Nutzer, eine Logzeile ohne Nutzerdaten |
+| wirft ein Befehl nach seiner Antwort … | die Meldung als `followUp` (`POST /webhooks/{id}/{token}`), ephemeral; eine Logzeile |
+| scheitert die Antwort, wirft antworte DiscordFehler … | Callback mit 404 und 10062: der Befehl sieht `DiscordFehler` mit `anderes`; zwei Logzeilen ohne Token und ID |
+| befehle: nur /ping, mit Beschreibung | Name und Beschreibung, wie Discord sie zeigt |
+| /ping antwortet mit der Zeit der Datenbank | Text mit ms |
 | /ping antwortet auch, wenn die Datenbank fehlt | „nicht erreichbar“, eine Logzeile nur mit dem Fehlertext |
 | /ping antwortet nach 2 s, wenn die Datenbank hängt | eine `query`, die nie zurückkommt; mit falschen Uhren: bei 1999 ms noch keine Antwort, bei 2000 ms „nicht erreichbar“ |
-| ein unbekannter Befehl … | Meldung an den Nutzer, eine Logzeile ohne Nutzerdaten |
 | gleichzeitige Anfragen laden einen Schlüssel nur einmal | `ladeCache` |
 | nach delete und nach Ablauf wird neu geladen | `ladeCache` mit `ttl` 30 ms |
 | mehr als max Schlüssel verdrängen den ältesten | `ladeCache` mit `max` 2 |

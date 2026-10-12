@@ -3,6 +3,7 @@ title: Datenschutz
 description: Welche Daten von Discord der Bot speichert, wie lange, und was ins Log geht.
 code:
   - bot/src/module/befehle/befehle.ts
+  - bot/src/discord/befehle.ts
   - bot/src/kern/fehler.ts
   - bot/src/index.ts
   - bot/src/kern/cache.ts
@@ -95,7 +96,9 @@ Nur der Name des Befehls und der Text eines Fehlers (`text` in
 `bot/src/kern/fehler.ts`), nie das Fehlerobjekt: Fehler der REST-API
 tragen in `url` den Token der Interaktion. Nie IDs, Namen, Nachrichteninhalte,
 Tokens, Cookies oder der Code der Anmeldung. Der Test „ein unbekannter
-Befehl bekommt eine Meldung, das Log keine Nutzerdaten“ prüft die Zeile.
+Befehl bekommt eine Meldung, das Log keine Nutzerdaten“ prüft die Zeile,
+„scheitert die Antwort, wirft antworte DiscordFehler …“, dass weder Token
+noch ID darin stehen.
 
 Die API loggt nur den Schritt der Anmeldung oder den Namen der Route
 und den Text des Fehlers: `Anmeldung: <Schritt>: <Fehler>` und
