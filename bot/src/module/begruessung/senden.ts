@@ -1,6 +1,7 @@
 import type { Pool } from 'pg';
-import { holeAvatar, zeichne } from './banner.js';
+import { holeAvatar, zeichenbar, zeichne } from './banner.js';
 import { text as fehlertext } from '../../kern/fehler.js';
+import { nameOder, ohneHasszeichen } from '../../kern/namen.js';
 import type { Zaehlung } from '../../kern/zaehlung.js';
 import { ersetze, liesBild, type Art, type Einstellung, type Werte } from './begruessung.js';
 import type { Mitglied, Textkanal } from '../../discord/nachrichten.js';
@@ -44,8 +45,32 @@ export class Plaetze {
 // der Vorschau. Siehe docs/bot/begruessung-senden.md, „Bremse“.
 const bannerPlaetze = new Plaetze(2);
 
-function werte(mitglied: Mitglied): Werte {
-  return { id: mitglied.id, name: mitglied.name, server: mitglied.server.name, anzahl: mitglied.server.anzahl };
+// Die Werte der Platzhalter ohne Hasszeichen; bleibt vom Namen nichts, der
+// Benutzername. Siehe docs/benutzung/begruessung.md, „Platzhalter“.
+export function werte(mitglied: Mitglied): Werte {
+  return {
+    id: mitglied.id,
+    name: nameOder(ohneHasszeichen(mitglied.name), mitglied.benutzername),
+    server: ohneHasszeichen(mitglied.server.name),
+    anzahl: mitglied.server.anzahl,
+  };
+}
+
+// Im Banner nur, was eine Schrift hat; bleibt vom Namen dann nichts, etwa bei
+// einem Namen ganz in Arabisch, der Benutzername.
+// Siehe docs/benutzung/begruessung.md, „Banner“.
+export function werteImBanner(mitglied: Mitglied): Werte {
+  const w = werte(mitglied);
+  return { ...w, name: nameOder(zeichenbar(w.name), mitglied.benutzername), server: zeichenbar(w.server) };
+}
+
+// Text und Zeile des Banners, wie der Bot sie schreibt: ohne Hasszeichen,
+// auch keine aus der Vorlage.
+export function textFuer(vorlage: string, mitglied: Mitglied): string {
+  return ohneHasszeichen(ersetze(vorlage, werte(mitglied), 'text'));
+}
+export function bannerZeile(vorlage: string, mitglied: Mitglied): string {
+  return ohneHasszeichen(ersetze(vorlage, werteImBanner(mitglied), 'banner'));
 }
 
 // Das Banner für ein Mitglied; undefined ohne gespeichertes Bild.
@@ -54,7 +79,7 @@ export async function banner(mitglied: Mitglied, art: Art, vorlage: string, k: P
   if (!hintergrund) return undefined;
   return bannerPlaetze.nutze(async () => {
     const avatar = await (k.avatar ?? holeAvatar)(mitglied.avatar);
-    return zeichne(hintergrund, avatar, ersetze(vorlage, werte(mitglied), 'banner'));
+    return zeichne(hintergrund, avatar, bannerZeile(vorlage, mitglied));
   });
 }
 
@@ -150,7 +175,7 @@ export async function begruesse(mitglied: Mitglied, art: Art, k: SendeKontext): 
     console.error(`Begrüssung ${art}: Kanal fehlt oder der Bot darf dort nicht senden.`);
     return;
   }
-  const text = ersetze(e.text, werte(mitglied), 'text');
+  const text = textFuer(e.text, mitglied);
   let datei: Buffer | undefined;
   if (e.banner && e.bild) {
     if (!ziel.anhaengen) {
@@ -189,7 +214,7 @@ export async function sendeTest(
   e: Einstellung,
   k: Pick<SendeKontext, 'db' | 'avatar'>,
 ): Promise<{ banner: boolean }> {
-  const text = ersetze(e.text, werte(mitglied), 'text');
+  const text = textFuer(e.text, mitglied);
   let datei: Buffer | undefined;
   if (e.banner && e.bild && ziel.anhaengen) {
     datei = await banner(mitglied, art, e.bannerText, k).catch((fehler: unknown) => {

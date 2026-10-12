@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { createCanvas, GlobalFonts, Image, loadImage, type Image as Bild } from '@napi-rs/canvas';
+import { Glyphen, leseBereiche } from './glyphen.js';
 
 // Siehe docs/benutzung/begruessung.md, „Banner“.
 export const breite = 1100;
@@ -10,8 +11,16 @@ export const hoehe = 440;
 // Noto Color Emoji für Emoji, Noto Sans CJK für Chinesisch, Japanisch und
 // Koreanisch. Siehe docs/entscheidungen/0010-ersatzschriften-im-banner.md.
 const schriften = { Inter: 'Inter-SemiBold.ttf', 'Noto Color Emoji': 'Noto-COLRv1.ttf', 'Noto Sans CJK': 'NotoSansCJKjp-Bold.otf' };
-for (const [familie, datei] of Object.entries(schriften)) {
-  GlobalFonts.registerFromPath(fileURLToPath(new URL(`../../../schrift/${datei}`, import.meta.url)), familie);
+const pfad = (datei: string) => fileURLToPath(new URL(`../../../schrift/${datei}`, import.meta.url));
+for (const [familie, datei] of Object.entries(schriften)) GlobalFonts.registerFromPath(pfad(datei), familie);
+
+// Welche Zeichen die Schriften haben. Fehlt einer die cmap im Format 12,
+// wirft schon das Laden. Siehe docs/entscheidungen/0018-zierbuchstaben-und-filter.md.
+const glyphen = new Glyphen(Object.values(schriften).map((datei) => leseBereiche(pfad(datei))));
+
+// `text` so, wie das Banner ihn ohne Kästchen zeichnen kann; siehe `Glyphen#zeichenbar`.
+export function zeichenbar(text: string): string {
+  return glyphen.zeichenbar(text);
 }
 
 // Fehlt einer Schrift ein Zeichen, nimmt @napi-rs/canvas die nächste, Zeichen
@@ -123,7 +132,8 @@ export async function zeichne(hintergrund: Buffer, avatar: Buffer | undefined, t
   g.strokeStyle = rand;
   g.stroke();
 
-  const zeile = text.replaceAll(/\s+/g, ' ').trim();
+  // Nur, was eine Schrift hat; danach den Leerraum, der dabei doppelt wird.
+  const zeile = zeichenbar(text).replaceAll(/\s+/g, ' ').trim();
   const breiteMax = breite - 2 * 60;
   let groesse = 64;
   g.font = `${groesse}px ${schriftStapel}`;

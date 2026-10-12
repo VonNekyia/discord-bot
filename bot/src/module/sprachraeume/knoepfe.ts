@@ -1,5 +1,6 @@
 import type { Pool } from 'pg';
 import { text as fehlertext } from '../../kern/fehler.js';
+import { ohneHasszeichen } from '../../kern/namen.js';
 import { DiscordFehler } from '../../discord/fehler.js';
 import type { Druck } from '../../discord/interaktionen.js';
 import type { Server } from '../../discord/server.js';
@@ -174,7 +175,8 @@ export class Knoepfe {
   }
 
   private async umbenennen(l: Lage, wert: string): Promise<string> {
-    const name = wert.trim();
+    // Der Bot schreibt keine Hasszeichen; bleibt nichts, gilt der Hinweis für einen leeren Namen.
+    const name = ohneHasszeichen(wert).trim();
     if (name.length < 1 || name.length > 100) return 'Ein Name hat 1 bis 100 Zeichen.';
     await l.raum.benenne(name, grund.umbenennen);
     return 'Umbenannt.';

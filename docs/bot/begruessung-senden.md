@@ -8,6 +8,7 @@ code:
   - bot/src/discord/nachrichten.ts
   - bot/src/module/begruessung/modul.ts
   - bot/src/discord/modul.ts
+  - bot/src/kern/namen.ts
 ---
 
 # Begrüssung senden
@@ -28,7 +29,7 @@ Discord-Schicht“:
 
 | Funktion oder Typ | Inhalt |
 |---|---|
-| `Mitglied`, `alsMitglied` | ID, Anzeigename, URL des Avatars als PNG mit 256 px, Server mit ID, Name und Zahl der Mitglieder; auch aus einem Partial |
+| `Mitglied`, `alsMitglied` | ID, Anzeigename, Benutzername, URL des Avatars als PNG mit 256 px, Server mit ID, Name und Zahl der Mitglieder; auch aus einem Partial |
 | `Textkanal`, `textkanal` | über den Griff `Server`: ein Text- oder Ankündigungskanal, in dem der Bot sehen und senden darf, mit `anhaengen` für „Dateien anhängen“; sonst `undefined` |
 | `textkanalAuf` | dasselbe über die IDs von Server und Kanal, für Ereignisse und die Bremse |
 | `Nachricht`, `Textkanal#sende` | Text, Datei, `pingt`; daraus `allowedMentions`, siehe „Platzhalter und Erwähnungen“ |
@@ -52,7 +53,12 @@ die Testnachricht.
 4. Der Kanal muss ein Text- oder Ankündigungskanal sein, in dem der Bot
    sehen und senden darf (`textkanal`, siehe „Discord-Schicht“). Sonst
    endet es mit einer Logzeile.
-5. Der Text bekommt die Platzhalter (`ersetze`, siehe unten).
+5. Der Text bekommt die Platzhalter (`textFuer`: `ersetze`, siehe unten).
+   Die Werte filtert `werte` zuerst, das Ergebnis danach noch einmal:
+   Hakenkreuze und SS-Runen schreibt der Bot nie, siehe Entscheidung
+   [0018](../entscheidungen/0018-zierbuchstaben-und-filter.md). Im Banner
+   macht `werteImBanner` die Werte zusätzlich mit `zeichenbar` zeichenbar,
+   `bannerZeile` filtert die fertige Zeile.
 6. Mit `banner` und gespeichertem Bild zeichnet `banner` das PNG. Fehlt im
    Kanal „Dateien anhängen“ oder scheitert das Zeichnen, geht nur der Text,
    mit einer Logzeile.

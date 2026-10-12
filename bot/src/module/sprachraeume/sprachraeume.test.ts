@@ -15,7 +15,7 @@ import { Zaehlung } from '../../kern/zaehlung.js';
 import { dashboardGriff } from '../../discord/dashboard.js';
 import { serverVon, type Server as Griff } from '../../discord/server.js';
 import { sprachraeumeModul } from './modul.js';
-import { Raeume } from './raeume.js';
+import { Raeume, raumname } from './raeume.js';
 import { sprachraeumeBereich } from './seiten.js';
 import { hoechstens, liesSprachraeume, speichereSprachraeume, type Sprachraeume } from './sprachraeume.js';
 import {
@@ -168,6 +168,23 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
   };
   const zeile = async (kanalId: string) => (await db.query('SELECT server, besitzer FROM raeume WHERE kanal = $1', [kanalId])).rows[0];
   const sortiert = <T extends { id: string }>(liste: T[]) => liste.toSorted((a, b) => a.id.localeCompare(b.id));
+
+  test('raumname: ohne Hasszeichen aus Name und Vorlage; sonst der Benutzername, dann der Name', () => {
+    const mia = { name: 'Mi\u5350a', benutzername: 'nutzer.elf' };
+    assert.equal(raumname('{name}s Raum', mia), 'Mias Raum');
+    assert.equal(raumname('{name}s Raum', { name: '\u5350\u534D', benutzername: 'nutzer.elf' }), 'nutzer.elfs Raum');
+    assert.equal(raumname('\u5350 {name} \u16CB\u16CA', mia), ' Mia ');
+    assert.equal(raumname('\u5350', mia), 'Mia');
+    assert.equal(raumname('{name} \u16CB', mia), 'Mia \u16CB');
+    assert.equal(raumname('x'.repeat(120), mia).length, 100);
+  });
+
+  test('ein neuer Raum heisst ohne Hasszeichen, auch wenn der Name sie hat', async () => {
+    mock.mitglieder.set(`${SERVER}/${BESITZER}`, mitglied(BESITZER, [], { global_name: 'Mi\u5350a' }));
+    await speichereSprachraeume(db, SERVER, standard);
+    await betritt(raeume(), BESITZER, K.erzeuger);
+    assert.equal(mock.angelegt[0]?.name, 'Mias Raum');
+  });
 
   test('ein Erzeuger legt den Raum mit den Einträgen der Kategorie, des Besitzers und des Bots in einem Aufruf an', async () => {
     await speichereSprachraeume(db, SERVER, standard);

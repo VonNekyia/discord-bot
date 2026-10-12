@@ -8,7 +8,7 @@ import { ladeCache } from '../../kern/cache.js';
 import { migriere, oeffne, verbindung } from '../../kern/datenbank.js';
 import { Zaehlung } from '../../kern/zaehlung.js';
 import { begruessungsModul } from './modul.js';
-import { begruesse, Bremse, erstelleBremse, Plaetze, zusammenfassung } from './senden.js';
+import { bannerZeile, begruesse, Bremse, erstelleBremse, Plaetze, textFuer, werte, zusammenfassung } from './senden.js';
 import { pngBild } from '../../testhilfe.js';
 import { DiscordFehler } from '../../discord/fehler.js';
 import type { Mitglied, Nachricht, Textkanal } from '../../discord/nachrichten.js';
@@ -75,6 +75,33 @@ test('die Bremse zählt im Fenster von 10 s: verteilte Ereignisse gehen einzeln'
   assert.deepEqual(Array.from({ length: 6 }, () => bremse.zaehle('b', 'y')).at(-1), 'an');
 });
 
+// Ein Mitglied für die Werte, ohne Datenbank; Namen und IDs sind erfunden.
+const jemand = (name: string, serverName = 'Probe'): Mitglied => ({
+  id: '200000000000000041',
+  name,
+  benutzername: 'nutzer.elf',
+  avatar: 'https://cdn.example/avatars/41.png?size=256',
+  server: { id: '300000000000000041', name: serverName, anzahl: 3 },
+});
+
+test('Werte, Text und Bannerzeile ohne Hasszeichen, auch aus der Vorlage; bleibt vom Namen nichts, der Benutzername', () => {
+  assert.deepEqual(werte(jemand('Mi\u5350a', '\u534DProbe')), { id: '200000000000000041', name: 'Mia', server: 'Probe', anzahl: 3 });
+  assert.equal(textFuer('\u5350 {name} auf {server} \u16CB\u16CB', jemand('Mi\u5350a')), ' Mia auf Probe ');
+  assert.equal(bannerZeile('\u5350 Willkommen, {name}! {nutzer}', jemand('Mi\u5350a')), ' Willkommen, Mia! @Mia');
+  assert.equal(werte(jemand('\u5350\u534D')).name, 'nutzer.elf');
+  assert.equal(textFuer('{name}', jemand('\u5350\u534D')), 'nutzer\\.elf');
+  // Ein einzelnes \u16CB bleibt im Text.
+  assert.equal(textFuer('{name}', jemand('Mia \u16CB')), 'Mia \u16CB');
+});
+
+test('im Banner werden Zierbuchstaben Buchstaben; bleibt vom Namen nichts zu zeichnen, steht dort der Benutzername', () => {
+  assert.equal(bannerZeile('Willkommen, {name}!', jemand('𝕿𝖊𝖘𝖙')), 'Willkommen, Test!');
+  assert.equal(bannerZeile('Willkommen, {name}! {nutzer}', jemand('\u0627\u0628\u062A')), 'Willkommen, nutzer.elf! @nutzer.elf');
+  assert.equal(bannerZeile('Willkommen auf {server}!', jemand('Mia', '𝕻𝖗𝖔𝖇𝖊')), 'Willkommen auf Probe!');
+  // Im Text bleibt der Name, wie er ist; Discord zeichnet ihn selbst.
+  assert.equal(textFuer('{name}', jemand('\u0627\u0628\u062A')), '\u0627\u0628\u062A');
+});
+
 test('die Zusammenfassung sagt eins oder mehrere', () => {
   assert.equal(zusammenfassung('beitritt', 1), 'Willkommen an das neue Mitglied!');
   assert.equal(zusammenfassung('beitritt', 12), 'Willkommen an die 12 neuen Mitglieder!');
@@ -136,11 +163,12 @@ describe('Senden bei Beitritt und Abschied', { skip: ziel ? false : 'keine Daten
   });
   const stelle = (art: Art, e: Partial<Einstellung>) => speichere(db, SERVER, art, { ...standard(art), ...e });
   // Ein Mitglied, wie `alsMitglied` es aus der Discord-Schicht liefert.
-  const neu = (name = 'nutzer-11'): Mitglied => ({
+  const neu = (name = 'nutzer-11', serverName = 'Probe *Server*'): Mitglied => ({
     id: NEU,
     name,
+    benutzername: 'nutzer.elf',
     avatar: `https://cdn.example/avatars/${NEU}.png?size=256`,
-    server: { id: SERVER, name: 'Probe *Server*', anzahl: 42 },
+    server: { id: SERVER, name: serverName, anzahl: 42 },
   });
   const logZeilen = (t: TestContext) => t.mock.method(console, 'error', () => {});
 
@@ -161,6 +189,15 @@ describe('Senden bei Beitritt und Abschied', { skip: ziel ? false : 'keine Daten
     assert.deepEqual(
       gesendet.map((g) => g.n.text),
       ['Hallo Mia.', 'Tschüss Mia.'],
+    );
+  });
+
+  test('der gesendete Text hat keine Hasszeichen, weder aus Name und Server noch aus der Vorlage', async () => {
+    await stelle('beitritt', { an: true, kanal: K.gruss, text: '\u5350 {name} auf {server}' });
+    await begruesse(neu('Mi\u5350a', '\u534DProbe'), 'beitritt', kontext());
+    assert.deepEqual(
+      gesendet.map((g) => g.n.text),
+      [' Mia auf Probe'],
     );
   });
 

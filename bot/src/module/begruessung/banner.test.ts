@@ -7,7 +7,7 @@ import { pngBild } from '../../testhilfe.js';
 
 // U+0378 ist nicht vergeben; jede Schrift zeichnet dafür ihr Glyph für ein
 // fehlendes Zeichen. Siehe docs/entwicklung/tests.md, „Was abgedeckt ist“.
-const fehlt = '͸';
+const fehlt = '\u0378';
 
 // Die Pixel eines Zeichens in 64 px als Prüfsumme, und ob überhaupt Tinte da ist.
 function pixel(zeichen: string, schrift: string): { summe: string; tinte: boolean } {
@@ -37,4 +37,12 @@ test('ein Name mit Emoji, Kanji und Hangul zeigt kein Kästchen', () => {
 test('ein Banner mit Emoji und CJK im Namen hat 1100 × 440 px', async () => {
   const png = await zeichne(pngBild(1100, 440), undefined, 'Willkommen, Mia 😀 漢字 한글!');
   assert.deepEqual(masse(png), { breite: 1100, hoehe: 440 });
+});
+
+test('ein Banner mit „𝕿𝖊𝖘𝖙“ ist Pixel für Pixel das Banner mit „Test“, ohne Kästchen', async () => {
+  const hintergrund = pngBild(1100, 440);
+  const zier = await zeichne(hintergrund, undefined, 'Willkommen, 𝕿𝖊𝖘𝖙!');
+  assert.ok(zier.equals(await zeichne(hintergrund, undefined, 'Willkommen, Test!')));
+  // Was keine Schrift hat und keinen Ersatz, fällt weg, samt doppeltem Leerraum.
+  assert.ok((await zeichne(hintergrund, undefined, 'Willkommen, \u0627\u0628 Mia!')).equals(await zeichne(hintergrund, undefined, 'Willkommen, Mia!')));
 });

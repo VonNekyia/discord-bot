@@ -6,6 +6,8 @@ code:
   - bot/src/module/begruessung/begruessung.ts
   - bot/src/module/begruessung/senden.ts
   - bot/src/module/begruessung/banner.ts
+  - bot/src/kern/namen.ts
+  - bot/src/module/begruessung/glyphen.ts
 ---
 
 # Begrüssung bei Beitritt und Abschied
@@ -42,6 +44,11 @@ privilegierten Intent `GuildMembers` und `Partials.GuildMember`, siehe
   [Guild](https://docs.discord.com/developers/resources/guild).
 - Andere Wörter in geschweiften Klammern bleiben, wie sie sind. Gross- und
   Kleinschreibung zählt.
+- Hakenkreuze und SS-Runen schreibt der Bot nie: nicht aus `{name}` und
+  `{server}` und nicht aus der Vorlage, weder im Text noch im Banner. Bleibt
+  vom Anzeigenamen nichts, steht dort der Benutzername. Welche Zeichen das
+  sind, steht in Entscheidung
+  [0018](../entscheidungen/0018-zierbuchstaben-und-filter.md).
 - Beim Beitritt pingt nur die Erwähnung des neuen Mitglieds. Die Nachricht
   erlaubt nur diese eine Erwähnung (`allowed_mentions` mit genau dieser ID);
   `@everyone`, `@here` und Rollen pingen nie, auch wenn sie im Text stehen.
@@ -74,6 +81,17 @@ Entscheidung [0009](../entscheidungen/0009-banner-mit-napi-rs-canvas.md).
 Zeichen, die Inter nicht hat, kommen aus Noto Color Emoji, farbig, und aus
 Noto Sans CJK für Chinesisch, Japanisch und Koreanisch, siehe Entscheidung
 [0010](../entscheidungen/0010-ersatzschriften-im-banner.md).
+
+Ein Kästchen zeichnet das Banner nie, siehe Entscheidung
+[0018](../entscheidungen/0018-zierbuchstaben-und-filter.md):
+
+- Hat keine der Schriften ein Zeichen, zeichnet es seine Form nach NFKC:
+  „𝕿𝖊𝖘𝖙“, „𝔗𝔢𝔰𝔱“ und „𝓣𝓮𝓼𝓽“ werden „Test“.
+- Hat auch diese Form keine Glyphe, fällt das Zeichen weg. Bleibt so vom
+  Namen nichts, etwa bei einem Namen ganz in Arabisch, Hebräisch, Thai oder
+  Devanagari, steht im Banner der Benutzername.
+- Was eine Schrift hat, bleibt, wie es ist, auch Ｔ oder Ⓣ, Emoji mit ZWJ,
+  Hautton und Flaggen. Im Text der Begrüssung ändert sich nichts.
 
 ## Standardwerte
 

@@ -6,6 +6,7 @@ code:
   - bot/src/module/sprachraeume/raeume.ts
   - bot/src/module/sprachraeume/menue.ts
   - bot/src/module/sprachraeume/knoepfe.ts
+  - bot/src/kern/namen.ts
 ---
 
 # Sprachräume
@@ -67,6 +68,11 @@ Raums zu schreiben, für das Menü.
   [API der Sprachräume](../schnittstelle/sprachraeume.md), „Sprachräume
   einstellen“. Länger wird ein Name also nie.
 - Andere Wörter in geschweiften Klammern bleiben, wie sie sind.
+- Hakenkreuze und SS-Runen schreibt der Bot nie, weder aus dem Namen noch
+  aus der Vorlage, siehe Entscheidung
+  [0018](../entscheidungen/0018-zierbuchstaben-und-filter.md). Bleibt vom
+  Anzeigenamen nichts, nimmt er den Benutzernamen; bleibt vom ganzen Namen
+  nichts, heisst der Raum wie der Besitzer.
 
 ## Menü
 
@@ -89,7 +95,7 @@ mit dem Raum.
 | Entsperren | Besitzer | Wieder offen für alle, die die Kategorie betreten dürfen. |
 | Verstecken | Besitzer | Andere sehen den Raum nicht mehr. Wer gerade drin ist, bekommt ein eigenes Recht, ihn zu sehen und zu betreten, und bleibt. |
 | Zeigen | Besitzer | Wieder sichtbar für alle, die die Kategorie sehen. |
-| Umbenennen | Besitzer | Formular mit dem neuen Namen, 1 bis 100 Zeichen, ohne Platzhalter. |
+| Umbenennen | Besitzer | Formular mit dem neuen Namen, 1 bis 100 Zeichen, ohne Platzhalter. Hakenkreuze und SS-Runen lässt der Bot weg; bleibt nichts, ist der Name leer. |
 | Limit | Besitzer | Formular mit einer Zahl von 0 bis 99; 0 heisst unbegrenzt ([Channel Object](https://docs.discord.com/developers/resources/channel)). |
 | Rauswerfen | Besitzer | Auswahl eines Mitglieds. Ist es im Raum, wird es getrennt und darf wieder beitreten. |
 | Bannen | Besitzer | Auswahl eines Mitglieds. Es kann den Raum weder sehen noch betreten; ist es drin, wird es getrennt. |
