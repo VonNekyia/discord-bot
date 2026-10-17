@@ -25,6 +25,7 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 - [Anmeldung am Dashboard](schnittstelle/anmeldung.md): Discord-Login mit OAuth2, Sitzung und Cookie, Rechte, Origin, Umgebungsvariablen.
 - [API der Begrüssung](schnittstelle/begruessung.md): die Seiten Beitritt und Abschied, ihre Bausteine, Optionen des Kanals, Einstellung speichern, Bild und Vorschau, Testnachricht mit Grenze je Server.
 - [API der Sprachräume](schnittstelle/sprachraeume.md): die Seite Sprachräume, ihre Bausteine, Sprachkanäle und Kategorien mit `bereit`, Sprachräume einstellen, Codes.
+- [Board der Module](schnittstelle/module.md): je Server jedes Modul an oder aus, gesperrt ohne Abo mit Link in den Store von Discord, `alleNeu` nach dem Speichern, `409` `modul_aus`, Aufräumen auch wenn aus, das Board als eigene Schicht `bot/src/brett/`.
 - [API der Debug-Seite](schnittstelle/debug.md): Anfragen an Discord je Route, 429, ungültige Anfragen, eigene Grenzen; eine feste Ansicht ausserhalb des Baukastens, nur für Eigentümer und Team der Anwendung, nie IDs oder Tokens.
 
 ## Bot
@@ -74,3 +75,4 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 - [0016: Debug-Seite im Speicher, nur für den Eigentümer](entscheidungen/0016-debug-im-speicher-fuer-den-eigentuemer.md): Zahlen seit dem Start nur im Speicher, Zugriff für Eigentümer und Team der Anwendung, Anmeldung über `@discordjs/rest`, Warnung ab 1000 ungültigen Anfragen in 10 min; nicht für jeden mit „Server verwalten“, nicht in PostgreSQL.
 - [0017: Das Dashboard als Baukasten](entscheidungen/0017-dashboard-als-baukasten.md): Module melden Seiten aus Bausteinen an, die Oberfläche baut jede Art allgemein, Regeln über mehrere Felder nur im Bot; kein Formular je Modul, kein Schema-Standard, kein HTML vom Bot.
 - [0018: Zierbuchstaben im Banner nach NFKC, Hakenkreuze und SS-Runen gefiltert](entscheidungen/0018-zierbuchstaben-und-filter.md): Glyphen aus der `cmap` der Schriften, sonst NFKC oder weg, nie ein Kästchen; Hakenkreuze und SS-Runen schreibt der Bot nie, ohne Namen der Benutzername; kein Zeichnen je Zeichen, keine Bibliothek, keine neuen Schriften.
+- [0019: Module je Server an und aus](entscheidungen/0019-module-an-und-aus.md): ein Board als eigene Schicht neben `api/`, frei heisst an, bezahlt heisst aus bis zum Abo, aus heisst inaktiv bis auf das Aufräumen; Bausteine `link` und `schalter` mit `gesperrt`, `alleNeu`; kein Modul fürs Board, kein Löschen der Einstellungen, kein Ausblenden der Befehle.
