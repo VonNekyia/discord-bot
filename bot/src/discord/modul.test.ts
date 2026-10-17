@@ -202,17 +202,28 @@ test('ein Modul, das aus ist, bekommt keine Ereignisse, nur sein Aufräumen; Bef
   aus.clear();
 });
 
-test('scheitert die Frage, ob ein Modul an ist, gilt es als aus; eine Zeile ohne IDs', async (t) => {
+test('scheitert die Frage, ob ein Modul an ist, kommt kein Ereignis an; Befehl und Knopf bekommen den allgemeinen Fehlersatz', async (t) => {
   const log = t.mock.method(console, 'error', () => {});
-  const fehlt = discordClient(mock, [gilde(SERVER, 'Module', '200000000000000099', [])]);
+  const fehlt = discordClient(mock, [gilde(SERVER, 'Module', '200000000000000099', [kanal(TEXT, ChannelType.GuildText, 'allgemein', 0, null)])]);
   t.after(() => fehlt.destroy());
   haengeAn(fehlt, [mitSchalter('d')], async () => {
     throw new Error('Datenbank weg');
   });
   const m = ((fehlt.guilds.cache.get(SERVER) as Guild).members as unknown as { _add(d: unknown): unknown })._add(mitglied(PERSON, []));
   assert.deepEqual(await nach(() => fehlt.emit(Events.GuildMemberAdd, m as never)), []);
+  const vorher = mock.antworten.length;
+  assert.deepEqual(await nach(() => interaktion(2, { id: '930000000000000083', name: 'schalter', type: 1 }, fehlt)), []);
+  assert.deepEqual(await nach(() => interaktion(3, { custom_id: 'd:sperren', component_type: 2 }, fehlt)), []);
+  const antworten = mock.antworten.slice(vorher);
+  assert.deepEqual(
+    antworten.map((a) => [a.daten.content, a.daten.flags]),
+    [
+      ['Das hat nicht geklappt.', 64],
+      ['Das hat nicht geklappt.', 64],
+    ],
+  );
   const zeilen = log.mock.calls.map((c) => String(c.arguments[0]));
-  assert.deepEqual(zeilen, ['Board: Datenbank weg']);
+  assert.deepEqual(zeilen, ['Board: Datenbank weg', 'Board: Datenbank weg', 'Board: Datenbank weg']);
 });
 
 test('meldeBereit: Aufräumen mit allen Servern, bereit nur mit denen, auf denen das Modul an ist', async () => {

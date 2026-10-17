@@ -151,8 +151,10 @@ von Discord:
   und gibt es den Modulen in der Reihenfolge der Liste: `aufraeumen` immer,
   `ereignisse` nur, wenn `istAn` für das Modul und den Server `true` gibt.
   Befehle und Knöpfe eines Moduls, das aus ist, antworten `modulAus`.
-  Scheitert `istAn`, gilt das Modul als aus, und `Board: <Fehler>` steht im
-  Log.
+  Scheitert `istAn`, steht `Board: <Fehler>` im Log. Ein Ereignis behandelt
+  das Modul dann wie aus. Ein Befehl oder Knopf antwortet mit dem
+  allgemeinen Satz `fehlgeschlagen`, siehe [Befehle](../benutzung/befehle.md),
+  „Fehler“, denn auf dem Board steht das Modul an.
 
 Jedes Modul fängt seine Fehler selbst und loggt sie. Der Vertrag wächst,
 wenn ein Modul mehr braucht.

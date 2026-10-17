@@ -1,7 +1,7 @@
 import { Events, MessageFlags, type Client } from 'discord.js';
 import { text } from '../kern/fehler.js';
 import type { Modul } from '../kern/modul.js';
-import { beantworte, type Befehl } from './befehle.js';
+import { beantworte, fehlgeschlagen, type Befehl } from './befehle.js';
 import { alsDruck, type Druck } from './interaktionen.js';
 import type { Kontext } from './kontext.js';
 import { alsMitglied, type Mitglied } from './nachrichten.js';
@@ -41,14 +41,26 @@ export type IstAn = (modul: string, server: string) => Promise<boolean>;
 export const modulAus = 'Dieses Modul ist auf dem Server aus. Das Team schaltet es im Dashboard unter „Module“ an.';
 
 // Ob `m` auf `server` an ist. Ein Modul ohne Schalter ist immer an; scheitert
-// die Frage, gilt es als aus, und eine Zeile geht ins Log.
-async function an(m: DiscordModul, server: string, istAn: IstAn): Promise<boolean> {
-  if (!m.schalter) return true;
-  return istAn(m.name, server).catch((fehler: unknown) => {
-    console.error(`Board: ${text(fehler)}`);
-    return false;
-  });
+// die Frage, `fehler`, und eine Zeile geht ins Log. Ein Ereignis behandelt
+// `fehler` wie aus, ein Befehl oder Knopf antwortet `fehlgeschlagen`: Auf dem
+// Board steht das Modul ja an. Siehe docs/entwicklung/struktur.md, „Ein Modul“.
+async function zustand(m: DiscordModul, server: string, istAn: IstAn): Promise<'an' | 'aus' | 'fehler'> {
+  if (!m.schalter) return 'an';
+  return istAn(m.name, server).then(
+    (ja) => (ja ? 'an' : 'aus'),
+    (fehler: unknown) => {
+      console.error(`Board: ${text(fehler)}`);
+      return 'fehler';
+    },
+  );
 }
+
+async function an(m: DiscordModul, server: string, istAn: IstAn): Promise<boolean> {
+  return (await zustand(m, server, istAn)) === 'an';
+}
+
+// Die Antwort eines Befehls oder Knopfs, wenn das Modul nicht an ist.
+const statt = { aus: modulAus, fehler: fehlgeschlagen } as const;
 
 // Gibt ein Ereignis eines Servers an jedes Modul: `aufraeumen` immer,
 // `ereignisse` nur, wenn das Modul dort an ist. Jedes Modul für sich, in
@@ -117,11 +129,11 @@ export function haengeAn(client: Client, module: readonly DiscordModul[], istAn:
         void beantworte(interaction, befehle);
         return;
       }
-      void an(besitzer, server, istAn).then((ja) =>
-        ja
+      void zustand(besitzer, server, istAn).then((z) =>
+        z === 'an'
           ? beantworte(interaction, befehle)
           : interaction
-              .reply({ content: modulAus, flags: MessageFlags.Ephemeral })
+              .reply({ content: statt[z], flags: MessageFlags.Ephemeral })
               .then(
                 () => undefined,
                 (e: unknown) => console.error(`/${interaction.commandName}: Antwort fehlgeschlagen: ${text(e)}`),
@@ -134,8 +146,8 @@ export function haengeAn(client: Client, module: readonly DiscordModul[], istAn:
       const { knoepfe } = m;
       const druck = knoepfe && alsDruck(interaction, knoepfe.praefix);
       if (druck) {
-        void an(m, druck.server.id, istAn).then((ja) =>
-          ja ? knoepfe.bediene(druck) : druck.antworte(modulAus).catch((e: unknown) => console.error(`Knopf: Antwort fehlgeschlagen: ${text(e)}`)),
+        void zustand(m, druck.server.id, istAn).then((z) =>
+          z === 'an' ? knoepfe.bediene(druck) : druck.antworte(statt[z]).catch((e: unknown) => console.error(`Knopf: Antwort fehlgeschlagen: ${text(e)}`)),
         );
         return;
       }
