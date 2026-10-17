@@ -127,13 +127,16 @@ Bot schon eingeladen hat, gibt sie seiner Rolle von Hand oder lädt ihn neu
 ein; ebenso die der Managed Commands. Solange der Bot privat ist, geht der
 Link nur für das Team.
 
+## Bezahlte Module
+
 Für die bezahlten Module legt der Maintainer im Developer Portal unter
 „Monetization“ die SKUs an und trägt ihre IDs in `bot/.env` ein:
 `SKU_MANAGED_COMMANDS` (Consumable, 4,99 €), `SKU_ABO_LOG` und
 `SKU_ABO_ALLES` (Abos je Server, 4,99 € und 19,99 € im Monat). Sie sind
-keine Secrets. Fehlt eine, ist ihr Angebot aus, siehe
-[0020](../entscheidungen/0020-bezahlte-module.md). Kommt mit
-`managed-commands-backend`.
+keine Secrets. Fehlt eine, ist ihr Angebot aus; ist eine gesetzt, aber
+keine ID, endet der Bot beim Start mit Exit 1. Was dann freigeschaltet
+ist, steht in [Board der Module](../schnittstelle/module.md),
+„Freischaltung“, und [0020](../entscheidungen/0020-bezahlte-module.md).
 
 ### Eigener Server
 

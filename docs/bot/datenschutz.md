@@ -15,6 +15,8 @@ code:
   - bot/src/kern/zaehlung.ts
   - bot/src/discord/oauth.ts
   - bot/src/discord/eigentuemer.ts
+  - bot/src/brett/freischaltung.ts
+  - bot/src/discord/kaeufe.ts
 ---
 
 # Datenschutz
@@ -37,7 +39,7 @@ nicht gebaut.
 | Managed Commands je Server: Server-ID, vorgefertigte Gründe, Rollen-IDs mit Limits, Text der DM und zur Entbannung, Frist der Verwarnungen | die Befehle `/ban`, `/kick` und `/warn`, siehe [API der Managed Commands](../schnittstelle/strafen.md) | bis das Team sie ändert oder der Bot den Server verlässt | kommt mit `managed-commands-backend` |
 | Ban oder Kick: Server-ID, Discord-ID dessen, der den Befehl nutzt, Art, Zeit; nicht das Ziel und nicht der Grund | das Limit je Rolle, siehe [Managed Commands](../benutzung/managed-commands.md), „Limit“ | 7 Tage; der Bot löscht ältere Zeilen mindestens stündlich, und wenn er den Server verlässt | kommt mit `managed-commands-backend` |
 | Verwarnung: Server-ID, Discord-ID des Verwarnten und dessen, der verwarnt, Grund, Zeit | die Zahl in „verwarnt, zum n. Mal“ | so viele Tage, wie der Server in `verwarnungTage` einstellt, 30 bis 730, Standard 365, siehe [API der Managed Commands](../schnittstelle/strafen.md); der Bot löscht ältere Zeilen mindestens stündlich, auch nachdem die Frist kürzer geworden ist, und wenn er den Server verlässt | kommt mit `managed-commands-backend` |
-| Bindung eines Kaufs: Server-ID, SKU-ID, Entitlement-ID, ob verbraucht, Zeit; keine Discord-ID einer Person | dass ein bezahltes Modul auf dem Server freigeschaltet ist, siehe [0020](../entscheidungen/0020-bezahlte-module.md) | bis Discord das Entitlement löscht, etwa bei einer Rückerstattung; bleibt, wenn der Bot den Server verlässt, damit der Kauf nicht verloren geht | kommt mit `managed-commands-backend` |
+| Bindung eines Kaufs: Server-ID, SKU-ID, Entitlement-ID, ob verbraucht, Zeit; keine Discord-ID einer Person | dass ein bezahltes Modul auf dem Server freigeschaltet ist, siehe [0020](../entscheidungen/0020-bezahlte-module.md) | bis Discord das Entitlement löscht, etwa bei einer Rückerstattung; bleibt, wenn der Bot den Server verlässt, damit der Kauf nicht verloren geht | gebaut |
 | Board je Server und Modul: Server-ID, ID des Moduls, Schalter | welche Module auf dem Server an sind, siehe [Board der Module](../schnittstelle/module.md) | bis das Team es ändert oder der Bot den Server verlässt | gebaut |
 
 Mit den Sprachräumen hält discord.js zudem für jedes Mitglied, das einen
@@ -53,13 +55,27 @@ siehe [Sprachräume](../benutzung/sprachraeume.md), „Grenzen“. Der Test „d
 Grenze von 30 s vergisst ein Mitglied nach ihrer Zeit“ prüft das.
 
 Für die Abos hält der Bot je Server die Entitlements von Discord höchstens
-10 min im Speicher. Ein Entitlement trägt die Discord-ID der Person, die
-gekauft hat (`user_id`,
+10 min im Speicher (`Freischaltung` in `bot/src/brett/freischaltung.ts`).
+Ein Entitlement trägt die Discord-ID der Person, die gekauft hat
+(`user_id`,
 [Entitlement Object](https://docs.discord.com/developers/resources/entitlement#entitlement-object));
-der Bot liest daraus nur SKU, `guild_id`, `deleted` und `ends_at`. Beim
+der Bot liest daraus nur ID, SKU, `guild_id`, `consumed`, `deleted` und
+`ends_at` (`Kauf` in `bot/src/discord/kaeufe.ts`), die `user_id` nie. Beim
 Binden eines Kaufs liest er die Entitlements der angemeldeten Person
-einmal und speichert nur das eine, das er bindet. Kommt mit
-`managed-commands-backend`, siehe [0020](../entscheidungen/0020-bezahlte-module.md).
+einmal und speichert nur das eine, das er bindet. Nach jeder neuen Sitzung
+eines Shards liest er alle Käufe der gebundenen SKUs, auch gelöschte und
+mit `user_id`, nur für diesen Durchgang. Er behält keine `user_id` und
+speichert nur Änderungen an den Bindungen, siehe
+[Board der Module](../schnittstelle/module.md), „Kauf binden“, und
+[0020](../entscheidungen/0020-bezahlte-module.md).
+
+discord.js legte jedes Entitlement, das es sieht, mit `user_id` im Cache
+der Anwendung ab, auch die, die jede Interaktion mitbringt. Darum hält
+`erstelleClient` dort keins (`EntitlementManager` mit `maxSize` 0), und
+der Bot liest Käufe über die REST-API, nicht über
+`client.application.entitlements`. Der Test „Ereignisse kommen als Kauf,
+ohne Discord-ID der Person; der Cache der Anwendung bleibt leer“ prüft
+das.
 
 Für die Debug-Seite hält der Bot die Discord-IDs des Eigentümers der
 Anwendung oder der Mitglieder ihres Teams mit angenommener Einladung im
@@ -119,6 +135,13 @@ und den Text des Fehlers: `Anmeldung: <Schritt>: <Fehler>` und
 `API <Route>: <Fehler>`. Der Name der Route ist fest, etwa `seiten`, nie
 der Pfad; der trägt die ID des Servers. Der Test „kein Code, Token, Cookie,
 state und keine ID im Log“ prüft das.
+
+Die Käufe loggen nur einen festen Schritt und den Text des Fehlers, etwa
+`Kauf binden: <Fehler>`, und beim Abgleich und Nachverbrauchen nur Zahlen,
+etwa `Käufe abgeglichen: 3 Bindungen, 1 gelöscht, 1 nachverbraucht, 1
+offen.`; nie Entitlement-, Nutzer- oder Server-IDs. Die Tests „scheitert
+das Verbrauchen, ist das Modul trotzdem frei …“ und „ein gelöschter Kauf
+entfernt die Bindung …“ prüfen die Zeilen.
 
 Die Sprachräume loggen nur einen festen Schritt und den Text des Fehlers,
 etwa `Sprachraum: nicht angelegt: <Fehler>`; das Menü nur

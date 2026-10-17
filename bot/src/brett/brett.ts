@@ -16,12 +16,22 @@ export interface BrettOptionen {
   freigeschaltet?(server: string, modul: string): Promise<boolean>;
   // Der Link zum Kaufen eines bezahlten Moduls, in den Store von Discord.
   kaufen?(modul: string): string | undefined;
+  // Gibt es für `modul` einen Einmalkauf, den man an einen Server bindet?
+  bindbar?(modul: string): boolean;
+  // Bindet einen Kauf von `nutzer` für `modul` an `server`; wirft `BausteinFehler`.
+  // Siehe docs/schnittstelle/module.md, „Kauf binden“.
+  binde?(server: string, nutzer: string, modul: string): Promise<void>;
   // Der Cache der gespeicherten Schalter; ohne Angabe ein eigener. Tests geben einen.
   gespeichert?: { fetch(server: string): Promise<Map<string, boolean> | undefined>; delete(server: string): unknown };
 }
 
 const saetze: Record<string, Satz> = {
   nicht_freigeschaltet: { titel: 'Dieses Modul ist auf dem Server nicht freigeschaltet.', text: 'Schalte es im Store von Discord frei, dann geht es hier an.' },
+  kein_kauf: {
+    titel: 'Kein freier Kauf gefunden.',
+    text: 'Kaufe das Modul im Store von Discord, mit dem Konto, mit dem du hier angemeldet bist, und versuch es dann noch einmal.',
+  },
+  schon_freigeschaltet: { titel: 'Das Modul ist hier schon freigeschaltet.', text: 'Dein Kauf bleibt frei; du kannst ihn auf einem anderen Server binden.' },
 };
 
 // Die gespeicherten Schalter eines Servers, je Modul.
@@ -51,6 +61,10 @@ export class Brett {
 
   private frei(server: string, modul: string): Promise<boolean> {
     return this.o.freigeschaltet?.(server, modul) ?? Promise.resolve(false);
+  }
+
+  private bindbar(modul: string): boolean {
+    return this.o.binde !== undefined && this.o.bindbar?.(modul) === true;
   }
 
   // Ist das Modul `modul` auf dem Server an? Ohne Schalter immer.
@@ -102,13 +116,24 @@ export class Brett {
       });
       const url = gesperrt ? this.o.kaufen?.(m.name) : undefined;
       if (url) bausteine.push({ art: 'link', id: `${m.name}Kaufen`, titel: 'Freischalten im Store von Discord', url });
+      if (gesperrt && this.bindbar(m.name)) {
+        bausteine.push({
+          art: 'aktion',
+          id: `${m.name}Binden`,
+          titel: 'Kauf hier freischalten',
+          laeuft: 'Schalte frei …',
+          hilfe: 'Bindet deinen Kauf aus dem Store an diesen Server. Ein Kauf gilt für einen Server und lässt sich nicht verschieben.',
+        });
+      }
     }
     return bausteine;
   }
 
   private baueBereich(): Bereich<Kontext> {
+    // Je bezahltem Modul mit Einmalkauf die Aktion zum Binden.
+    const binden = this.schalter.filter((m) => m.schalter.bezahlt && this.bindbar(m.name)).map((m) => [`${m.name}Binden`, 'aktion'] as const);
     return {
-      seiten: { module: {} },
+      seiten: { module: Object.fromEntries(binden) },
 
       zeige: async ({ server }) => {
         const { wert, frei } = await this.stand(server.id);
@@ -139,6 +164,15 @@ export class Brett {
         const wert = this.wertVon(new Map([...gespeichert, ...neu]), frei);
         const an = Object.values(wert).filter(Boolean).length;
         return { wert, meldung: { titel: 'Gespeichert.', text: `${an} von ${this.schalter.length} Modulen ${an === 1 ? 'ist' : 'sind'} an.` } };
+      },
+
+      // `<modul>Binden`: einen Kauf der angemeldeten Person an den Server binden.
+      // Siehe docs/schnittstelle/module.md, „Kauf binden“.
+      loeseAus: async ({ server, mitglied }, seite, baustein) => {
+        const m = seite === 'module' ? this.schalter.find((s) => s.schalter.bezahlt && `${s.name}Binden` === baustein) : undefined;
+        if (!m || !this.o.binde || !this.bindbar(m.name)) throw new BausteinFehler(404, 'nicht_gefunden');
+        await this.o.binde(server.id, mitglied.id, m.name);
+        return { titel: `${m.schalter.titel} ist freigeschaltet.`, text: 'Schalte es hier an, damit es auf dem Server läuft.' };
       },
     };
   }

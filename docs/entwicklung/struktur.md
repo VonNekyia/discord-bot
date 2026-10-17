@@ -34,9 +34,9 @@ Linter. Warum so, steht in
 | `bot/src/index.ts` | Einstieg: verbindet Kern, Discord-Schicht, API und Module | |
 | `bot/src/modulliste.ts` | `alleModule`: die Liste der Module, in der Reihenfolge der Tabs | |
 | `bot/src/kern/` | Datenbank, Cache, Fehlertext fürs Log, Typwächter für Eingaben, Grenzen, Zählung, Aufräumen, der Vertrag des Baukastens; kennt weder Discord noch Module | `datenbank.ts`, `cache.ts`, `fehler.ts`, `eingabe.ts`, `grenze.ts`, `zaehlung.ts`, `aufraeumen.ts`, `baukasten.ts`, `modul.ts` |
-| `bot/src/discord/` | die einzige Schicht, die discord.js importiert | `client.ts`, `ordnung.ts`, `zaehlen.ts`, `oauth.ts`, `kanaele.ts`, `kontext.ts`, `eigentuemer.ts`, `nachrichten.ts`, `server.ts`, `fehler.ts`, `rechte.ts`, `sprachkanaele.ts`, `menue.ts`, `interaktionen.ts`, `befehle.ts`, `dashboard.ts`, `modul.ts` |
+| `bot/src/discord/` | die einzige Schicht, die discord.js importiert | `client.ts`, `ordnung.ts`, `zaehlen.ts`, `oauth.ts`, `kanaele.ts`, `kontext.ts`, `eigentuemer.ts`, `nachrichten.ts`, `server.ts`, `fehler.ts`, `rechte.ts`, `sprachkanaele.ts`, `menue.ts`, `interaktionen.ts`, `befehle.ts`, `dashboard.ts`, `modul.ts`, `kaeufe.ts` |
 | `bot/src/api/` | HTTP-API des Dashboards: Server, Anmeldung, Grenzen, Fehler; die Routen der Seiten, die die Module anmelden | `server.ts`, `anmeldung.ts` |
-| `bot/src/brett/` | das Board der Module: je Server, welches Modul an ist, und seine Seite; kein Modul, siehe [Board der Module](../schnittstelle/module.md) | `brett.ts` |
+| `bot/src/brett/` | das Board der Module: je Server, welches Modul an ist, und seine Seite; dazu die Freischaltung bezahlter Module; kein Modul, siehe [Board der Module](../schnittstelle/module.md) | `brett.ts`, `freischaltung.ts` |
 | `bot/src/module/befehle/` | Slash-Befehle, heute `/ping` | `befehle.ts`, `modul.ts` |
 | `bot/src/module/begruessung/` | Beitritt und Abschied: Einstellungen, Senden, Banner, Seiten im Dashboard | `begruessung.ts`, `senden.ts`, `banner.ts`, `seiten.ts`, `modul.ts` |
 | `bot/src/module/sprachraeume/` | Sprachräume: Einstellungen, Räume, Menü, Knöpfe, Rechte, Seite im Dashboard | `sprachraeume.ts`, `raeume.ts`, `menue.ts`, `knoepfe.ts`, `raumrechte.ts`, `seiten.ts`, `modul.ts` |

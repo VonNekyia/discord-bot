@@ -26,7 +26,7 @@ describe('Module', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt' }, ()
     await db.end();
   });
 
-  test('jede Tabelle mit Daten je Server (Spalte server bigint) gehört genau einem Modul oder dem Board', async () => {
+  test('jede Tabelle mit Daten je Server (Spalte server bigint) gehört genau einem Modul oder dem Board, ausser bindungen', async () => {
     const { rows } = await db.query<{ tabelle: string }>(
       `SELECT table_name AS tabelle FROM information_schema.columns
        WHERE table_schema = current_schema() AND column_name = 'server' AND data_type = 'bigint'`,
@@ -35,7 +35,10 @@ describe('Module', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt' }, ()
     // Aufraeumen wirft, wenn eine Tabelle zwei Modulen gehört. Wie in bot/src/index.ts mit dem Board.
     const module = alleModule({ db, zaehlung: new Zaehlung(), kanal: () => undefined });
     const aufraeumer = new Aufraeumen([...module, new Brett({ db, module })]);
-    assert.deepEqual([...aufraeumer.tabellen].toSorted(), inDerDatenbank);
+    // Bleibt, wenn der Bot einen Server verlässt, sonst ginge ein Kauf
+    // verloren. Siehe docs/entscheidungen/0020-bezahlte-module.md, „Entscheidung“.
+    const bleiben = ['bindungen'];
+    assert.deepEqual([...aufraeumer.tabellen, ...bleiben].toSorted(), inDerDatenbank);
     assert.ok(inDerDatenbank.length > 0);
   });
 

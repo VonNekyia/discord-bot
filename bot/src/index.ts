@@ -4,12 +4,14 @@ import { Events, type Client } from 'discord.js';
 import { raeumeAuf } from './api/anmeldung.js';
 import { apiUmgebung, erstelleApi, type ApiUmgebung } from './api/server.js';
 import { Brett } from './brett/brett.js';
+import { Freischaltung } from './brett/freischaltung.js';
 import type { Bereich } from './kern/baukasten.js';
 import type { Kontext } from './discord/kontext.js';
 import { text } from './kern/fehler.js';
 import { Aufraeumen } from './kern/aufraeumen.js';
 import { registriere } from './discord/befehle.js';
 import { erstelleClient } from './discord/client.js';
+import { hoereAufKaeufe, hoereAufSitzungen, kaeufeVon } from './discord/kaeufe.js';
 import { dashboardGriff } from './discord/dashboard.js';
 import { befehleVon, haengeAn, meldeBereit } from './discord/modul.js';
 import { textkanalAuf } from './discord/nachrichten.js';
@@ -30,6 +32,19 @@ if (!ziel) {
   console.error('DB_HOST, DB_NAME, DB_USER oder DB_PASSWORD fehlt. Siehe bot/.env.example.');
   process.exit(1);
 }
+
+// Die ID einer SKU aus .env; leer heisst: das Angebot ist aus.
+// Siehe docs/benutzung/einrichtung.md, „Bezahlte Module“.
+function sku(name: string): string | undefined {
+  const wert = process.env[name]?.trim();
+  if (!wert) return undefined;
+  if (!/^\d{17,20}$/.test(wert)) {
+    console.error(`${name} ist keine ID einer SKU. Siehe bot/.env.example.`);
+    process.exit(1);
+  }
+  return wert;
+}
+const skus = { einmal: sku('SKU_MANAGED_COMMANDS'), log: sku('SKU_ABO_LOG'), alles: sku('SKU_ABO_ALLES') };
 
 let umgebung: ApiUmgebung | undefined;
 try {
@@ -55,9 +70,30 @@ zaehleAnfragen(client.rest, zaehlung);
 // Dashboard. Die Begrüssung sieht Kanäle nur über die Discord-Schicht.
 // Siehe docs/entwicklung/struktur.md, „Ein Modul“.
 const modulListe = alleModule({ db, zaehlung, kanal: textkanalAuf(client) });
+// Wann ein bezahltes Modul freigeschaltet ist: Managed Commands als
+// Einmalkauf, „Alles“ für jedes bezahlte Modul, „Log“ für das Log. Die
+// Zuordnung steht nur hier. Siehe docs/entscheidungen/0020-bezahlte-module.md.
+const bezahlt = modulListe.flatMap((m) => (m.schalter?.bezahlt ? [m.name] : []));
+const freischaltung = new Freischaltung({
+  db,
+  kaeufe: kaeufeVon(client),
+  einmalkauf: new Map(skus.einmal ? [['strafen', skus.einmal]] : []),
+  abos: [...(skus.alles ? [{ sku: skus.alles, module: bezahlt }] : []), ...(skus.log ? [{ sku: skus.log, module: ['log'] }] : [])],
+});
+hoereAufKaeufe(client, (art, kauf) => void freischaltung.ereignis(art, kauf).catch((e: unknown) => console.error(`Kauf: ${text(e)}`)));
+// Nach jeder neuen Sitzung: gelöschte Käufe nachholen, nicht verbrauchte
+// verbrauchen. Siehe docs/schnittstelle/module.md, „Kauf binden“.
+hoereAufSitzungen(client, (shard) => void freischaltung.gleicheAb(shard).catch((e: unknown) => console.error(`Käufe nicht abgeglichen: ${text(e)}`)));
 // Welche Module je Server an sind. Kein Modul; die anderen Schichten bekommen
 // nur `istAn`. Siehe docs/schnittstelle/module.md, „Im Bot“.
-const brett = new Brett({ db, module: modulListe });
+const brett = new Brett({
+  db,
+  module: modulListe,
+  freigeschaltet: (server, modul) => freischaltung.frei(server, modul),
+  kaufen: (modul) => freischaltung.kaufen(modul),
+  bindbar: (modul) => freischaltung.bindbar(modul),
+  binde: (server, nutzer, modul) => freischaltung.binde(server, nutzer, modul),
+});
 const istAn = (modul: string, server: string) => brett.istAn(modul, server);
 // Ihre Tabellen und die des Boards löscht `aufraeumer`, wenn der Bot einen Server verlässt.
 const aufraeumer = new Aufraeumen([...modulListe, brett]);

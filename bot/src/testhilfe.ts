@@ -145,6 +145,40 @@ export interface MockDiscord {
   tauschWarten: number[];
   // Was `GET /applications/@me` liefert, oder ein Status für einen Fehler.
   anwendung: object | number;
+  // Die Entitlements der Anwendung. `GET …/entitlements` filtert nach
+  // `user_id`, `guild_id`, `sku_ids`, `exclude_ended`, `exclude_deleted` und
+  // `after`; `POST …/entitlements/{id}/consume` setzt `consumed`.
+  kaeufe: Entitlement[];
+  // Das Lesen der Liste scheitert so: Status oder Abbruch der Verbindung.
+  kaeufeFehler?: number | 'abbruch';
+  // Je kommendem Lesen der Liste: `ok`, ein Status oder ein Abbruch; danach wie sonst.
+  kaeufeFolge: ('ok' | number | 'abbruch')[];
+  // Je kommendem Lesen der Liste die Sekunden in `Retry-After` eines 429.
+  kaeufeWarten: number[];
+  verbrauchenFehler?: [number, number];
+}
+
+// Ein Entitlement, wie Discord es liefert.
+export interface Entitlement {
+  id: string;
+  sku_id: string;
+  application_id: string;
+  type: number;
+  deleted: boolean;
+  consumed?: boolean;
+  user_id?: string;
+  guild_id?: string;
+  ends_at?: string | null;
+}
+
+// Ein Einmalkauf einer Person (type 8, Kauf im Store).
+export function einmalkauf(id: string, sku: string, nutzer: string): Entitlement {
+  return { id, sku_id: sku, application_id: ANWENDUNG, type: 8, deleted: false, consumed: false, user_id: nutzer };
+}
+
+// Ein Abo eines Servers (type 8); ohne Ende läuft es, wie ein Test-Entitlement.
+export function abo(id: string, sku: string, server: string, ende: string | null = null): Entitlement {
+  return { id, sku_id: sku, application_id: ANWENDUNG, type: 8, deleted: false, guild_id: server, ends_at: ende };
 }
 
 // Eine Nachricht des Bots, wie Discord sie zurückgibt.
@@ -204,6 +238,9 @@ export async function mockDiscord(): Promise<MockDiscord> {
     antworten: [],
     tauschWarten: [],
     anwendung: anwendungDaten({ eigentuemer: EIGENTUEMER }),
+    kaeufe: [],
+    kaeufeWarten: [],
+    kaeufeFolge: [],
   } as unknown as MockDiscord;
   let naechsterKanal = 800000000000000001n;
   mock.server = createServer((req, res) => {
@@ -243,6 +280,47 @@ export async function mockDiscord(): Promise<MockDiscord> {
       if (pfad === '/api/v10/users/@me/guilds') return antworte(200, mock.meineServer);
       if (pfad === '/api/v10/applications/@me' && req.method === 'GET') {
         return typeof mock.anwendung === 'number' ? antworte(mock.anwendung, { message: 'Fehler', code: 0 }) : antworte(200, mock.anwendung);
+      }
+      const kaufListe = /^\/api\/v10\/applications\/\d+\/entitlements(\?.*)?$/.exec(pfad);
+      if (kaufListe && req.method === 'GET') {
+        const folge = mock.kaeufeFolge.shift() ?? mock.kaeufeFehler;
+        if (folge === 'abbruch') return req.socket.destroy();
+        if (typeof folge === 'number') return antworte(folge, { message: 'Fehler', code: 0 });
+        const warten = mock.kaeufeWarten.shift();
+        if (warten !== undefined) {
+          res.writeHead(429, { 'content-type': 'application/json', 'retry-after': String(warten), 'x-ratelimit-scope': 'user' });
+          return res.end(JSON.stringify({ message: 'You are being rate limited.', retry_after: warten, global: false }));
+        }
+        const q = new URLSearchParams(kaufListe[1]?.slice(1) ?? '');
+        const skus = q.get('sku_ids')?.split(',');
+        const nach = BigInt(q.get('after') ?? '0');
+        const jetzt = Date.now();
+        const treffer = mock.kaeufe
+          .filter(
+            (k) =>
+              (q.get('exclude_deleted') === 'false' || !k.deleted) &&
+              BigInt(k.id) > nach &&
+              (!q.has('user_id') || k.user_id === q.get('user_id')) &&
+              (!q.has('guild_id') || k.guild_id === q.get('guild_id')) &&
+              (!skus || skus.includes(k.sku_id)) &&
+              (q.get('exclude_ended') !== 'true' || !k.ends_at || Date.parse(k.ends_at) > jetzt),
+          )
+          .toSorted((a, b) => (BigInt(a.id) < BigInt(b.id) ? -1 : 1))
+          .slice(0, Number(q.get('limit') ?? 100));
+        return antworte(200, treffer);
+      }
+      const verbrauchen = /^\/api\/v10\/applications\/\d+\/entitlements\/(\d+)\/consume$/.exec(pfad);
+      if (verbrauchen && req.method === 'POST') {
+        if (mock.verbrauchenFehler) return antworte(mock.verbrauchenFehler[0], { message: 'Fehler', code: mock.verbrauchenFehler[1] });
+        const kauf = mock.kaeufe.find((k) => k.id === verbrauchen[1] && !k.deleted);
+        if (!kauf) return antworte(404, { message: 'Unknown Entitlement', code: 10029 });
+        kauf.consumed = true;
+        return res.writeHead(204).end();
+      }
+      const einKauf = /^\/api\/v10\/applications\/\d+\/entitlements\/(\d+)$/.exec(pfad);
+      if (einKauf && req.method === 'GET') {
+        const kauf = mock.kaeufe.find((k) => k.id === einKauf[1] && !k.deleted);
+        return kauf ? antworte(200, kauf) : antworte(404, { message: 'Unknown Entitlement', code: 10029 });
       }
       const nachricht = /^\/api\/v10\/channels\/(\d+)\/messages$/.exec(pfad);
       if (nachricht && req.method === 'POST') {

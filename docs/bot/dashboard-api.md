@@ -249,9 +249,11 @@ darf, steht in [Datenschutz](datenschutz.md), „Was ins Log geht“.
   `bot/src/kern/aufraeumen.ts`: `vergiss` bei `guildDelete`, `behalteNur`
   beim Start. Welche Tabellen das sind, sagt jedes Modul in `tabellen`,
   heute Einstellungen und Bilder der Begrüssung, Sprachräume und Räume,
-  siehe [Struktur von Bot und Oberfläche](../entwicklung/struktur.md), „Ein
+  dazu `module_an` des Boards, siehe
+  [Struktur von Bot und Oberfläche](../entwicklung/struktur.md), „Ein
   Modul“, und [Begrüssung bei Beitritt und Abschied](../benutzung/begruessung.md),
-  „Wenn etwas fehlt“.
+  „Wenn etwas fehlt“. `bindungen` gehört nicht dazu: Ein gebundener Kauf
+  bleibt, siehe [0020](../entscheidungen/0020-bezahlte-module.md).
 - Beides löscht aus allen Tabellen in einer Anweisung mit CTEs, also in
   einer Transaktion. Die Namen der Tabellen kommen ins SQL; `Aufraeumen`
   prüft sie darum beim Bauen, vor dem Start des Bots: nur `a` bis `z`,
