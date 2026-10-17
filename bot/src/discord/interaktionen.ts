@@ -1,6 +1,7 @@
 import { ComponentType, MessageFlags, type Interaction, type ModalSubmitInteraction } from 'discord.js';
 import { uebersetzt } from './fehler.js';
 import { alsAuswahl, alsModal, type Auswahl, type Formular } from './menue.js';
+import { personVon, rangVon, type Person, type Rang } from './mitglieder.js';
 import { serverVon, type Server } from './server.js';
 
 // Ein Druck auf einen Knopf, eine Wahl in der Nutzerauswahl oder ein
@@ -15,6 +16,9 @@ export interface Druck {
   // Der Kanal, in dem der Knopf steht.
   kanal: string | null;
   nutzer: string;
+  // Wer drückt, und sein Rang auf dem Server.
+  wer: Person;
+  rang: Rang;
   // Die ID des Bots.
   bot: string;
   // Bei der Auswahl: das gewählte Mitglied.
@@ -55,6 +59,8 @@ export function alsDruck(i: Interaction, praefix: string): Druck | undefined {
     server: serverVon(i.guild),
     kanal: i.channelId,
     nutzer: i.user.id,
+    wer: personVon(i.user, i.member),
+    rang: rangVon(i.member),
     bot: i.client.user.id,
     ...(i.isUserSelectMenu() && ziel !== undefined ? { ziel: { id: ziel, bot: i.users.get(ziel)?.bot ?? false } } : {}),
     ...(i.isModalSubmit() ? { wert: wertVon(i) } : {}),

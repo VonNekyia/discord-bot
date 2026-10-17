@@ -4,6 +4,8 @@ description: Die Seite strafen im Baukasten des Dashboards; vorgefertigte Gründ
 code:
   - bot/src/kern/baukasten.ts
   - bot/src/api/server.ts
+  - bot/src/module/strafen/seiten.ts
+  - bot/src/module/strafen/strafen.ts
 ---
 
 # API der Managed Commands
@@ -26,7 +28,9 @@ Fehlerformat und Grenzen gelten wie im Baukasten und in
 | `strafen` | Managed Commands | keine |
 
 Gespeichert wird mit `PUT /api/server/{id}/seiten/strafen`. Die Texte der
-Bausteine und die Sätze zu den Codes stehen im Modul.
+Bausteine und die Sätze zu den Codes stehen in
+`bot/src/module/strafen/seiten.ts`, die Regeln in `pruefe` in
+`bot/src/module/strafen/strafen.ts`.
 
 ## Bausteine
 

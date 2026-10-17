@@ -4,6 +4,10 @@ description: Die Befehle /ban, /kick und /warn mit vorgefertigten oder eigenen G
 code:
   - bot/src/discord/befehle.ts
   - bot/src/discord/modul.ts
+  - bot/src/discord/moderation.ts
+  - bot/src/discord/mitglieder.ts
+  - bot/src/module/strafen/befehle.ts
+  - bot/src/module/strafen/modul.ts
 ---
 
 # Managed Commands
@@ -18,8 +22,9 @@ Das Modul kostet etwas und ist nur an, wenn es auf dem Server
 freigeschaltet ist, siehe [Board der Module](../schnittstelle/module.md).
 Warum es so gebaut ist, steht in
 [0021](../entscheidungen/0021-managed-commands.md), die Bezahlung in
-[0020](../entscheidungen/0020-bezahlte-module.md). Gebaut wird es mit
-`managed-commands-backend`; bis dahin beschreibt diese Seite den Plan.
+[0020](../entscheidungen/0020-bezahlte-module.md). Gebaut ist es in
+`bot/src/module/strafen/`; die Discord-Schicht dazu steht in
+`bot/src/discord/moderation.ts`.
 
 ## Befehle
 
@@ -123,7 +128,8 @@ der Liste über den Bot Mitglieder bannen, die über ihm stehen.
 Scheitert die DM, weil das Mitglied keine DMs vom Bot annimmt (Discord
 antwortet 50007, „Cannot send messages to this user“,
 [JSON Error Codes](https://docs.discord.com/developers/topics/opcodes-and-status-codes#json-json-error-codes)),
-geht der Rest trotzdem, und die Antwort sagt das.
+geht der Rest trotzdem, und die Antwort sagt das. Scheitert sie anders,
+ebenso; dazu steht `/<befehl>: DM nicht gesendet: <Fehler>` im Log.
 
 ## Antworten
 
@@ -133,6 +139,7 @@ geht der Rest trotzdem, und die Antwort sagt das.
 | gekickt | ebenso mit „gekickt“ und „Kicks in 7 Tagen“ |
 | verwarnt | „<Name> ist verwarnt, zum n. Mal. Grund: <grund>.“, dazu, ob die DM ankam; n zählt die Verwarnungen dieses Mitglieds auf diesem Server in den letzten `verwarnungTage` Tagen, Standard 365, siehe [API der Managed Commands](../schnittstelle/strafen.md) |
 | keine Rolle aus der Liste | „Du darfst diesen Befehl hier nicht nutzen.“ |
+| Limit 0 für alle eigenen Rollen | „Deine Rollen dürfen nicht bannen.“, ebenso für Kicks |
 | Limit erreicht | „Du hast dein Limit erreicht: m Bans in 7 Tagen. Der nächste geht ab <Zeit>.“ |
 | Ziel geht nicht | je Regel aus „Ziel“ ein Satz |
 | dem Bot fehlt ein Recht oder die Hierarchie, Discord antwortet 50013 | „kitty fehlt das Recht dazu, oder die Rolle von kitty steht zu tief.“ |
@@ -159,7 +166,9 @@ stehen, die er bannen oder kicken soll, siehe „Ziel“.
 
 Einen neuen Intent brauchen die Befehle nicht: Sie kommen als
 Interaktion, die Rollen von Ziel und Nutzer stehen in der Interaktion,
-und Bann, Kick und DM gehen über die REST-API. Siehe [Intents](../bot/intents.md).
+nach dem Formular holt der Bot das Ziel über die REST-API (`zielAuf` in
+`bot/src/discord/moderation.ts`), und Bann, Kick und DM gehen ebenso über
+die REST-API. Siehe [Intents](../bot/intents.md).
 
 ## Was noch fehlt
 

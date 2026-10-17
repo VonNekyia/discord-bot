@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { Aufruf } from '../../discord/befehle.js';
 import { befehle, type Kontext } from './befehle.js';
+import { falscherAufruf } from '../../testhilfe.js';
 
 // Die Befehle ohne Discord: ein Aufruf, der nur die Antworten sammelt.
 // Registrieren und Beantworten prüft bot/src/discord/befehle.test.ts.
@@ -19,7 +20,7 @@ function haengt(): Kontext {
 // Ein Aufruf, der sich die Antworten merkt.
 function aufruf() {
   const antworten: string[] = [];
-  const a: Aufruf = { antworte: async (inhalt) => void antworten.push(inhalt) };
+  const a: Aufruf = falscherAufruf({ antworte: async (inhalt) => void antworten.push(inhalt) });
   return { a, antworten };
 }
 

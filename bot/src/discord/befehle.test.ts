@@ -3,9 +3,9 @@ import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { after, before, test, type TestContext } from 'node:test';
 import { Events, REST, type Interaction } from 'discord.js';
-import { beantworte, registriere, type Befehl } from './befehle.js';
+import { beantworte, registriere, schlageVor, type Aufruf, type Befehl } from './befehle.js';
 import { DiscordFehler } from './fehler.js';
-import { ANWENDUNG, ChannelType, discordClient, gilde, kanal, mitglied, mockDiscord, schliesse, type MockDiscord } from '../testhilfe.js';
+import { ANWENDUNG, ChannelType, discordClient, gilde, kanal, mitglied, mockDiscord, ROLLE_TEAM, schliesse, type MockDiscord } from '../testhilfe.js';
 
 // Registrieren und Beantworten von Slash-Befehlen in der Discord-Schicht.
 // Alle IDs sind erfunden. Siehe docs/entwicklung/tests.md, „Die gemockte API“.
@@ -175,4 +175,164 @@ test('scheitert die Antwort, wirft antworte DiscordFehler; scheitert auch die Me
   assert.deepEqual(antworten, []);
   assert.deepEqual(log, ['/probe: Fehler', '/probe: Antwort fehlgeschlagen: Fehler']);
   assert.ok(log.every((zeile) => !zeile.includes(token) && !zeile.includes(PERSON)));
+});
+
+test('registriere: Optionen als Pflicht, Text mit max_length und Autocomplete, nur auf Servern', async (t) => {
+  const { rest, anfragen } = await mockApi(t, []);
+  const mitOptionen: Befehl = {
+    ...befehl('strafe'),
+    nurServer: true,
+    optionen: [
+      { art: 'nutzer', name: 'nutzer', beschreibung: 'Wer.' },
+      { art: 'text', name: 'grund', beschreibung: 'Warum.', hoechstens: 400, vorschlaege: async () => [] },
+    ],
+  };
+  await registriere(rest, '1', [mitOptionen]);
+  assert.deepEqual(JSON.parse(anfragen[0]?.body ?? '')[0], {
+    name: 'strafe',
+    description: 'Probe strafe.',
+    contexts: [0],
+    options: [
+      { name: 'nutzer', description: 'Wer.', required: true, type: 6 },
+      { name: 'grund', description: 'Warum.', required: true, max_length: 400, autocomplete: true, type: 3 },
+    ],
+    type: 1,
+  });
+});
+
+const ZIEL = '200000000000000032';
+
+// Eine Interaktion mit Optionen, wie Discord sie schickt: Typ 2 (Befehl)
+// oder 4 (Autocomplete); `ziel` steht aufgelöst als Mitglied mit der Rolle Team.
+function interaktion(client: ReturnType<typeof discordClient>, typ: 2 | 4, optionen: object[]) {
+  zaehler += 1;
+  const token = `token-befehl-${zaehler}`;
+  const fang: { i?: Interaction } = {};
+  client.once(Events.InteractionCreate, (i) => (fang.i = i));
+  const aktionen = (client as unknown as { actions: { InteractionCreate: { handle(d: unknown): void } } }).actions;
+  const ziel = mitglied(ZIEL, [ROLLE_TEAM]);
+  aktionen.InteractionCreate.handle({
+    id: String(920000000000000000n + BigInt(zaehler)),
+    application_id: ANWENDUNG,
+    type: typ,
+    token,
+    version: 1,
+    guild_id: SERVER,
+    channel: { id: TEXT, type: ChannelType.GuildText },
+    channel_id: TEXT,
+    member: { ...mitglied(PERSON, []), permissions: '0' },
+    app_permissions: '0',
+    locale: 'de',
+    guild_locale: 'de',
+    entitlements: [],
+    authorizing_integration_owners: { 0: SERVER },
+    context: 0,
+    data: {
+      id: '930000000000000001',
+      name: 'strafe',
+      type: 1,
+      options: optionen,
+      resolved: { users: { [ZIEL]: ziel.user }, members: { [ZIEL]: { roles: ziel.roles, joined_at: ziel.joined_at, permissions: '0', flags: 0 } } },
+    },
+  });
+  return { i: fang.i, token };
+}
+
+test('ein Aufruf liest Optionen, das Ziel mit Rang, zeigt ein Formular; warte und fertig setzen die Antwort', async (t) => {
+  t.mock.method(console, 'error', () => {});
+  const client = discordClient(mock, [gilde(SERVER, 'Befehle', '200000000000000099', [kanal(TEXT, ChannelType.GuildText, 'allgemein', 0, null)])]);
+  t.after(() => client.destroy());
+  const gesehen: Record<string, unknown> = {};
+  const probe = (tue: (a: Aufruf) => Promise<void>) => ({ ...befehl('strafe'), ausfuehren: tue });
+  const optionen = [
+    { name: 'nutzer', type: 6, value: ZIEL },
+    { name: 'grund', type: 3, value: 'Spam' },
+  ];
+
+  const eins = interaktion(client, 2, optionen);
+  assert.ok(eins.i?.isChatInputCommand());
+  await beantworte(eins.i, [
+    probe(async (a) => {
+      gesehen.grund = a.text('grund');
+      gesehen.ziel = a.ziel('nutzer');
+      gesehen.ort = a.ort && { server: a.ort.server.id, wer: a.ort.wer.id, rang: a.ort.rang };
+      await a.warte();
+      await a.fertig('Erledigt.');
+    }),
+  ]);
+  assert.equal(gesehen.grund, 'Spam');
+  assert.deepEqual(gesehen.ziel, {
+    person: { id: ZIEL, name: 'nutzer-32', benutzername: 'nutzer-32', bot: false },
+    rang: { eigentuemer: false, admin: false, rollen: [ROLLE_TEAM], hoechste: 2 },
+  });
+  assert.deepEqual(gesehen.ort, { server: SERVER, wer: PERSON, rang: { eigentuemer: false, admin: false, rollen: [], hoechste: 0 } });
+  assert.deepEqual(
+    mock.antworten.filter((a) => a.token === eins.token).map((a) => [a.typ, a.daten.content, a.daten.flags]),
+    [
+      [5, undefined, 64],
+      ['bearbeitet', 'Erledigt.', undefined],
+    ],
+  );
+
+  const zwei = interaktion(client, 2, optionen);
+  assert.ok(zwei.i?.isChatInputCommand());
+  const formular = { id: 'strafe:ban:1', titel: 'Eigener Grund', feld: { id: 'wert', label: 'Grund', beschreibung: 'Warum.', min: 1, max: 400, wert: '' } };
+  await beantworte(zwei.i, [probe((a) => a.zeigeFormular(formular))]);
+  const modal = mock.antworten.find((a) => a.token === zwei.token);
+  assert.equal(modal?.typ, 9);
+  assert.equal(modal?.daten.custom_id, 'strafe:ban:1');
+  assert.equal(modal?.daten.title, 'Eigener Grund');
+
+  // Wirft der Befehl nach `warte`, ersetzt der Fehlersatz die aufgeschobene Antwort.
+  const drei = interaktion(client, 2, optionen);
+  assert.ok(drei.i?.isChatInputCommand());
+  await beantworte(drei.i, [
+    probe(async (a) => {
+      await a.warte();
+      throw new Error('kaputt');
+    }),
+  ]);
+  assert.deepEqual(
+    mock.antworten.filter((a) => a.token === drei.token).map((a) => [a.typ, a.daten.content]),
+    [
+      [5, undefined],
+      ['bearbeitet', 'Das hat nicht geklappt.'],
+    ],
+  );
+});
+
+test('Autocomplete: die Vorschläge der Option, höchstens 25; aus oder bei einem Fehler eine leere Liste', async (t) => {
+  const log = t.mock.method(console, 'error', () => {});
+  const client = discordClient(mock, [gilde(SERVER, 'Befehle', '200000000000000099', [])]);
+  t.after(() => client.destroy());
+  const eingaben: string[] = [];
+  const mitVorschlaegen = (vorschlaege: (e: string) => Promise<{ name: string; wert: string }[]>): Befehl => ({
+    ...befehl('strafe'),
+    optionen: [{ art: 'text', name: 'grund', beschreibung: 'Warum.', hoechstens: 400, vorschlaege: async (e) => (eingaben.push(e), vorschlaege(e)) }],
+  });
+  const viele = async () => Array.from({ length: 30 }, (_, n) => ({ name: `Grund ${n}`, wert: `g${n}` }));
+  const getippt = [{ name: 'grund', type: 3, value: 'sp', focused: true }];
+
+  const eins = interaktion(client, 4, getippt);
+  assert.ok(eins.i?.isAutocomplete());
+  await schlageVor(eins.i, [mitVorschlaegen(viele)], true);
+  const antwort = mock.antworten.find((a) => a.token === eins.token);
+  assert.equal(antwort?.typ, 8);
+  const auswahl = (antwort?.daten as { choices?: { name: string; value: string }[] } | undefined)?.choices ?? [];
+  assert.equal(auswahl.length, 25);
+  assert.deepEqual(auswahl[0], { name: 'Grund 0', value: 'g0' });
+  assert.deepEqual(eingaben, ['sp']);
+
+  const zwei = interaktion(client, 4, getippt);
+  assert.ok(zwei.i?.isAutocomplete());
+  await schlageVor(zwei.i, [mitVorschlaegen(viele)], false);
+  assert.deepEqual(mock.antworten.find((a) => a.token === zwei.token)?.daten, { choices: [] });
+
+  const drei = interaktion(client, 4, getippt);
+  assert.ok(drei.i?.isAutocomplete());
+  await schlageVor(drei.i, [mitVorschlaegen(async () => {
+    throw new Error('Datenbank weg');
+  })], true);
+  assert.deepEqual(mock.antworten.find((a) => a.token === drei.token)?.daten, { choices: [] });
+  assert.deepEqual(log.mock.calls.map((c) => String(c.arguments[0])), ['/strafe: Vorschläge fehlgeschlagen: Datenbank weg']);
 });

@@ -322,6 +322,26 @@ Millisekunden. Darum:
 | Ereignisse kommen als Kauf, ohne Discord-ID der Person … | dieselbe Datei: Create, Update, Delete über die Actions von discord.js; nach Create und Update ist der Cache der Anwendung leer. Fällt ohne `EntitlementManager` mit `maxSize` 0 |
 | jede neue Sitzung eines Shards meldet Shard und Anzahl … | dieselbe Datei: `ShardReady` meldet, `ShardResume` nicht |
 | ist ein Modul aus, fehlen seine Seiten, und seine Routen geben 409 … | `bot/src/api/server.test.ts`: `istAn` je Bereich; `GET …/seiten` ohne die Seiten, `PUT`, `POST`, `GET` und `DELETE` geben `409` `modul_aus`, ohne Rechte zuerst `403`. Fällt, wenn die Routen `istAn` nicht fragen |
+| registriere: Optionen als Pflicht, Text mit max_length und Autocomplete, nur auf Servern | `bot/src/discord/befehle.test.ts`: der Body mit `contexts` `[0]`, Option `nutzer` (Typ 6) und `grund` (Typ 3) mit `max_length` 400 und `autocomplete` |
+| ein Aufruf liest Optionen, das Ziel mit Rang, zeigt ein Formular; warte und fertig … | dieselbe Datei: echte Interaktion mit `resolved`; `text`, `ziel` mit Rolle und Position, `ort`; Callback 5, dann `bearbeitet`; Formular als Callback 9; wirft der Befehl nach `warte`, ersetzt der Fehlersatz die Antwort |
+| Autocomplete: die Vorschläge der Option, höchstens 25 … | dieselbe Datei: Callback 8 mit 25 von 30; aus eine leere Liste; scheitern die Vorschläge, eine leere Liste und eine Zeile |
+| banne löscht keine Nachrichten und trägt den Grund ins Audit-Log … | `bot/src/discord/moderation.test.ts`: `delete_message_seconds` 0, `X-Audit-Log-Reason`, auf 512 Zeichen gekürzt |
+| kicke mit Grund; fehlt dem Bot das Recht (50013) … | dieselbe Datei: `DELETE` auf das Mitglied mit Grund; 50013 wird `kein_recht` |
+| schreibe schickt eine DM ohne Erwähnungen; nimmt die Person keine an (50007) … | dieselbe Datei: DM-Kanal, Text, `allowed_mentions`; 50007 wird `kein_dm` |
+| zielAuf: ein Mitglied mit Rang, ein Nutzer ohne Server nur als Person … | dieselbe Datei: 10007 dann `GET /users/{id}`; 10013 gibt `undefined` |
+| botAuf …; rollenAuf ohne @everyone und verwaltete Rollen … | dieselbe Datei: Rang und Rechte des Bots; Rollen nach Position, die höchste zuerst |
+| pruefe: jede Regel mit ihrem Code und Feld … | `bot/src/module/strafen/strafen.test.ts`: jede Zeile der Tabelle in „Managed Commands einstellen“ mit Code und Feld, Leerzeichen abgeschnitten |
+| Länge der DM … | dieselbe Datei: `hoechstens` mit 100 und 400, `bannDm` mit und ohne Text zur Entbannung |
+| Vorschläge … / ohne Rolle aus der Liste nein … | dieselbe Datei, PostgreSQL mit falschen Werkzeugen: Filter und „Eigener Grund …“, höchstens 24 Gründe; Eigentümer und Administratoren ohne Limit |
+| Bann: erst die DM … dann der Bann … | dieselbe Datei: Reihenfolge DM, Bann; DM mit `{server}`, `{grund}` und Entbannung; Grund im Audit-Log mit Befehl und Benutzername |
+| das Limit: das höchste der Rollen, rollierend 7 Tage … | dieselbe Datei mit falscher Uhr: 3 von 3, der Zeitstempel des nächsten, nach 7 Tagen wieder frei; Kicks getrennt; 0 heisst nie |
+| zwei Befehle zugleich kommen nicht am Limit vorbei | dieselbe Datei: ein Bann dauert 50 ms; ohne die Sperre je Mitglied bannen beide. Fällt ohne `nacheinander` |
+| Ziel: man selbst, der Bot, der Eigentümer … | dieselbe Datei: jede Regel aus „Ziel“ mit ihrem Satz; der Eigentümer über jeder Rolle, nicht über dem Bot; Bann ohne Mitglied ohne DM |
+| fehlt dem Bot das Recht oder sagt Discord 50013 … | dieselbe Datei: kein Eintrag; 50007 bei der DM bannt trotzdem |
+| Verwarnung: DM mit Server und Grund … | dieselbe Datei: gezählt, gespeichert mit wer und Grund, in der Frist des Servers |
+| „custom“ öffnet das Formular … / ein Befehl schiebt die Antwort auf … | dieselbe Datei: `zeigeFormular` mit `strafe:ban:<id>`; das abgeschickte Formular bannt mit dem eigenen Grund; `warte`, dann `fertig` |
+| Aufräumen: Bans und Kicks nach 7 Tagen, Verwarnungen nach der Frist … | dieselbe Datei: 8 und 6 Tage alte Bans, Verwarnungen nach 30 und 365 Tagen je Server |
+| die Seite: Standard, Rollen als Optionen, Hinweis ohne Rechte … | dieselbe Datei: Bausteine in Reihenfolge, Hinweis ohne „Mitglieder kicken“, Speichern mit Meldung, `rolle_unbekannt`, `fund` für eine gelöschte Rolle |
 | Beitritt und Abschied gehen als Mitglied an jedes Modul … | `bot/src/discord/modul.test.ts`: `haengeAn` mit zwei falschen Modulen, `guildMemberAdd` und `guildMemberRemove` aus discord.js; beide Module in der Reihenfolge der Liste |
 | ein Wechsel des Sprachkanals kommt mit Griff, Person, vorher und nachher | dieselbe Datei: `voiceStateUpdate` mit zwei `VoiceState` |
 | ein gelöschter Kanal eines Servers geht an die Module, ein Kanal einer DM nicht | dieselbe Datei: `channelDelete` mit einem Textkanal und einem `DMChannel` |
