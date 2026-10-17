@@ -15,6 +15,7 @@ code:
   - bot/src/module/begruessung/banner.ts
   - bot/src/module/sprachraeume/seiten.ts
   - bot/src/index.ts
+  - bot/src/brett/brett.ts
 ---
 
 # API im Bot
@@ -117,8 +118,15 @@ Jede Anfrage durchläuft diese Schritte; sie hört beim ersten Fehler auf:
 | Sitzung | alle ausser `/api/anmelden…` | `401` `nicht_angemeldet` |
 | Grenze | Routen mit `{id}` und `GET /api/debug`; `PUT`, `GET` und `POST` auf einen Baustein auch die für Bausteine | `429` `zu_viele` |
 | Rechte | Routen mit `{id}`; `GET /api/debug` prüft in der Route, siehe „Debug“ | `404` `nicht_gefunden`, `503` `nicht_erreichbar`, `403` `kein_recht` |
+| Modul an | jede Route unter `…/seiten/{seite}`; `GET …/seiten` lässt die Seiten ausgeschalteter Module weg | `409` `modul_aus` |
 | Body | `PUT …/seiten/{seite}` | `415` `kein_json`, `413` `zu_gross` |
 | Bereich | der Bereich der Seite: Regeln, Bild, Aktion | sein `BausteinFehler`, siehe [API der Begrüssung](../schnittstelle/begruessung.md) und [API der Sprachräume](../schnittstelle/sprachraeume.md) |
+
+Ob ein Modul an ist, fragt die API `istAn` aus `ApiOptionen`, mit dem
+Bereich und der ID des Servers. `bot/src/index.ts` ordnet dafür jedem
+Bereich sein Modul zu und fragt das Board; der Bereich des Boards selbst
+ist immer an. Die API kennt so weder Module noch Board, siehe
+[Board der Module](../schnittstelle/module.md), „Im Bot“.
 
 Für die Testnachricht prüft der Bereich der Begrüssung zuerst ihre Regeln,
 dann die Grenze je Server und sendet erst danach; scheitert das Senden,

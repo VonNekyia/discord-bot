@@ -383,20 +383,38 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
 
   test('das Modul gibt Wechsel, gelöschte Kanäle und den Abgleich beim Start an seine Räume', async () => {
     await speichereSprachraeume(db, SERVER, standard);
-    const { ereignisse } = sprachraeumeModul({ db });
-    // Wer den Erzeuger betritt, bekommt einen Raum.
+    const { ereignisse, aufraeumen } = sprachraeumeModul({ db });
+    // Wer den Erzeuger betritt, bekommt einen Raum; das gehört zu den Ereignissen.
     stimme(BESITZER, K.erzeuger);
+    await aufraeumen?.stimme?.(griff, BESITZER, null, K.erzeuger);
+    assert.equal(mock.verschoben.length, 0);
     await ereignisse?.stimme?.(griff, BESITZER, null, K.erzeuger);
     const raum = mock.verschoben[0]?.kanal ?? '';
     assert.deepEqual(await zeile(raum), { server: SERVER, besitzer: BESITZER });
-    // Ist sein Kanal gelöscht, vergisst der Bot ihn.
-    await ereignisse?.kanalWeg?.(raum);
+    // Ist sein Kanal gelöscht, vergisst der Bot ihn; das ist Aufräumen.
+    assert.deepEqual(Object.keys(ereignisse ?? {}), ['stimme']);
+    await aufraeumen?.kanalWeg?.(raum);
     assert.equal(await zeile(raum), undefined);
-    // Beim Start fällt ein Raum ohne Kanal weg.
+    // Beim Start fällt ein Raum ohne Kanal weg, auch das ist Aufräumen.
     const weg = '880000000000000021';
     await db.query('INSERT INTO raeume (kanal, server, besitzer) VALUES ($1, $2, $3)', [weg, SERVER, BESITZER]);
-    await ereignisse?.bereit?.([griff]);
+    await aufraeumen?.bereit?.([griff]);
     assert.equal(await zeile(weg), undefined);
+  });
+
+  // Siehe docs/schnittstelle/module.md, „Ein Modul ist aus“.
+  test('ist das Modul aus, löscht sein Aufräumen einen leeren Raum trotzdem', async () => {
+    await speichereSprachraeume(db, SERVER, standard);
+    const { ereignisse, aufraeumen } = sprachraeumeModul({ db });
+    stimme(BESITZER, K.erzeuger);
+    await ereignisse?.stimme?.(griff, BESITZER, null, K.erzeuger);
+    const raum = mock.verschoben[0]?.kanal ?? '';
+    assert.ok(await zeile(raum));
+    // Ab hier nur noch, was haengeAn einem Modul gibt, das aus ist.
+    stimme(BESITZER, null);
+    await aufraeumen?.stimme?.(griff, BESITZER, raum, null);
+    assert.deepEqual(mock.geloescht, [raum]);
+    assert.equal(await zeile(raum), undefined);
   });
 
   test('channelDelete vergisst den Raum, guildDelete und der Abgleich löschen Einstellungen und Räume', async () => {

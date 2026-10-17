@@ -6,6 +6,8 @@ code:
   - bot/src/kern/modul.ts
   - bot/src/api/server.ts
   - bot/src/index.ts
+  - bot/src/brett/brett.ts
+  - bot/src/discord/modul.ts
 ---
 
 # Board der Module
@@ -141,7 +143,16 @@ Das Board lebt in `bot/src/brett/`, einer eigenen Schicht neben `api/`:
   `index.ts` eine Funktion, die sagt, ob ein Modul auf einem Server an ist.
   So importiert keine Schicht das Board.
 
-Wie das Board seine Tabelle, den Vertrag `Modul` und die Ereignisse fürs
-Aufräumen baut, beschreibt die PR `module-schalten-backend` in
-[Struktur von Bot und Oberfläche](../entwicklung/struktur.md) und
-[Datenbank](../bot/datenbank.md).
+Gebaut ist das in `Brett` in `bot/src/brett/brett.ts`:
+
+- Die Tabelle `module_an` hält je Server und Modul den Schalter, siehe
+  [Datenbank](../bot/datenbank.md), „Tabellen“. Ohne Zeile gilt der
+  Standard des Moduls. `Aufraeumen` löscht sie mit den Tabellen der Module.
+- `Brett#istAn` liest die Schalter eines Servers aus einem Cache, den
+  `speichere` und `vergiss` leeren, siehe [Cache](../bot/cache.md).
+- Ein Modul meldet `schalter` im Vertrag `Modul` an und, was es auch aus
+  tun muss, in `aufraeumen` seines `DiscordModul`, siehe
+  [Struktur von Bot und Oberfläche](../entwicklung/struktur.md), „Ein Modul“.
+- Ob ein bezahltes Modul freigeschaltet ist und wohin der Link zeigt, gibt
+  `bot/src/index.ts` dem Board mit `freigeschaltet` und `kaufen`. Heute hat
+  kein Modul `bezahlt`; beides kommt mit `managed-commands-backend`.

@@ -463,6 +463,55 @@ describe('API des Dashboards', { skip: ziel ? false : 'keine Datenbank, DB_HOST 
     });
   });
 
+  // Siehe docs/schnittstelle/module.md, „Ein Modul ist aus“.
+  test('ist ein Modul aus, fehlen seine Seiten, und seine Routen geben 409 modul_aus nach den Rechten', async (t) => {
+    const begruessung = begruessungsBereich({ db, zaehlung });
+    const sprachraeume = sprachraeumeBereich({ db });
+    const aus = new Set([sprachraeume]);
+    const geschaltet = erstelleApi({
+      griff: dashboardGriff(client, { zaehlung }),
+      zaehlung,
+      db,
+      anwendung: ANWENDUNG,
+      geheimnis: GEHEIMNIS,
+      dashboard: DASHBOARD,
+      bereiche: [begruessung, sprachraeume],
+      istAn: async (b) => !aus.has(b),
+    });
+    await new Promise<void>((fertig) => geschaltet.listen(0, '127.0.0.1', fertig));
+    t.after(() => {
+      geschaltet.closeAllConnections();
+      geschaltet.close();
+    });
+    const hier = `http://127.0.0.1:${(geschaltet.address() as AddressInfo).port}`;
+    const kopf = { origin: DASHBOARD, 'content-type': 'application/json' };
+    const kennung = await sitzung();
+    const ids = async () => ((await (await frage(hier, `/api/server/${SERVER}/seiten`, { sitzung: kennung })).json()) as { id: string }[]).map((x) => x.id);
+    assert.deepEqual(await ids(), ['beitritt', 'abschied']);
+
+    const speichern = await frage(hier, `/api/server/${SERVER}/seiten/sprachraeume`, { method: 'PUT', sitzung: kennung, headers: kopf, body: JSON.stringify({ an: false, erzeuger: [] }) });
+    assert.equal(speichern.status, 409);
+    assert.deepEqual(await speichern.json(), { code: 'modul_aus' });
+    // Ohne Rechte zuerst 403: 409 kommt erst nach ihnen.
+    const fremd = await frage(hier, `/api/server/${SERVER}/seiten/sprachraeume`, {
+      method: 'PUT',
+      sitzung: await legeSitzungAn(db, { nutzer: FREMD, name: 'x', avatar: null, server: [] }),
+      headers: kopf,
+      body: JSON.stringify({ an: false, erzeuger: [] }),
+    });
+    assert.equal(fremd.status, 403);
+
+    // Die Begrüssung bleibt an; ihre Aktion geht weiter bis zu ihrem eigenen Code.
+    assert.notEqual((await frage(hier, `/api/server/${SERVER}/seiten/beitritt/test`, { method: 'POST', sitzung: kennung, headers: kopf })).status, 409);
+    aus.delete(sprachraeume);
+    aus.add(begruessung);
+    assert.deepEqual(await ids(), ['sprachraeume']);
+    for (const [methode, pfad] of [['POST', 'beitritt/test'], ['GET', 'beitritt/vorschau'], ['DELETE', 'beitritt/bild']] as const) {
+      const antwort = await frage(hier, `/api/server/${SERVER}/seiten/${pfad}`, { method: methode, sitzung: kennung, headers: kopf });
+      assert.equal(antwort.status, 409, `${methode} ${pfad}`);
+    }
+  });
+
   describe('Debug', () => {
     const abrufe = () => mock.anfragen.filter((a) => a.pfad === '/api/v10/applications/@me').length;
     // Die Liste der Berechtigten ist abgelaufen; die nächste Anfrage fragt Discord neu.

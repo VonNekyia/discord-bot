@@ -17,7 +17,15 @@ export type Option = {
 
 export type Bedingung = { feld: string; merkmal?: string; sonst: string };
 
-export type Schalter = { art: 'schalter'; id: string; titel: string; hilfe?: string; braucht?: Bedingung[] };
+export type Schalter = {
+  art: 'schalter';
+  id: string;
+  titel: string;
+  hilfe?: string;
+  braucht?: Bedingung[];
+  // Gesperrt und aus, mit dem Grund als Hilfe; `braucht` zählt dann nicht.
+  gesperrt?: { grund: string; code: string };
+};
 export type Auswahl = {
   art: 'auswahl';
   id: string;
@@ -79,8 +87,10 @@ export type Liste = {
   bausteine: (Schalter | Auswahl | Text | Zahl)[];
 };
 export type Hinweis = { art: 'hinweis'; id: string; ton: 'info' | 'warn'; satz: Satz };
+// Ein Link nach aussen; `url` beginnt mit https://discord.com/.
+export type Link = { art: 'link'; id: string; titel: string; url: string; hilfe?: string };
 
-export type Baustein = Schalter | Auswahl | Text | Zahl | Bild | Vorschau | Aktion | Liste | Hinweis;
+export type Baustein = Schalter | Auswahl | Text | Zahl | Bild | Vorschau | Aktion | Liste | Hinweis | Link;
 
 export type Seite = {
   id: string;
@@ -90,6 +100,8 @@ export type Seite = {
   wert: Eintrag;
   saetze: Record<string, Satz>;
   fund: Fund | null;
+  // Nach dem Speichern holt die Oberfläche alle Seiten neu.
+  alleNeu?: boolean;
 };
 
 // Bausteine mit eigener Route und ihre Methoden.

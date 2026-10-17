@@ -136,11 +136,19 @@ export class Raeume {
   // Aus `voiceStateUpdate`: `vorher` und `nachher` sind Kanal-IDs oder null.
   // Gibt zurück, wenn alles, was es auslöst, fertig ist; für Tests.
   async aenderung(server: Server, nutzer: string, vorher: string | null, nachher: string | null): Promise<void> {
-    if (vorher === nachher) return;
-    const arbeit: Promise<void>[] = [];
-    if (vorher) arbeit.push(this.vielleichtLeer(server, vorher));
-    if (nachher) arbeit.push(this.nacheinander(`${server.id}/${nutzer}`, () => this.betreten(server, nutzer, nachher)));
-    await Promise.all(arbeit);
+    await Promise.all([this.geht(server, vorher, nachher), this.kommt(server, nutzer, vorher, nachher)]);
+  }
+
+  // Der Teil, der aufräumt: Ist `vorher` ein Raum und jetzt leer, geht er.
+  // Läuft auch, wenn das Modul auf dem Server aus ist.
+  // Siehe docs/schnittstelle/module.md, „Ein Modul ist aus“.
+  async geht(server: Server, vorher: string | null, nachher: string | null): Promise<void> {
+    if (vorher && vorher !== nachher) await this.vielleichtLeer(server, vorher);
+  }
+
+  // Der Teil, der Räume anlegt: Betritt das Mitglied einen Erzeuger, bekommt es einen.
+  async kommt(server: Server, nutzer: string, vorher: string | null, nachher: string | null): Promise<void> {
+    if (nachher && vorher !== nachher) await this.nacheinander(`${server.id}/${nutzer}`, () => this.betreten(server, nutzer, nachher));
   }
 
   // Ein Mitglied nach dem anderen: Zwei schnelle Beitritte legen nicht zwei Räume an.

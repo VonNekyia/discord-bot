@@ -60,6 +60,9 @@ export interface ApiOptionen {
   // Was die Module für das Dashboard anmelden, in der Reihenfolge der Tabs.
   // Siehe docs/schnittstelle/baukasten.md.
   bereiche: Bereich<Kontext>[];
+  // Ob das Modul eines Bereichs auf dem Server an ist; ohne Angabe immer.
+  // Siehe docs/schnittstelle/module.md, „Ein Modul ist aus“.
+  istAn?(bereich: Bereich<Kontext>, server: string): Promise<boolean>;
 }
 
 type Methode = (typeof methoden)[MitRoute][number];
@@ -245,6 +248,15 @@ export function erstelleApi(o: ApiOptionen): Server {
 
   // Je Seite eine Route zum Speichern, je Baustein mit eigener Route die
   // Methoden seiner Art.
+  const istAn = (bereich: Bereich<Kontext>, server: string) => o.istAn?.(bereich, server) ?? Promise.resolve(true);
+  // Nach Sitzung, Grenzen und Rechten: Ist das Modul aus, 409.
+  const nurAn =
+    (bereich: Bereich<Kontext>, tue: ServerRoute['tue']): ServerRoute['tue'] =>
+    async (a) => {
+      if (!(await istAn(bereich, a.kontext.server.id))) throw new ApiFehler(409, 'modul_aus');
+      await tue(a);
+    };
+
   function seitenRouten(): ServerRoute[] {
     const routen: ServerRoute[] = [];
     for (const { id, bausteine, bereich } of seiten) {
@@ -254,15 +266,15 @@ export function erstelleApi(o: ApiOptionen): Server {
         muster: new RegExp(`${pfad}$`),
         name: `seiten/${id}`,
         zugang: 'server',
-        async tue(a) {
+        tue: nurAn(bereich, async (a) => {
           const eingabe = await liesJson(a.req);
           json(a, 200, await bereich.speichere(a.kontext, id, eingabe));
-        },
+        }),
       });
       for (const [baustein, art] of Object.entries(bausteine)) {
         const muster = new RegExp(`${pfad}/${baustein}$`);
         for (const methode of methoden[art]) {
-          const tue = handlung(bereich, id, baustein, methode);
+          const tue = nurAn(bereich, handlung(bereich, id, baustein, methode));
           // Hochladen, Zeichnen und Auslösen sind teuer, Löschen nicht.
           routen.push({ methode, muster, name: `seiten/${id}/${baustein}`, zugang: 'server', teuer: methode !== 'DELETE', tue });
         }
@@ -365,7 +377,9 @@ export function erstelleApi(o: ApiOptionen): Server {
       zugang: 'server',
       // Siehe docs/schnittstelle/baukasten.md, „Routen“.
       async tue(a) {
-        json(a, 200, (await Promise.all(o.bereiche.map((b) => b.zeige(a.kontext)))).flat());
+        const an = await Promise.all(o.bereiche.map((b) => istAn(b, a.kontext.server.id)));
+        const sichtbar = await Promise.all(o.bereiche.filter((_, i) => an[i]).map((b) => b.zeige(a.kontext)));
+        json(a, 200, sichtbar.flat());
       },
     },
     ...seitenRouten(),

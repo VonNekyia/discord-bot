@@ -3,12 +3,15 @@ import { fileURLToPath } from 'node:url';
 import { Events, type Client } from 'discord.js';
 import { raeumeAuf } from './api/anmeldung.js';
 import { apiUmgebung, erstelleApi, type ApiUmgebung } from './api/server.js';
+import { Brett } from './brett/brett.js';
+import type { Bereich } from './kern/baukasten.js';
+import type { Kontext } from './discord/kontext.js';
 import { text } from './kern/fehler.js';
 import { Aufraeumen } from './kern/aufraeumen.js';
 import { registriere } from './discord/befehle.js';
 import { erstelleClient } from './discord/client.js';
 import { dashboardGriff } from './discord/dashboard.js';
-import { befehleVon, haengeAn } from './discord/modul.js';
+import { befehleVon, haengeAn, meldeBereit } from './discord/modul.js';
 import { textkanalAuf } from './discord/nachrichten.js';
 import { serverVon } from './discord/server.js';
 import { zaehleAnfragen } from './discord/zaehlen.js';
@@ -52,8 +55,12 @@ zaehleAnfragen(client.rest, zaehlung);
 // Dashboard. Die Begrüssung sieht Kanäle nur über die Discord-Schicht.
 // Siehe docs/entwicklung/struktur.md, „Ein Modul“.
 const modulListe = alleModule({ db, zaehlung, kanal: textkanalAuf(client) });
-// Ihre Tabellen löscht `aufraeumer`, wenn der Bot einen Server verlässt.
-const aufraeumer = new Aufraeumen(modulListe);
+// Welche Module je Server an sind. Kein Modul; die anderen Schichten bekommen
+// nur `istAn`. Siehe docs/schnittstelle/module.md, „Im Bot“.
+const brett = new Brett({ db, module: modulListe });
+const istAn = (modul: string, server: string) => brett.istAn(modul, server);
+// Ihre Tabellen und die des Boards löscht `aufraeumer`, wenn der Bot einen Server verlässt.
+const aufraeumer = new Aufraeumen([...modulListe, brett]);
 let api: Server | undefined;
 
 // Was nach dem Verbinden läuft. Scheitert es unerwartet, endet der Prozess,
@@ -73,16 +80,21 @@ async function nachDemVerbinden(bereit: Client<true>): Promise<void> {
   // Danach gleichen die Module ab, etwa die Räume, mit den Servern dieses
   // Prozesses. Siehe docs/bot/sprachraeume-bau.md, „Abgleich beim Start“.
   const server = bereit.guilds.cache.map(serverVon);
-  // Modul für Modul, nacheinander.
-  // oxlint-disable-next-line no-await-in-loop
-  for (const m of modulListe) await m.ereignisse?.bereit?.(server);
+  // Modul für Modul, nacheinander; aufräumen auch, wo ein Modul aus ist.
+  await meldeBereit(modulListe, server, istAn);
   if (!umgebung) return;
   // Nur auf 127.0.0.1; von aussen kommt man über serve.mjs oder den Reverse Proxy.
   // Siehe docs/schnittstelle/api.md, „Lokal“.
   const { port, ...rest } = umgebung;
-  // Die Seiten des Dashboards, in der Reihenfolge der Tabs. Siehe docs/schnittstelle/baukasten.md.
-  const bereiche = modulListe.flatMap((m) => (m.bereich ? [m.bereich] : []));
-  api = erstelleApi({ griff: dashboardGriff(bereit, { zaehlung }), db, anwendung: bereit.application.id, zaehlung, bereiche, ...rest });
+  // Die Seiten des Dashboards, in der Reihenfolge der Tabs, das Board als
+  // letzte. Siehe docs/schnittstelle/baukasten.md.
+  const bereiche = [...modulListe.flatMap((m) => (m.bereich ? [m.bereich] : [])), brett.bereich];
+  const modulVon = new Map<Bereich<Kontext>, string>(modulListe.flatMap((m) => (m.bereich ? [[m.bereich, m.name] as const] : [])));
+  const bereichAn = async (b: Bereich<Kontext>, s: string) => {
+    const modul = modulVon.get(b);
+    return modul === undefined || brett.istAn(modul, s);
+  };
+  api = erstelleApi({ griff: dashboardGriff(bereit, { zaehlung }), db, anwendung: bereit.application.id, zaehlung, bereiche, istAn: bereichAn, ...rest });
   api.once('error', (e) => console.error(`API nicht gestartet: ${text(e)}`));
   api.listen(port, '127.0.0.1', () => console.log(`API auf 127.0.0.1:${port}.`));
   // Abgelaufene Sitzungen löschen. Siehe docs/schnittstelle/anmeldung.md, „Sitzung“.
@@ -100,12 +112,13 @@ client.once(Events.ClientReady, (bereit) => {
 
 client.on(Events.GuildDelete, (guild) => {
   for (const m of modulListe) m.vergiss?.(guild.id);
+  brett.vergiss(guild.id);
   void aufraeumer.vergiss(db, guild.id).catch((e: unknown) => console.error(`Server verlassen: ${text(e)}`));
 });
 
 // Beitritt, Abschied, Sprachkanäle, gelöschte Kanäle, Befehle und Knöpfe
 // gehen an die Module. Siehe docs/entwicklung/struktur.md, „Ein Modul“.
-haengeAn(client, modulListe);
+haengeAn(client, modulListe, istAn);
 
 // discord.js verbindet sich selbst neu. Gibt es auf, endet der Prozess, und
 // der Dienst startet ihn neu. Siehe docs/bot/wiederanlauf.md.

@@ -5,6 +5,7 @@ code:
   - bot/src/kern/cache.ts
   - bot/src/module/begruessung/modul.ts
   - bot/src/module/sprachraeume/modul.ts
+  - bot/src/brett/brett.ts
 ---
 
 # Cache
@@ -17,7 +18,11 @@ Heute nutzen ihn die Begrüssung und die Sprachräume: `einstellungen` in
 `bot/src/module/begruessung/modul.ts` und `sprachraeume` in
 `bot/src/module/sprachraeume/modul.ts` halten die Einstellungen je Server;
 jeder Beitritt und Abschied und jedes Betreten eines Sprachkanals liest
-sie dort. Die API ruft nach jedem Schreiben `delete`.
+sie dort. Die API ruft nach jedem Schreiben `delete`. Das Board hält in
+`bot/src/brett/brett.ts` die gespeicherten Schalter je Server; jedes
+Ereignis, jeder Befehl und jeder Knopf eines Moduls mit Schalter fragt es.
+Es sind Einstellungen, keine Rechte; `speichere` und `vergiss` rufen
+`delete`, siehe [Board der Module](../schnittstelle/module.md).
 
 ## Wann cachen
 

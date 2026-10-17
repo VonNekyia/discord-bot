@@ -30,12 +30,17 @@ export function sprachraeumeModul(u: SprachraeumeUmgebung): DiscordModul {
     bereich: sprachraeumeBereich({ db: u.db, sprachraeume }),
     // Siehe docs/bot/sprachraeume-menue.md, „Knöpfe“.
     knoepfe: { praefix, bediene: (druck) => knoepfe.bediene(druck) },
+    schalter: { titel: 'Sprachräume', hilfe: 'Wer einen Erzeuger betritt, bekommt einen eigenen Sprachraum mit Menü im Textchat.' },
+    // Neue Räume nur, wenn das Modul an ist. Siehe docs/benutzung/sprachraeume.md.
     ereignisse: {
+      stimme: (server, nutzer, vorher, nachher) => raeume.kommt(server, nutzer, vorher, nachher),
+    },
+    // Leere Räume gehen auch, wenn es aus ist. Siehe docs/schnittstelle/module.md, „Ein Modul ist aus“.
+    aufraeumen: {
       // Räume, die es nicht mehr gibt, vergessen; leere löschen.
       // Siehe docs/bot/sprachraeume-bau.md, „Abgleich beim Start“.
       bereit: (server) => raeume.gleicheAb(server).catch((e: unknown) => console.error(`Abgleich der Räume fehlgeschlagen: ${text(e)}`)),
-      // Siehe docs/benutzung/sprachraeume.md.
-      stimme: (server, nutzer, vorher, nachher) => raeume.aenderung(server, nutzer, vorher, nachher),
+      stimme: (server, _nutzer, vorher, nachher) => raeume.geht(server, vorher, nachher),
       kanalWeg: (kanal) => raeume.geloescht(kanal).catch((e: unknown) => console.error(`Sprachraum: nicht vergessen: ${text(e)}`)),
     },
   };

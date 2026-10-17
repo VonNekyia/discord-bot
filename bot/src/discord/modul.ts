@@ -1,4 +1,5 @@
-import { Events, type Client } from 'discord.js';
+import { Events, MessageFlags, type Client } from 'discord.js';
+import { text } from '../kern/fehler.js';
 import type { Modul } from '../kern/modul.js';
 import { beantworte, type Befehl } from './befehle.js';
 import { alsDruck, type Druck } from './interaktionen.js';
@@ -26,7 +27,57 @@ export interface DiscordModul extends Modul<Kontext> {
   befehle?: readonly Befehl[];
   // Knöpfe, Nutzerauswahl und Formulare mit `praefix` am Anfang von `custom_id`.
   knoepfe?: { praefix: string; bediene(druck: Druck): Promise<void> };
+  // Nur auf Servern, auf denen das Modul an ist.
   ereignisse?: Partial<Ereignisse>;
+  // Auch auf Servern, auf denen es aus ist: was aufgeräumt werden muss,
+  // etwa leere Sprachräume. Siehe docs/schnittstelle/module.md, „Ein Modul ist aus“.
+  aufraeumen?: Partial<Ereignisse>;
+}
+
+// Ob ein Modul auf einem Server an ist; im Bot `Brett#istAn`.
+export type IstAn = (modul: string, server: string) => Promise<boolean>;
+
+// Die Antwort auf Befehle und Knöpfe eines Moduls, das aus ist.
+export const modulAus = 'Dieses Modul ist auf dem Server aus. Das Team schaltet es im Dashboard unter „Module“ an.';
+
+// Ob `m` auf `server` an ist. Ein Modul ohne Schalter ist immer an; scheitert
+// die Frage, gilt es als aus, und eine Zeile geht ins Log.
+async function an(m: DiscordModul, server: string, istAn: IstAn): Promise<boolean> {
+  if (!m.schalter) return true;
+  return istAn(m.name, server).catch((fehler: unknown) => {
+    console.error(`Board: ${text(fehler)}`);
+    return false;
+  });
+}
+
+// Gibt ein Ereignis eines Servers an jedes Modul: `aufraeumen` immer,
+// `ereignisse` nur, wenn das Modul dort an ist. Jedes Modul für sich, in
+// der Reihenfolge der Liste angestossen.
+function verteile(module: readonly DiscordModul[], server: string, istAn: IstAn, tue: (e: Partial<Ereignisse>) => void): void {
+  for (const m of module) {
+    if (m.aufraeumen) tue(m.aufraeumen);
+    const { ereignisse } = m;
+    if (!ereignisse) continue;
+    if (!m.schalter) {
+      tue(ereignisse);
+      continue;
+    }
+    void an(m, server, istAn).then((ja) => ja && tue(ereignisse));
+  }
+}
+
+// Nach dem Verbinden, Modul für Modul: `aufraeumen.bereit` mit allen
+// Servern, `ereignisse.bereit` nur mit denen, auf denen das Modul an ist.
+export async function meldeBereit(module: readonly DiscordModul[], server: readonly Server[], istAn: IstAn = async () => true): Promise<void> {
+  /* oxlint-disable no-await-in-loop */
+  for (const m of module) {
+    await m.aufraeumen?.bereit?.([...server]);
+    const bereit = m.ereignisse?.bereit;
+    if (!bereit) continue;
+    const ja = await Promise.all(server.map((s) => an(m, s.id, istAn)));
+    await bereit(server.filter((_, i) => ja[i]));
+  }
+  /* oxlint-enable no-await-in-loop */
 }
 
 // Die Slash-Befehle aller Module.
@@ -35,36 +86,57 @@ export function befehleVon(module: readonly DiscordModul[]): Befehl[] {
 }
 
 // Hängt die Ereignisse aller Module an den Client, je Ereignis einmal; die
-// Module bekommen es in der Reihenfolge der Liste. `bereit` ruft
-// bot/src/index.ts selbst, weil es nach dem Abgleich der Server kommt.
-export function haengeAn(client: Client, module: readonly DiscordModul[]): void {
+// Module bekommen es in der Reihenfolge der Liste, nur wenn sie auf dem
+// Server an sind, siehe `verteile`. Befehle und Knöpfe eines Moduls, das
+// aus ist, antworten `modulAus`. `bereit` ruft bot/src/index.ts selbst über
+// `meldeBereit`, weil es nach dem Abgleich der Server kommt.
+// Siehe docs/schnittstelle/module.md, „Ein Modul ist aus“.
+export function haengeAn(client: Client, module: readonly DiscordModul[], istAn: IstAn = async () => true): void {
   const befehle = befehleVon(module);
   client.on(Events.GuildMemberAdd, (mitglied) => {
     const m = alsMitglied(mitglied);
-    for (const { ereignisse } of module) void ereignisse?.beitritt?.(m);
+    verteile(module, mitglied.guild.id, istAn, (e) => void e.beitritt?.(m));
   });
   client.on(Events.GuildMemberRemove, (mitglied) => {
     const m = alsMitglied(mitglied);
-    for (const { ereignisse } of module) void ereignisse?.abschied?.(m);
+    verteile(module, mitglied.guild.id, istAn, (e) => void e.abschied?.(m));
   });
   client.on(Events.VoiceStateUpdate, (vorher, nachher) => {
     const server = serverVon(nachher.guild);
-    for (const { ereignisse } of module) void ereignisse?.stimme?.(server, nachher.id, vorher.channelId, nachher.channelId);
+    verteile(module, server.id, istAn, (e) => void e.stimme?.(server, nachher.id, vorher.channelId, nachher.channelId));
   });
   client.on(Events.ChannelDelete, (kanal) => {
     if (kanal.isDMBased()) return;
-    for (const { ereignisse } of module) void ereignisse?.kanalWeg?.(kanal.id);
+    verteile(module, kanal.guildId, istAn, (e) => void e.kanalWeg?.(kanal.id));
   });
   client.on(Events.InteractionCreate, (interaction) => {
     if (interaction.isChatInputCommand()) {
-      void beantworte(interaction, befehle);
+      const besitzer = module.find((m) => m.befehle?.some((b) => b.name === interaction.commandName));
+      const server = interaction.guildId;
+      if (!besitzer?.schalter || !server) {
+        void beantworte(interaction, befehle);
+        return;
+      }
+      void an(besitzer, server, istAn).then((ja) =>
+        ja
+          ? beantworte(interaction, befehle)
+          : interaction
+              .reply({ content: modulAus, flags: MessageFlags.Ephemeral })
+              .then(
+                () => undefined,
+                (e: unknown) => console.error(`/${interaction.commandName}: Antwort fehlgeschlagen: ${text(e)}`),
+              ),
+      );
       return;
     }
     // Erkannt am Präfix in `custom_id`. Siehe docs/bot/sprachraeume-menue.md, „Knöpfe“.
-    for (const { knoepfe } of module) {
+    for (const m of module) {
+      const { knoepfe } = m;
       const druck = knoepfe && alsDruck(interaction, knoepfe.praefix);
       if (druck) {
-        void knoepfe.bediene(druck);
+        void an(m, druck.server.id, istAn).then((ja) =>
+          ja ? knoepfe.bediene(druck) : druck.antworte(modulAus).catch((e: unknown) => console.error(`Knopf: Antwort fehlgeschlagen: ${text(e)}`)),
+        );
         return;
       }
     }

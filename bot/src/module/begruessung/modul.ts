@@ -30,6 +30,7 @@ export function begruessungsModul(u: BegruessungUmgebung): DiscordModul {
     tabellen: ['begruessungen', 'bilder'],
     vergiss: (server) => void einstellungen.delete(server),
     bereich: begruessungsBereich({ db: u.db, einstellungen, zaehlung: u.zaehlung }),
+    schalter: { titel: 'Begrüssung', hilfe: 'Eine Nachricht, auf Wunsch mit Banner, wenn jemand dem Server beitritt oder ihn verlässt.' },
     ereignisse: {
       beitritt: (mitglied) => begruesse(mitglied, 'beitritt', senden),
       abschied: (mitglied) => begruesse(mitglied, 'abschied', senden),

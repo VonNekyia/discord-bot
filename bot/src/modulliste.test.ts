@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import type { Pool } from 'pg';
+import { Brett } from './brett/brett.js';
 import { Aufraeumen } from './kern/aufraeumen.js';
 import { migriere, oeffne, verbindung } from './kern/datenbank.js';
 import { Zaehlung } from './kern/zaehlung.js';
@@ -25,14 +26,15 @@ describe('Module', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt' }, ()
     await db.end();
   });
 
-  test('jede Tabelle mit Daten je Server (Spalte server bigint) gehört genau einem Modul', async () => {
+  test('jede Tabelle mit Daten je Server (Spalte server bigint) gehört genau einem Modul oder dem Board', async () => {
     const { rows } = await db.query<{ tabelle: string }>(
       `SELECT table_name AS tabelle FROM information_schema.columns
        WHERE table_schema = current_schema() AND column_name = 'server' AND data_type = 'bigint'`,
     );
     const inDerDatenbank = rows.map((z) => z.tabelle).toSorted();
-    // Aufraeumen wirft, wenn eine Tabelle zwei Modulen gehört.
-    const aufraeumer = new Aufraeumen(alleModule({ db, zaehlung: new Zaehlung(), kanal: () => undefined }));
+    // Aufraeumen wirft, wenn eine Tabelle zwei Modulen gehört. Wie in bot/src/index.ts mit dem Board.
+    const module = alleModule({ db, zaehlung: new Zaehlung(), kanal: () => undefined });
+    const aufraeumer = new Aufraeumen([...module, new Brett({ db, module })]);
     assert.deepEqual([...aufraeumer.tabellen].toSorted(), inDerDatenbank);
     assert.ok(inDerDatenbank.length > 0);
   });
@@ -50,19 +52,21 @@ describe('Module', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt' }, ()
     assert.deepEqual(vergessen, { einstellungen: ['300000000000000071'], sprachraeume: ['300000000000000071'] });
   });
 
-  test('welches Modul welche Ereignisse, Befehle und Knöpfe hat', () => {
+  test('welches Modul welche Ereignisse, Befehle, Knöpfe und welchen Schalter hat', () => {
     const liste = alleModule({ db, zaehlung: new Zaehlung(), kanal: () => undefined });
     assert.deepEqual(
       liste.map((m) => ({
         name: m.name,
         ereignisse: Object.keys(m.ereignisse ?? {}),
+        aufraeumen: Object.keys(m.aufraeumen ?? {}),
         befehle: (m.befehle ?? []).map((b) => b.name),
         praefix: m.knoepfe?.praefix,
+        schalter: m.schalter ? { bezahlt: m.schalter.bezahlt ?? false } : undefined,
       })),
       [
-        { name: 'befehle', ereignisse: [], befehle: ['ping'], praefix: undefined },
-        { name: 'begruessung', ereignisse: ['beitritt', 'abschied'], befehle: [], praefix: undefined },
-        { name: 'sprachraeume', ereignisse: ['bereit', 'stimme', 'kanalWeg'], befehle: [], praefix: 'sprachraum:' },
+        { name: 'befehle', ereignisse: [], aufraeumen: [], befehle: ['ping'], praefix: undefined, schalter: undefined },
+        { name: 'begruessung', ereignisse: ['beitritt', 'abschied'], aufraeumen: [], befehle: [], praefix: undefined, schalter: { bezahlt: false } },
+        { name: 'sprachraeume', ereignisse: ['stimme'], aufraeumen: ['bereit', 'stimme', 'kanalWeg'], befehle: [], praefix: 'sprachraum:', schalter: { bezahlt: false } },
       ],
     );
   });

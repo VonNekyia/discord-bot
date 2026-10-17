@@ -12,6 +12,7 @@ code:
   - web/src/seite.ts
   - web/.oxlintrc.json
   - bot/src/discord/modul.ts
+  - bot/src/brett/brett.ts
 ---
 
 # Struktur von Bot und Oberfläche
@@ -35,6 +36,7 @@ Linter. Warum so, steht in
 | `bot/src/kern/` | Datenbank, Cache, Fehlertext fürs Log, Typwächter für Eingaben, Grenzen, Zählung, Aufräumen, der Vertrag des Baukastens; kennt weder Discord noch Module | `datenbank.ts`, `cache.ts`, `fehler.ts`, `eingabe.ts`, `grenze.ts`, `zaehlung.ts`, `aufraeumen.ts`, `baukasten.ts`, `modul.ts` |
 | `bot/src/discord/` | die einzige Schicht, die discord.js importiert | `client.ts`, `ordnung.ts`, `zaehlen.ts`, `oauth.ts`, `kanaele.ts`, `kontext.ts`, `eigentuemer.ts`, `nachrichten.ts`, `server.ts`, `fehler.ts`, `rechte.ts`, `sprachkanaele.ts`, `menue.ts`, `interaktionen.ts`, `befehle.ts`, `dashboard.ts`, `modul.ts` |
 | `bot/src/api/` | HTTP-API des Dashboards: Server, Anmeldung, Grenzen, Fehler; die Routen der Seiten, die die Module anmelden | `server.ts`, `anmeldung.ts` |
+| `bot/src/brett/` | das Board der Module: je Server, welches Modul an ist, und seine Seite; kein Modul, siehe [Board der Module](../schnittstelle/module.md) | `brett.ts` |
 | `bot/src/module/befehle/` | Slash-Befehle, heute `/ping` | `befehle.ts`, `modul.ts` |
 | `bot/src/module/begruessung/` | Beitritt und Abschied: Einstellungen, Senden, Banner, Seiten im Dashboard | `begruessung.ts`, `senden.ts`, `banner.ts`, `seiten.ts`, `modul.ts` |
 | `bot/src/module/sprachraeume/` | Sprachräume: Einstellungen, Räume, Menü, Knöpfe, Rechte, Seite im Dashboard | `sprachraeume.ts`, `raeume.ts`, `menue.ts`, `knoepfe.ts`, `raumrechte.ts`, `seiten.ts`, `modul.ts` |
@@ -64,6 +66,7 @@ Ein Pfeil heisst „darf importieren“:
 Bot:  index.ts ──> modulliste.ts ──> module/*
                ──> module/*     ──> discord/, kern/
                ──> api/         ──> discord/, kern/
+               ──> brett/       ──> discord/, kern/
                ──> discord/     ──> discord.js, kern/
                ──> discord.js
 
@@ -77,6 +80,7 @@ Web:  dashboard.ts ──> seite.ts ──> bausteine/* ──> api/, kern/
 | Nur die Discord-Schicht spricht mit discord.js | `discord.js` und `@discordjs/*` nur in `src/discord/` und `src/index.ts` | – | `no-restricted-imports` |
 | Nur die API-Schicht spricht mit dem Bot | – | `fetch` nur in `src/api/` | `no-restricted-globals` |
 | Ein Modul importiert kein anderes | `src/module/*` | – | `no-restricted-imports` |
+| Das Board kennt kein Modul und keine Schicht kennt das Board | `src/brett/` importiert nichts aus `src/module/` und `src/api/`; `src/module/`, `src/api/`, `src/discord/` und `src/kern/` nichts aus `src/brett/` | – | `no-restricted-imports` |
 | Ein Baustein importiert keinen anderen und kennt die Seite nicht | – | `src/bausteine/*` | `no-restricted-imports` |
 | Die API kennt kein Modul; jedes Modul meldet seine Routen an | `src/api/` importiert nichts aus `src/module/` | `src/api/` importiert nichts Eigenes | `no-restricted-imports` |
 | Der Kern kennt keine Schicht über sich | `src/kern/` | `src/kern/` nur `src/api/` und sich | `no-restricted-imports` |
@@ -113,6 +117,7 @@ Jedes Modul gibt dazu ein Objekt nach dem Vertrag `Modul` in
 | `tabellen` | Tabellen mit der Spalte `server`; verlässt der Bot einen Server, gehen ihre Zeilen |
 | `vergiss(server)` | vergisst, was das Modul im Speicher zum Server hält, etwa im Cache |
 | `bereich` | seine Seiten im Dashboard, `Bereich` aus `bot/src/kern/baukasten.ts` |
+| `schalter` | sein Schalter auf dem Board: `titel`, `hilfe`, `bezahlt`; ohne ihn ist das Modul immer an, siehe [Board der Module](../schnittstelle/module.md) |
 
 Was nur die Discord-Schicht kennt, kommt in `DiscordModul` aus
 `bot/src/discord/modul.ts` dazu; der Vertrag in `kern/` kennt keine Typen
@@ -122,11 +127,12 @@ von Discord:
 |---|---|
 | `befehle` | seine Slash-Befehle als `Befehl` aus `discord/befehle.ts` |
 | `knoepfe` | `praefix` und `bediene(druck)`: Knöpfe, Nutzerauswahl und Formulare mit `praefix` am Anfang von `custom_id` |
-| `ereignisse` | was es bei Ereignissen von Discord tut, mit eigenen Typen; siehe unten |
+| `ereignisse` | was es bei Ereignissen von Discord tut, mit eigenen Typen; siehe unten; nur auf Servern, auf denen es an ist |
+| `aufraeumen` | dieselben Ereignisse, aber immer, auch wenn es aus ist: was aufgeräumt werden muss, etwa leere Sprachräume |
 
 | Ereignis | von Discord | wer ruft |
 |---|---|---|
-| `bereit(server)` | `ClientReady`, mit den Servern dieses Prozesses | `bot/src/index.ts`, nach dem Abgleich der Server, Modul für Modul |
+| `bereit(server)` | `ClientReady`, mit den Servern dieses Prozesses; in `ereignisse` nur die, auf denen das Modul an ist | `meldeBereit` aus `bot/src/index.ts`, nach dem Abgleich der Server, Modul für Modul |
 | `beitritt(mitglied)`, `abschied(mitglied)` | `guildMemberAdd`, `guildMemberRemove`, mit `alsMitglied` | `haengeAn` |
 | `stimme(server, nutzer, vorher, nachher)` | `voiceStateUpdate` | `haengeAn` |
 | `kanalWeg(kanal)` | `channelDelete`, nur Kanäle eines Servers | `haengeAn` |
@@ -134,12 +140,19 @@ von Discord:
 `alleModule` in `bot/src/modulliste.ts` gibt die Liste, und
 `bot/src/index.ts` reicht sie weiter:
 
-- die Bereiche an die API, die Tabellen an `Aufraeumen`, `vergiss` an
+- die Liste an das Board (`Brett` in `bot/src/brett/brett.ts`), das daraus
+  die Schalter liest;
+- die Bereiche an die API, das Board als letzten, mit `istAn` je Bereich;
+  die Tabellen und die des Boards an `Aufraeumen`, `vergiss` an
   `guildDelete`;
 - die Befehle aller Module (`befehleVon`) an `registriere`;
-- die Ereignisse, Befehle und Knöpfe an `haengeAn(client, liste)` in
+- die Ereignisse, Befehle und Knöpfe an `haengeAn(client, liste, istAn)` in
   `bot/src/discord/modul.ts`. Es hängt jedes Ereignis einmal an den Client
-  und gibt es den Modulen in der Reihenfolge der Liste.
+  und gibt es den Modulen in der Reihenfolge der Liste: `aufraeumen` immer,
+  `ereignisse` nur, wenn `istAn` für das Modul und den Server `true` gibt.
+  Befehle und Knöpfe eines Moduls, das aus ist, antworten `modulAus`.
+  Scheitert `istAn`, gilt das Modul als aus, und `Board: <Fehler>` steht im
+  Log.
 
 Jedes Modul fängt seine Fehler selbst und loggt sie. Der Vertrag wächst,
 wenn ein Modul mehr braucht.

@@ -37,8 +37,17 @@ Code nicht brechen darf. Das Menü im Chat jedes Raums steht in
 `haengeAn` in `bot/src/discord/modul.ts` gibt `voiceStateUpdate` mit dem
 Griff des Servers (`serverVon`) und den Kanälen vorher und nachher an
 `stimme` des Moduls in `bot/src/module/sprachraeume/modul.ts`, und
-`channelDelete` an `kanalWeg`. Das Modul ruft damit `Raeume#aenderung` und
-`Raeume#geloescht`. Die
+`channelDelete` an `kanalWeg`. Das Modul hat zwei Teile:
+
+| Teil | Ereignisse | ruft | wann |
+|---|---|---|---|
+| `ereignisse` | `stimme` | `Raeume#kommt`: ein Erzeuger legt einen Raum an | nur, wenn das Modul auf dem Server an ist |
+| `aufraeumen` | `stimme`, `kanalWeg`, `bereit` | `Raeume#geht`: ein leerer Raum geht; `Raeume#geloescht`; `Raeume#gleicheAb` | immer, auch wenn es aus ist |
+
+So bleibt kein leerer Raum stehen, wenn das Team das Modul auf dem Board
+ausschaltet, siehe [Board der Module](../schnittstelle/module.md), „Ein
+Modul ist aus“. Die Knöpfe im Menü eines Raums antworten dann nur, dass das
+Modul aus ist. `Raeume#aenderung` ruft beide Teile, für Tests. Die
 Einstellungen liest `Raeume` aus einem eigenen Cache (`ladeCache`), den die
 API nach jedem Speichern leert, siehe [Cache](cache.md).
 
@@ -111,8 +120,8 @@ Zeile.
 
 ## Abgleich beim Start
 
-Nach `ClientReady` ruft `bot/src/index.ts` `bereit` jedes Moduls, das
-Modul Sprachräume damit `Raeume#gleicheAb` für die Server im Cache, also die Shards dieses Prozesses: Zeilen ohne Kanal fallen
+Nach `ClientReady` ruft `bot/src/index.ts` über `meldeBereit` `bereit` jedes Moduls, das
+Modul Sprachräume damit in `aufraeumen` `Raeume#gleicheAb` für alle Server im Cache, auch die, auf denen es aus ist, also die Shards dieses Prozesses: Zeilen ohne Kanal fallen
 weg, leere Räume löscht der Bot, belegte bleiben. Er geht Server für Server
 und Raum für Raum vor, nacheinander. Server, die den Bot
 verlassen haben, räumt `Aufraeumen#behalteNur` ab, mit derselben Regel für Shards wie

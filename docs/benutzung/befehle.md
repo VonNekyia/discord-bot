@@ -37,6 +37,7 @@ ersten, der welche braucht. Den Rest macht die Discord-Schicht:
 | den Befehl zum Namen finden und ausführen | `beantworte`, aus `haengeAn` in `bot/src/discord/modul.ts` bei jedem Slash-Befehl, mit den Befehlen aller Module (`befehleVon`) |
 | antworten | `Aufruf#antworte`: gleich, nur für den Nutzer (ephemeral), ohne Erwähnungen; scheitert es, wirft es `DiscordFehler` |
 | Fehler | `beantworte` fängt sie, siehe „Fehler“ |
+| Modul aus | ist das Modul des Befehls auf dem Server aus, antwortet `haengeAn` statt des Befehls nur für den Nutzer `modulAus`, siehe [Board der Module](../schnittstelle/module.md), „Ein Modul ist aus“; `/ping` hat keinen Schalter |
 
 ## Antwortzeit
 

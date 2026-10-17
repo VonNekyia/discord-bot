@@ -19,7 +19,7 @@
             "paths": [{ "name": "discord.js", "message": "Nur src/discord/ spricht mit discord.js." }],
             "patterns": [
               { "group": ["@discordjs/*"], "message": "Nur src/discord/ spricht mit discord.js." },
-              { "regex": "^\\.\\./(api|discord|module)/", "message": "Der Kern kennt keine Schicht über sich." }
+              { "regex": "^\\.\\./(api|brett|discord|module)/", "message": "Der Kern kennt keine Schicht über sich." }
             ]
           }
         ]
@@ -31,7 +31,7 @@
       "rules": {
         "eslint/no-restricted-imports": [
           "error",
-          { "patterns": [{ "regex": "^\\.\\./(api|module)/", "message": "Die Discord-Schicht kennt weder API noch Module." }] }
+          { "patterns": [{ "regex": "^\\.\\./(api|brett|module)/", "message": "Die Discord-Schicht kennt weder API noch Board noch Module." }] }
         ]
       }
     },
@@ -45,7 +45,23 @@
             "paths": [{ "name": "discord.js", "message": "Nur src/discord/ spricht mit discord.js." }],
             "patterns": [
               { "group": ["@discordjs/*"], "message": "Nur src/discord/ spricht mit discord.js." },
-              { "regex": "^\\.\\./module/", "message": "Die API kennt kein Modul; jedes Modul meldet seine Routen an." }
+              { "regex": "^\\.\\./(brett|module)/", "message": "Die API kennt kein Modul und nicht das Board; jedes meldet seine Routen an." }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/brett/**"],
+      "excludeFiles": ["**/*.test.ts"],
+      "rules": {
+        "eslint/no-restricted-imports": [
+          "error",
+          {
+            "paths": [{ "name": "discord.js", "message": "Nur src/discord/ spricht mit discord.js." }],
+            "patterns": [
+              { "group": ["@discordjs/*"], "message": "Nur src/discord/ spricht mit discord.js." },
+              { "regex": "^\\.\\./(api|module)/", "message": "Das Board kennt kein Modul und nicht die API; es liest nur ihre Schalter." }
             ]
           }
         ]
@@ -69,7 +85,8 @@
             "patterns": [
               { "group": ["@discordjs/*"], "message": "Nur src/discord/ spricht mit discord.js." },
               { "regex": "^\\.\\./[^./][^/]*/", "message": "Ein Modul importiert kein anderes Modul." },
-              { "regex": "^\\.\\./\\.\\./api/", "message": "Ein Modul importiert die API nicht; es meldet seine Routen an." }
+              { "regex": "^\\.\\./\\.\\./api/", "message": "Ein Modul importiert die API nicht; es meldet seine Routen an." },
+              { "regex": "^\\.\\./\\.\\./brett/", "message": "Ein Modul kennt das Board nicht; es meldet seinen Schalter an." }
             ]
           }
         ]
