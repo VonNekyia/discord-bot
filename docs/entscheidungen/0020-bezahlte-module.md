@@ -41,15 +41,30 @@ Darum bindet die Person den Kauf selbst an einen Server:
 2. Im Dashboard, auf dem Board des Servers, löst sie die Aktion
    `<modul>Binden` aus, siehe [Board der Module](../schnittstelle/module.md),
    „Freischaltung“.
-3. Der Bot sucht einen Kauf dieser Person, der noch nicht verbraucht ist
-   (`GET /applications/{id}/entitlements` mit `user_id`, `sku_ids`,
-   `exclude_ended`,
+3. Der Bot liest die Käufe dieser Person
+   (`GET /applications/{id}/entitlements` mit `user_id` und `sku_ids`,
    [List Entitlements](https://docs.discord.com/developers/resources/entitlement#list-entitlements)).
-4. Er speichert die Bindung aus Server, SKU und Entitlement und verbraucht
-   das Entitlement
+   Die Liste enthält auch verbrauchte: „The entitlement will have
+   `consumed: true` when using List Entitlements“
    ([Consume an Entitlement](https://docs.discord.com/developers/resources/entitlement#consume-an-entitlement)).
-   Danach kann die Person dasselbe Modul für einen weiteren Server kaufen.
-5. Die Bindung gilt, bis Discord das Entitlement löscht, etwa bei einer
+   Gelöschte fehlen, `exclude_deleted` ist ohne Angabe `true`.
+4. **Frei** ist ein Kauf, dessen Entitlement nicht in der Tabelle der
+   Bindungen steht, egal ob Discord ihn als `consumed` führt. „Gebunden“
+   heisst: steht in der Tabelle. Dort ist die Entitlement-ID eindeutig, und
+   je Server und SKU gibt es höchstens eine Bindung.
+5. **Erst eintragen, dann verbrauchen.** Der Bot trägt den ersten freien
+   Kauf für den Server ein. Scheitert das an der eindeutigen
+   Entitlement-ID, weil eine zweite Anfrage zugleich denselben Kauf
+   bindet, nimmt er den nächsten freien; gibt es keinen, `kein_kauf`. So
+   schaltet ein Kauf nie zwei Server frei.
+6. Danach verbraucht er das Entitlement
+   ([Consume an Entitlement](https://docs.discord.com/developers/resources/entitlement#consume-an-entitlement)),
+   damit die Person dasselbe Modul für einen weiteren Server kaufen kann,
+   und vermerkt das an der Bindung. Scheitert das Verbrauchen, bleibt die
+   Bindung, und das Modul ist freigeschaltet. Der Bot verbraucht beim
+   nächsten Binden und beim Start nach, was gebunden, aber nicht vermerkt
+   ist. So geht kein Kauf verloren: Ohne Eintrag wird nichts verbraucht.
+7. Die Bindung gilt, bis Discord das Entitlement löscht, etwa bei einer
    Rückerstattung (`ENTITLEMENT_DELETE`). Ein Kauf lässt sich nicht auf
    einen anderen Server verschieben.
 
@@ -109,6 +124,12 @@ die API.
   also ein Consumable, das der Bot beim Binden verbraucht.
 - **Einmalkauf ohne Bindung, gilt auf jedem Server der Person.** Dann
   schaltete ein Kauf jeden Server frei, den die Person verwaltet.
+- **Erst verbrauchen, dann eintragen.** Scheitert das Eintragen danach,
+  ist der Kauf verbraucht, aber an keinen Server gebunden, und die Person
+  hat bezahlt, ohne etwas zu bekommen.
+- **„Frei“ nach `consumed` von Discord.** Zwei Anfragen zugleich sähen
+  denselben unverbrauchten Kauf und bänden ihn beide; ein Kauf, dessen
+  Verbrauchen scheiterte, sähe frei aus, obwohl er gebunden ist.
 - **Bindung per Slash-Befehl auf dem Server.** Der Befehl gehörte keinem
   Modul; das Board ist schon der Ort, an dem man Module freischaltet.
 - **Abos je Person (`USER_SUBSCRIPTION`).** Eine Anwendung bietet

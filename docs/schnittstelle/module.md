@@ -67,6 +67,15 @@ gebunden hat, bindet ihn an diesen Server und antwortet mit `200` und
 einem `Satz`, etwa „Managed Commands ist freigeschaltet.“. Danach baut die
 Oberfläche die Tabs neu, weil die Seite `alleNeu` hat.
 
+- Gebunden ist ein Kauf, wenn sein Entitlement in der Tabelle der
+  Bindungen steht; ob Discord ihn als verbraucht führt, zählt nicht. Die
+  Entitlement-ID ist dort eindeutig, so bindet ein Kauf nie zwei Server,
+  auch nicht bei zwei Anfragen zugleich.
+- Erst eintragen, dann bei Discord verbrauchen. Scheitert das Verbrauchen,
+  ist das Modul trotzdem freigeschaltet, und der Bot holt es nach. Wie
+  genau, steht in [0020](../entscheidungen/0020-bezahlte-module.md),
+  „Entscheidung“.
+
 | Status | Code | Wann |
 |---|---|---|
 | `400` | `kein_kauf` | die Person hat keinen Kauf des Moduls, der noch nicht gebunden ist |
