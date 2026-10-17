@@ -33,8 +33,10 @@ export function hoechstens(vorlage: string): number {
 }
 
 // Die DM beim Bann: `dmText` mit Server und Grund, darunter `entbannung`.
+// In einem Durchgang: Ein Grund oder Name, der selbst `{server}` oder
+// `{grund}` enthält, bleibt, wie er ist.
 export function bannDm(s: Strafen, server: string, grund: string): string {
-  const text = s.dmText.replaceAll('{server}', server).replaceAll('{grund}', grund);
+  const text = s.dmText.replaceAll(/\{(server|grund)\}/g, (_, name: string) => (name === 'server' ? server : grund));
   return s.entbannung.trim() === '' ? text : `${text}\n\n${s.entbannung}`;
 }
 

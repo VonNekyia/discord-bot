@@ -145,7 +145,7 @@ das Verbrauchen, ist das Modul trotzdem frei …“ und „ein gelöschter Kauf
 entfernt die Bindung …“ prüfen die Zeilen.
 
 Die Managed Commands loggen nur den Befehl und den Text eines Fehlers,
-etwa `/ban: DM nicht gesendet: <Fehler>` oder `Managed Commands: nicht
+etwa `/ban: DM nicht gesendet: <Fehler>` oder `strafen: nicht
 aufgeräumt: <Fehler>`; nie Ziel, Grund oder wer den Befehl nutzt.
 
 Die Sprachräume loggen nur einen festen Schritt und den Text des Fehlers,

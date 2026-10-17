@@ -58,7 +58,10 @@ export function grundFormular(art: Art, ziel: string): Formular {
 // Siehe docs/benutzung/managed-commands.md.
 export class Strafbefehle {
   // Je `<Server>/<Mitglied>` die Kette der Befehle, die zählen; im Speicher,
-  // weil jeder Server nur von einem Prozess bedient wird.
+  // weil jeder Server nur von einem Prozess bedient wird. Sie deckt Zählen,
+  // DM, Bann oder Kick und Eintragen ab.
+  // ponytail: Sperre nur in diesem Prozess; bedienen einmal zwei Prozesse
+  // denselben Server, eine Sperre in PostgreSQL (pg_advisory_xact_lock).
   // Siehe docs/benutzung/managed-commands.md, „Limit“.
   private readonly ketten = new Map<string, Promise<unknown>>();
   private readonly uhr: () => number;

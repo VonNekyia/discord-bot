@@ -1,7 +1,6 @@
 import type { Pool } from 'pg';
 import type { DiscordModul } from '../../discord/modul.js';
 import { ladeCache } from '../../kern/cache.js';
-import { text } from '../../kern/fehler.js';
 import { praefix, raeumeStrafenAuf, Strafbefehle, type StrafenKontext, type Werkzeuge } from './befehle.js';
 import { strafenBereich, type StrafenSeite } from './seiten.js';
 import { liesStrafen } from './strafen.js';
@@ -15,10 +14,6 @@ export interface StrafenUmgebung {
   uhr?: () => number;
 }
 
-// So oft löscht das Modul alte Bans, Kicks und Verwarnungen.
-// Siehe docs/bot/datenschutz.md, „Was der Bot speichert“.
-const stuendlich = 60 * 60 * 1000;
-
 // Das Modul Managed Commands: /ban, /kick und /warn, die Seite „Managed
 // Commands“, die Formulare für den eigenen Grund. Bezahlt, siehe
 // docs/entscheidungen/0020-bezahlte-module.md. Siehe docs/benutzung/managed-commands.md.
@@ -28,8 +23,6 @@ export function strafenModul(u: StrafenUmgebung): DiscordModul {
   const einstellungen = u.einstellungen ?? ladeCache((server: string) => liesStrafen(u.db, server));
   const uhr = u.uhr ?? (() => Date.now());
   const befehle = new Strafbefehle({ db: u.db, einstellungen, w: u.werkzeuge, uhr });
-  let aufraeumer: ReturnType<typeof setInterval> | undefined;
-  const raeumeAuf = () => void raeumeStrafenAuf(u.db, uhr()).catch((e: unknown) => console.error(`Managed Commands: nicht aufgeräumt: ${text(e)}`));
   return {
     name: 'strafen',
     tabellen: ['strafen', 'strafaktionen', 'verwarnungen'],
@@ -47,14 +40,8 @@ export function strafenModul(u: StrafenUmgebung): DiscordModul {
     }),
     befehle: befehle.befehle(),
     knoepfe: { praefix, bediene: (druck) => befehle.formular(druck) },
-    aufraeumen: {
-      // Auch wo das Modul aus ist: Alte Zeilen gehen. Einmal je Prozess.
-      bereit: async () => {
-        if (aufraeumer) return;
-        raeumeAuf();
-        aufraeumer = setInterval(raeumeAuf, stuendlich);
-        aufraeumer.unref();
-      },
-    },
+    // Alte Bans, Kicks und Verwarnungen, auch wo das Modul aus ist.
+    // Siehe docs/bot/datenschutz.md, „Was der Bot speichert“.
+    raeumeAuf: async () => void (await raeumeStrafenAuf(u.db, uhr())),
   };
 }

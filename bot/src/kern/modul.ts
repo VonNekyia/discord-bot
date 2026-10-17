@@ -11,6 +11,10 @@ export interface Modul<K> {
   tabellen?: readonly string[];
   // Vergisst, was das Modul im Speicher zu `server` hält, etwa im Cache.
   vergiss?(server: string): void;
+  // Löscht, was über seiner Frist ist. bot/src/index.ts ruft es beim Start
+  // und dann stündlich, auch ohne API und auch, wo das Modul aus ist.
+  // Siehe docs/entwicklung/struktur.md, „Ein Modul“.
+  raeumeAuf?(): Promise<void>;
   // Seine Seiten im Dashboard.
   bereich?: Bereich<K>;
   // Sein Schalter auf dem Board; ohne ihn ist das Modul immer an. Die ID

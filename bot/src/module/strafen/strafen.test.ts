@@ -69,6 +69,8 @@ test('Länge der DM: {server} mit 100, {grund} mit 400 Zeichen; 1400 und 500 ble
   const s: Strafen = { ...ohneEinstellung(), dmText: 'Gebannt von {server}. Grund: {grund}', entbannung: 'Schreib an das Team.' };
   assert.equal(bannDm(s, 'Probe', 'Spam'), 'Gebannt von Probe. Grund: Spam\n\nSchreib an das Team.');
   assert.equal(bannDm({ ...s, entbannung: ' ' }, 'Probe', 'Spam'), 'Gebannt von Probe. Grund: Spam');
+  // Ein Durchgang: Platzhalter im Grund oder im Namen bleiben stehen.
+  assert.equal(bannDm({ ...s, entbannung: '' }, 'Server {grund}', 'Wer {server} schreibt'), 'Gebannt von Server {grund}. Grund: Wer {server} schreibt');
   assert.ok(1400 + 2 + 500 <= 2000);
 });
 
@@ -178,7 +180,9 @@ describe('Managed Commands', { skip: ziel ? false : 'keine Datenbank, DB_HOST fe
       await fall('ban', { rang: beide }),
       `Du hast dein Limit erreicht: 3 Bans in 7 Tagen. Der nächste geht ab <t:${(ersterBann + 7 * 86_400_000) / 1000}:R>.`,
     );
-    // 7 Tage nach dem ersten zählt er nicht mehr.
+    // 1 ms vor 7 Tagen nach dem ersten zählt er noch, genau 7 Tage danach nicht mehr.
+    jetzt = ersterBann + 7 * 86_400_000 - 1;
+    assert.match(await fall('ban', { rang: beide }), /^Du hast dein Limit erreicht: 3 Bans in 7 Tagen\./);
     jetzt = ersterBann + 7 * 86_400_000;
     assert.match(await fall('ban', { rang: beide }), /Bans in 7 Tagen: 3 von 3\.$/);
     // Kicks zählen getrennt; das höchste Limit der beiden Rollen ist 2.
@@ -277,6 +281,28 @@ describe('Managed Commands', { skip: ziel ? false : 'keine Datenbank, DB_HOST fe
     await befehle.formular(druck);
     assert.deepEqual(antworten, ['nutzer-12 ist gebannt. Grund: Eigener Text. Die DM ist angekommen. Bans in 7 Tagen: 1 von 1.']);
     assert.equal(getan.at(-1), `ban ${OPFER} Eigener Text · /ban von Moderator`);
+  });
+
+  test('freier Text ist ein eigener Grund ohne Formular; nur „custom“ öffnet es, gross oder klein', async () => {
+    const befehl = befehle.befehle().find((b) => b.name === 'kick');
+    assert.ok(befehl);
+    const formulare: Formular[] = [];
+    const antworten: string[] = [];
+    const aufruf = (grund: string) =>
+      falscherAufruf({
+        ort: { server, wer: person(MOD, 'Moderator'), rang: rang(5, [R_MOD]) },
+        text: () => grund,
+        ziel: () => ({ person: person(OPFER), rang: rang(1) }),
+        zeigeFormular: async (f) => void formulare.push(f),
+        warte: async () => {},
+        fertig: async (t) => void antworten.push(t),
+      });
+    await befehl.ausfuehren(aufruf('Nicht in der Liste'));
+    assert.deepEqual(formulare, []);
+    assert.deepEqual(antworten, ['nutzer-12 ist gekickt. Grund: Nicht in der Liste. Kicks in 7 Tagen: 1 von 2.']);
+    assert.equal(getan.at(-1), `kick ${OPFER} Nicht in der Liste · /kick von Moderator`);
+    await befehl.ausfuehren(aufruf(' CUSTOM '));
+    assert.equal(formulare.length, 1);
   });
 
   test('ein Befehl schiebt die Antwort auf und setzt sie danach', async () => {

@@ -83,7 +83,13 @@ zählen nur Bans und Kicks, die geklappt haben. Ist das Limit erreicht,
 sagt die Antwort, wann der nächste wieder geht: 7 Tage nach dem ältesten,
 der noch zählt. Ein Limit von 0 heisst: Diese Rolle darf nicht bannen
 oder kicken. Zwei Befehle desselben Mitglieds zur selben Zeit zählen
-nacheinander, damit keiner am Limit vorbeikommt.
+nacheinander, damit keiner am Limit vorbeikommt. Die Sperre dafür liegt im
+Speicher des Prozesses (`Strafbefehle` in
+`bot/src/module/strafen/befehle.ts`) und deckt Zählen, DM, Bann oder Kick
+und Eintragen ab. Das genügt, solange ein Server nur von einem Prozess
+bedient wird: Alle Interaktionen eines Servers kommen über seinen Shard.
+Bedienen einmal zwei Prozesse denselben Server, braucht es eine Sperre in
+PostgreSQL.
 
 ## Ziel
 
@@ -105,7 +111,10 @@ der Liste über den Bot Mitglieder bannen, die über ihm stehen.
 ## Ablauf
 
 1. Ist das Modul aus, die Antwort, dass es aus ist.
-2. Ist `grund` `custom`, das Formular; weiter, wenn es abgeschickt ist.
+2. Ist `grund` `custom`, gross oder klein, das Formular; weiter, wenn es
+   abgeschickt ist. Ist das Modul inzwischen aus, antwortet der Bot auch
+   dann, dass es aus ist: Jedes Formular prüft das wie ein Befehl
+   (`haengeAn` in `bot/src/discord/modul.ts`).
 3. Die Antwort aufschieben (`deferReply`), denn Discord wartet höchstens
    3 s auf die erste
    ([Interaction Callback](https://docs.discord.com/developers/interactions/receiving-and-responding#responding-to-an-interaction)).

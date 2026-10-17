@@ -117,6 +117,7 @@ Jedes Modul gibt dazu ein Objekt nach dem Vertrag `Modul` in
 | `name` | für Fehler beim Start |
 | `tabellen` | Tabellen mit der Spalte `server`; verlässt der Bot einen Server, gehen ihre Zeilen |
 | `vergiss(server)` | vergisst, was das Modul im Speicher zum Server hält, etwa im Cache |
+| `raeumeAuf()` | löscht, was über seiner Frist ist; `bot/src/index.ts` ruft es beim Start und dann stündlich, auch ohne API und wo das Modul aus ist. Ein Modul startet keinen eigenen Timer. Heute nur Managed Commands, siehe [Datenschutz](../bot/datenschutz.md), „Was der Bot speichert“ |
 | `bereich` | seine Seiten im Dashboard, `Bereich` aus `bot/src/kern/baukasten.ts` |
 | `schalter` | sein Schalter auf dem Board: `titel`, `hilfe`, `bezahlt`; ohne ihn ist das Modul immer an, siehe [Board der Module](../schnittstelle/module.md) |
 

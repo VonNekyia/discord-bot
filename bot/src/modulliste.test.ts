@@ -62,15 +62,16 @@ describe('Module', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt' }, ()
         name: m.name,
         ereignisse: Object.keys(m.ereignisse ?? {}),
         aufraeumen: Object.keys(m.aufraeumen ?? {}),
+        raeumeAuf: m.raeumeAuf !== undefined,
         befehle: (m.befehle ?? []).map((b) => b.name),
         praefix: m.knoepfe?.praefix,
         schalter: m.schalter ? { bezahlt: m.schalter.bezahlt ?? false } : undefined,
       })),
       [
-        { name: 'befehle', ereignisse: [], aufraeumen: [], befehle: ['ping'], praefix: undefined, schalter: undefined },
-        { name: 'begruessung', ereignisse: ['beitritt', 'abschied'], aufraeumen: [], befehle: [], praefix: undefined, schalter: { bezahlt: false } },
-        { name: 'sprachraeume', ereignisse: ['stimme'], aufraeumen: ['bereit', 'stimme', 'kanalWeg'], befehle: [], praefix: 'sprachraum:', schalter: { bezahlt: false } },
-        { name: 'strafen', ereignisse: [], aufraeumen: ['bereit'], befehle: ['ban', 'kick', 'warn'], praefix: 'strafe:', schalter: { bezahlt: true } },
+        { name: 'befehle', ereignisse: [], aufraeumen: [], befehle: ['ping'], praefix: undefined, schalter: undefined, raeumeAuf: false },
+        { name: 'begruessung', ereignisse: ['beitritt', 'abschied'], aufraeumen: [], befehle: [], praefix: undefined, schalter: { bezahlt: false }, raeumeAuf: false },
+        { name: 'sprachraeume', ereignisse: ['stimme'], aufraeumen: ['bereit', 'stimme', 'kanalWeg'], befehle: [], praefix: 'sprachraum:', schalter: { bezahlt: false }, raeumeAuf: false },
+        { name: 'strafen', ereignisse: [], aufraeumen: [], befehle: ['ban', 'kick', 'warn'], praefix: 'strafe:', schalter: { bezahlt: true }, raeumeAuf: true },
       ],
     );
   });
