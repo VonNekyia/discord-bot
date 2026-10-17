@@ -132,11 +132,11 @@ test('ein Befehl antwortet gleich, nur dem Nutzer und ohne Erwähnungen', async 
   assert.deepEqual(log, []);
 });
 
-test('ein unbekannter Befehl bekommt eine Meldung, das Log keine Nutzerdaten', async (t) => {
+test('ein unbekannter Befehl bekommt eine Meldung ohne Erwähnungen, das Log keine Nutzerdaten', async (t) => {
   const { antworten, log } = await ruft(t, 'gibt-es-nicht', [befehl('probe')]);
   assert.deepEqual(
-    antworten.map((a) => [a.typ, a.daten.content, a.daten.flags]),
-    [[4, 'Das hat nicht geklappt.', 64]],
+    antworten.map((a) => [a.typ, a.daten.content, a.daten.flags, (a.daten as { allowed_mentions?: unknown }).allowed_mentions]),
+    [[4, 'Das hat nicht geklappt.', 64, { parse: [] }]],
   );
   assert.deepEqual(log, ['/gibt-es-nicht: unbekannter Befehl']);
 });
@@ -293,10 +293,10 @@ test('ein Aufruf liest Optionen, das Ziel mit Rang, zeigt ein Formular; warte un
     }),
   ]);
   assert.deepEqual(
-    mock.antworten.filter((a) => a.token === drei.token).map((a) => [a.typ, a.daten.content]),
+    mock.antworten.filter((a) => a.token === drei.token).map((a) => [a.typ, a.daten.content, (a.daten as { allowed_mentions?: unknown }).allowed_mentions]),
     [
-      [5, undefined],
-      ['bearbeitet', 'Das hat nicht geklappt.'],
+      [5, undefined, undefined],
+      ['bearbeitet', 'Das hat nicht geklappt.', { parse: [] }],
     ],
   );
 });

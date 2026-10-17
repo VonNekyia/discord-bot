@@ -140,7 +140,7 @@ export function haengeAn(client: Client, module: readonly DiscordModul[], istAn:
         z === 'an'
           ? beantworte(interaction, befehle)
           : interaction
-              .reply({ content: statt[z], flags: MessageFlags.Ephemeral })
+              .reply({ content: statt[z], flags: MessageFlags.Ephemeral, allowedMentions: { parse: [] } })
               .then(
                 () => undefined,
                 (e: unknown) => console.error(`/${interaction.commandName}: Antwort fehlgeschlagen: ${text(e)}`),

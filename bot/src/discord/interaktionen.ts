@@ -71,7 +71,7 @@ export function alsDruck(i: Interaction, praefix: string): Druck | undefined {
       await uebersetzt(() => i.reply({ content: text, flags: MessageFlags.Ephemeral, allowedMentions: ohneErwaehnung }));
     },
     async zeigeAuswahl(a) {
-      await uebersetzt(() => i.reply({ ...alsAuswahl(a), flags: MessageFlags.Ephemeral }));
+      await uebersetzt(() => i.reply({ ...alsAuswahl(a), flags: MessageFlags.Ephemeral, allowedMentions: ohneErwaehnung }));
     },
     async zeigeFormular(f) {
       if (i.isModalSubmit()) throw new Error('auf ein Formular folgt kein Formular');

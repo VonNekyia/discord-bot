@@ -119,8 +119,9 @@ export async function beantworte(i: ChatInputCommandInteraction, befehle: readon
     await befehl.ausfuehren(aufrufVon(i));
   } catch (fehler) {
     console.error(`/${i.commandName}: ${text(fehler)}`);
-    const antwort = { content: fehlgeschlagen, flags: MessageFlags.Ephemeral } as const;
-    const senden = i.deferred && !i.replied ? i.editReply({ content: fehlgeschlagen }) : i.replied ? i.followUp(antwort) : i.reply(antwort);
+    const antwort = { content: fehlgeschlagen, flags: MessageFlags.Ephemeral, allowedMentions: ohneErwaehnung } as const;
+    const senden =
+      i.deferred && !i.replied ? i.editReply({ content: fehlgeschlagen, allowedMentions: ohneErwaehnung }) : i.replied ? i.followUp(antwort) : i.reply(antwort);
     await senden.catch((e: unknown) => console.error(`/${i.commandName}: Antwort fehlgeschlagen: ${text(e)}`));
   }
 }
