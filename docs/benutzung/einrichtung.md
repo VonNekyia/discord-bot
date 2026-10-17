@@ -113,14 +113,23 @@ da sind, siehe [API im Bot](../bot/dashboard-api.md), „Start und Ende“.
 
 Einladungslink aus dem Developer Portal, „OAuth2“, „URL-Generator“, mit
 den Scopes `bot` und `applications.commands` und diesen Rechten, zusammen
-der Wert `286362640`:
+der Wert `286362640`, mit den Managed Commands `286362646`:
 
 | Recht | für |
 |---|---|
 | Kanäle ansehen, Nachrichten senden, Dateien anhängen | die Begrüssung, siehe [Begrüssung bei Beitritt und Abschied](begruessung.md), „Rechte und Intent“ |
 | Kanäle verwalten, Rollen verwalten, Mitglieder verschieben, Verbinden, Nachrichtenverlauf anzeigen | die Sprachräume, siehe [Sprachräume](sprachraeume.md), „Rechte und Intent“ |
+| Mitglieder kicken, Mitglieder bannen | die Managed Commands, siehe [Managed Commands](managed-commands.md), „Rechte und Intent“; kommen mit `managed-commands-backend` |
 
-Die Befehle brauchen keine Rechte, siehe [Befehle](befehle.md). Die Rechte
+`/ping` braucht keine Rechte, siehe [Befehle](befehle.md).
+
+Für die bezahlten Module legt der Maintainer im Developer Portal unter
+„Monetization“ die SKUs an und trägt ihre IDs in `bot/.env` ein:
+`SKU_MANAGED_COMMANDS` (Consumable, 4,99 €), `SKU_ABO_LOG` und
+`SKU_ABO_ALLES` (Abos je Server, 4,99 € und 19,99 € im Monat). Sie sind
+keine Secrets. Fehlt eine, ist ihr Angebot aus, siehe
+[0020](../entscheidungen/0020-bezahlte-module.md). Kommt mit
+`managed-commands-backend`. Die Rechte
 der Sprachräume braucht der Bot auf dem ganzen Server. Wer den Bot schon
 eingeladen hat, gibt sie seiner Rolle von Hand oder lädt ihn neu ein.
 Solange der Bot privat ist, geht der Link nur für das Team.

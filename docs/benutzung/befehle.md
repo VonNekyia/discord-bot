@@ -18,6 +18,7 @@ Alle Befehle sind globale Slash-Befehle und stehen in `befehle` in
 | Befehl | Antwort | Sichtbar für | Rechte des Bots | Intents |
 |---|---|---|---|---|
 | `/ping` | `Pong. Datenbank: <n> ms.`, oder `nicht erreichbar` | nur den Nutzer (ephemeral) | keine | `Guilds` |
+| `/ban`, `/kick`, `/warn` | siehe [Managed Commands](managed-commands.md), „Antworten“; kommen mit `managed-commands-backend` | nur den Nutzer (ephemeral) | Mitglieder bannen, Mitglieder kicken | `Guilds` |
 
 ## Aufbau
 

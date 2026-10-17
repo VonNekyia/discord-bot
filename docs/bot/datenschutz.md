@@ -34,6 +34,10 @@ nicht gebaut.
 | Bild je Server und Art, beim Hochladen auf 1100 × 440 px zugeschnitten und neu kodiert, ohne Metadaten wie EXIF oder GPS; es kann Personen zeigen | Hintergrund des Banners | bis es ersetzt oder gelöscht wird oder der Bot den Server verlässt | gebaut |
 | Sprachräume je Server: Server-ID, Schalter, Erzeuger mit Kanal-ID, Kategorie-ID, Namensvorlage und Limit | Räume anlegen | bis das Team sie ändert oder der Bot den Server verlässt | gebaut |
 | Raum: Server-ID, Kanal-ID, Discord-ID des Besitzers, Zeit der Anlage | wissen, welche Kanäle Räume sind und wem sie gehören, auch nach einem Neustart | bis der Raum gelöscht ist, der Besitz wechselt oder der Bot den Server verlässt; beim Start vergisst der Bot Räume, die es nicht mehr gibt | gebaut |
+| Managed Commands je Server: Server-ID, vorgefertigte Gründe, Rollen-IDs mit Limits, Text der DM und zur Entbannung | die Befehle `/ban`, `/kick` und `/warn`, siehe [API der Managed Commands](../schnittstelle/strafen.md) | bis das Team sie ändert oder der Bot den Server verlässt | kommt mit `managed-commands-backend` |
+| Ban oder Kick: Server-ID, Discord-ID dessen, der den Befehl nutzt, Art, Zeit; nicht das Ziel und nicht der Grund | das Limit je Rolle, siehe [Managed Commands](../benutzung/managed-commands.md), „Limit“ | 7 Tage; der Bot löscht ältere Zeilen mindestens stündlich, und wenn er den Server verlässt | kommt mit `managed-commands-backend` |
+| Verwarnung: Server-ID, Discord-ID des Verwarnten und dessen, der verwarnt, Grund, Zeit | die Zahl in „verwarnt, zum n. Mal“ | 365 Tage, Vorschlag an den Maintainer, siehe [0021](../entscheidungen/0021-managed-commands.md); der Bot löscht ältere Zeilen mindestens stündlich, und wenn er den Server verlässt | kommt mit `managed-commands-backend` |
+| Bindung eines Kaufs: Server-ID, SKU-ID, Entitlement-ID, Zeit; keine Discord-ID einer Person | dass ein bezahltes Modul auf dem Server freigeschaltet ist, siehe [0020](../entscheidungen/0020-bezahlte-module.md) | bis Discord das Entitlement löscht, etwa bei einer Rückerstattung; bleibt, wenn der Bot den Server verlässt, damit der Kauf nicht verloren geht | kommt mit `managed-commands-backend` |
 | Board je Server und Modul: Server-ID, ID des Moduls, Schalter | welche Module auf dem Server an sind, siehe [Board der Module](../schnittstelle/module.md) | bis das Team es ändert oder der Bot den Server verlässt | gebaut |
 
 Mit den Sprachräumen hält discord.js zudem für jedes Mitglied, das einen
@@ -47,6 +51,15 @@ Mitglied die Zeit des letzten neuen Raums im Speicher, mit der Discord-ID.
 Ein Timer vergisst den Eintrag nach 30 s (`Raeume`, `bot/src/module/sprachraeume/raeume.ts`),
 siehe [Sprachräume](../benutzung/sprachraeume.md), „Grenzen“. Der Test „die
 Grenze von 30 s vergisst ein Mitglied nach ihrer Zeit“ prüft das.
+
+Für die Abos hält der Bot je Server die Entitlements von Discord höchstens
+10 min im Speicher. Ein Entitlement trägt die Discord-ID der Person, die
+gekauft hat (`user_id`,
+[Entitlement Object](https://docs.discord.com/developers/resources/entitlement#entitlement-object));
+der Bot liest daraus nur SKU, `guild_id`, `deleted` und `ends_at`. Beim
+Binden eines Kaufs liest er die Entitlements der angemeldeten Person
+einmal und speichert nur das eine, das er bindet. Kommt mit
+`managed-commands-backend`, siehe [0020](../entscheidungen/0020-bezahlte-module.md).
 
 Für die Debug-Seite hält der Bot die Discord-IDs des Eigentümers der
 Anwendung oder der Mitglieder ihres Teams mit angenommener Einladung im

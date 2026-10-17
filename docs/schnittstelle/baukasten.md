@@ -129,7 +129,8 @@ type Baustein =
   gibt.
 - `alleNeu`: Nach einem Speichern mit `200` holt die Oberfläche
   `GET …/seiten` neu und baut alle Tabs neu; der Tab dieser Seite bleibt
-  gewählt, ihre `meldung` steht darin unter „Speichern“. Was in anderen Tabs
+  gewählt, ihre `meldung` steht darin unter „Speichern“. Ebenso nach einer
+  `aktion` dieser Seite mit `200`; ihr Satz steht dann unter „Speichern“. Was in anderen Tabs
   ungespeichert war, geht dabei verloren. Fehlt das Feld, gilt `false`.
   Scheitert das Holen, gilt es wie beim Öffnen des Servers, siehe
   [Dashboard](../frontend/dashboard.md), „Zustände“. Heute hat nur das

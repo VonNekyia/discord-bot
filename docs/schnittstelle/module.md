@@ -29,7 +29,7 @@ Fehlerformat und Grenzen gelten wie im Baukasten und in
 | Befehle (`/ping`) | keiner, immer an | nein | an |
 | Begrüssung | `begruessung` | nein | an |
 | Sprachräume | `sprachraeume` | nein | an |
-| Managed Commands | `strafen`, kommt mit seinem Modul | ja | aus |
+| Managed Commands | `strafen`, kommt mit seinem Modul | ja, einmalig | aus |
 | Log | `log`, kommt mit seinem Modul | frei, das Speichern in der Datenbank bezahlt | an |
 
 - Ein Modul steht auf dem Board, wenn es einen Schalter anmeldet, siehe
@@ -45,17 +45,38 @@ Fehlerformat und Grenzen gelten wie im Baukasten und in
 ## Freischaltung
 
 Ein bezahltes Modul kauft man bei Discord; Discord nimmt Zahlung und
-Steuern, der Bot prüft nur Entitlements
-([Monetization](https://docs.discord.com/developers/monetization/overview)).
-Für das Board zählt nur eins: ob das Modul auf dem Server freigeschaltet
-ist, ja oder nein.
+Steuern, der Bot prüft nur Entitlements. Wann ein Modul auf einem Server
+freigeschaltet ist, steht in
+[0020](../entscheidungen/0020-bezahlte-module.md):
 
-- Wie ein Modul freigeschaltet wird, einmalig oder im Abo, wie der Bot
-  das prüft und welcher Server zu einem Kauf gehört, kommt mit dem ersten
-  bezahlten Modul in den Vertrag `vertrag-managed-commands` und in eine
-  eigene Entscheidung. Dort kommen auch Preis und Art auf das Board.
+| Art | wie | Module |
+|---|---|---|
+| Einmalkauf | die Person kauft im Store und bindet den Kauf auf dem Board an diesen Server, mit der Aktion `<modul>Binden` | Managed Commands, 4,99 € |
+| Abo „Log“ | ein Abo des Servers im Store | das Speichern des Logs, 4,99 € im Monat; kommt mit dem Modul Log |
+| Abo „Alles“ | ein Abo des Servers im Store | jedes bezahlte Modul, 19,99 € im Monat, solange es läuft |
+
 - Die IDs der SKUs sind Konfiguration in `.env`, nie im Code. Fehlt die
   eines Moduls, ist es überall aus und gesperrt.
+- Ein gebundener Kauf bleibt, auch wenn der Bot den Server verlässt.
+
+### Kauf binden
+
+`POST /api/server/{id}/seiten/module/<modul>Binden`, ohne Body. Der Bot
+sucht einen Kauf des Moduls, den die angemeldete Person noch nicht
+gebunden hat, bindet ihn an diesen Server und antwortet mit `200` und
+einem `Satz`, etwa „Managed Commands ist freigeschaltet.“. Danach baut die
+Oberfläche die Tabs neu, weil die Seite `alleNeu` hat.
+
+| Status | Code | Wann |
+|---|---|---|
+| `400` | `kein_kauf` | die Person hat keinen Kauf des Moduls, der noch nicht gebunden ist |
+| `400` | `schon_freigeschaltet` | das Modul ist auf dem Server schon freigeschaltet; der Kauf bleibt frei |
+| `503` | `nicht_erreichbar` | Discord liefert die Käufe nicht oder nimmt das Verbrauchen nicht an |
+
+Die Aktion zählt zur Grenze für Bausteine, siehe
+[API des Dashboards](api.md), „Grenzen je Sitzung“. Ein Kauf gilt für
+einen Server und lässt sich nicht verschieben; das sagt die Hilfe der
+Aktion.
 
 ## Bausteine
 
@@ -64,12 +85,13 @@ Für jedes Modul mit Schalter, in der Reihenfolge der Tabs:
 | ID | Art | Was |
 |---|---|---|
 | `hinweis` | `hinweis`, `info` | einmal oben: Ein Modul, das aus ist, tut nichts; seine Einstellungen bleiben |
-| `<modul>` | `schalter` | `titel` ist der Name des Moduls, `hilfe` sagt, was es tut. Bezahlt und nicht freigeschaltet: `gesperrt` mit Code `nicht_freigeschaltet` |
+| `<modul>` | `schalter` | `titel` ist der Name des Moduls, `hilfe` sagt, was es tut; bei einem bezahlten dazu Preis und Art, etwa „4,99 € einmalig für einen Server, oder im Abo „Alles““. Bezahlt und nicht freigeschaltet: `gesperrt` mit Code `nicht_freigeschaltet` |
 | `<modul>Kaufen` | `link` | nur bezahlt und nicht freigeschaltet, direkt unter dem Schalter: in den Store von Discord |
+| `<modul>Binden` | `aktion` | nur für einen Einmalkauf, solange das Modul nicht freigeschaltet ist: „Kauf hier freischalten“, siehe „Kauf binden“ |
 
 Die Seite hat `alleNeu: true`, siehe [Baukasten](baukasten.md), „Typen“:
-Nach dem Speichern holt die Oberfläche alle Seiten neu und baut die Tabs
-neu. Ein Modul, das angeht, zeigt so gleich seine Tabs, eins, das ausgeht,
+Nach dem Speichern und nach einer Aktion holt die Oberfläche alle Seiten
+neu und baut die Tabs neu. Ein Modul, das angeht, zeigt so gleich seine Tabs, eins, das ausgeht,
 verliert sie.
 
 Der Link zeigt auf die SKU im Store,
@@ -155,4 +177,6 @@ Gebaut ist das in `Brett` in `bot/src/brett/brett.ts`:
   [Struktur von Bot und Oberfläche](../entwicklung/struktur.md), „Ein Modul“.
 - Ob ein bezahltes Modul freigeschaltet ist und wohin der Link zeigt, gibt
   `bot/src/index.ts` dem Board mit `freigeschaltet` und `kaufen`. Heute hat
-  kein Modul `bezahlt`; beides kommt mit `managed-commands-backend`.
+  kein Modul `bezahlt`; beides kommt mit `managed-commands-backend`, dazu
+  die Aktion `<modul>Binden` nach
+  [0020](../entscheidungen/0020-bezahlte-module.md).

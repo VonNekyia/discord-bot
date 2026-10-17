@@ -22,6 +22,14 @@ und eine Zeile hier (`AGENTS.md`, Regel 24).
 | `GuildPresences` | nein | privilegiert; nichts braucht den Status |
 | `MessageContent` | nein | privilegiert; Befehle kommen als Interaktion, nicht als Nachricht |
 
+Die Managed Commands brauchen keinen neuen Intent: Befehle, Autocomplete
+und Formulare kommen als Interaktion, Bann, Kick und DM gehen über die
+REST-API, siehe [Managed Commands](../benutzung/managed-commands.md),
+„Rechte und Intent“. Auch `ENTITLEMENT_CREATE`, `ENTITLEMENT_UPDATE` und
+`ENTITLEMENT_DELETE` für die bezahlten Module kommen ohne Intent: Ein
+Ereignis, das die Liste der Intents nicht nennt, „will always be sent to
+your app“, siehe [0020](../entscheidungen/0020-bezahlte-module.md).
+
 Was privilegiert ist und was jeder Intent liefert, steht in der
 [Doku von Discord](https://docs.discord.com/developers/events/gateway#list-of-intents).
 
