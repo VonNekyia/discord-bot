@@ -44,6 +44,15 @@ type Fall = { art: Art; server: Server; wer: Person; rang: Rang; ziel: Ziel; gru
 
 const zeitstempel = (ms: number) => `<t:${Math.ceil(ms / 1000)}:R>`;
 
+// Wie eine DM ausging, und der Satz dazu in der Antwort.
+// Siehe docs/benutzung/managed-commands.md, „Antworten“.
+type DmAusgang = 'angekommen' | 'kein_dm' | 'fehler';
+const dmSatz: Record<DmAusgang, string> = {
+  angekommen: 'Die DM ist angekommen.',
+  kein_dm: 'Die DM kam nicht an; das Mitglied nimmt keine DMs von kitty an.',
+  fehler: 'Die DM kam nicht an.',
+};
+
 // Die Formulare für den eigenen Grund. Ein Formular muss die erste Antwort
 // sein. Siehe docs/benutzung/managed-commands.md, „Grund“.
 export function grundFormular(art: Art, ziel: string): Formular {
@@ -170,7 +179,7 @@ export class Strafbefehle {
       if (fehler) return fehler;
       await this.k.db.query('INSERT INTO strafaktionen (server, moderator, art, zeit) VALUES ($1, $2, $3, $4)', [f.server.id, f.wer.id, art, new Date(jetzt)]);
       const teile = [`${f.ziel.person.name} ist ${wort[art].tat}. Grund: ${f.grund}.`];
-      if (dm !== undefined) teile.push(dm ? 'Die DM ist angekommen.' : 'Die DM kam nicht an; das Mitglied nimmt keine DMs von kitty an.');
+      if (dm !== undefined) teile.push(dmSatz[dm]);
       if (limit !== undefined) teile.push(`${wort[art].viele} in 7 Tagen: ${zahl + 1} von ${limit}.`);
       return teile.join(' ');
     });
@@ -189,15 +198,16 @@ export class Strafbefehle {
     return undefined;
   }
 
-  // Schickt die DM; true, wenn sie ankam. Scheitert sie anders als mit
+  // Schickt die DM und sagt, wie sie ausging. Scheitert sie anders als mit
   // `kein_dm`, eine Zeile ins Log; der Befehl geht trotzdem weiter.
-  private async dm(f: Fall, inhalt: string): Promise<boolean> {
+  private async dm(f: Fall, inhalt: string): Promise<DmAusgang> {
     try {
       await this.k.w.schreibe(f.server, f.ziel.person.id, inhalt);
-      return true;
+      return 'angekommen';
     } catch (fehler) {
-      if (!(fehler instanceof DiscordFehler && fehler.code === 'kein_dm')) console.error(`/${f.art}: DM nicht gesendet: ${text(fehler)}`);
-      return false;
+      if (fehler instanceof DiscordFehler && fehler.code === 'kein_dm') return 'kein_dm';
+      console.error(`/${f.art}: DM nicht gesendet: ${text(fehler)}`);
+      return 'fehler';
     }
   }
 
@@ -230,7 +240,7 @@ export class Strafbefehle {
       new Date(jetzt - s.verwarnungTage * tag),
     ]);
     const n = rows[0]?.zahl ?? 1;
-    return `${f.ziel.person.name} ist verwarnt, zum ${n}. Mal. Grund: ${f.grund}. ${dm ? 'Die DM ist angekommen.' : 'Die DM kam nicht an; das Mitglied nimmt keine DMs von kitty an.'}`;
+    return `${f.ziel.person.name} ist verwarnt, zum ${n}. Mal. Grund: ${f.grund}. ${dmSatz[dm]}`;
   }
 }
 

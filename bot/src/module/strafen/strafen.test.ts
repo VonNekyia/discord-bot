@@ -227,6 +227,14 @@ describe('Managed Commands', { skip: ziel ? false : 'keine Datenbank, DB_HOST fe
     assert.equal(await fall('ban'), 'nutzer-12 ist gebannt. Grund: Spam. Die DM kam nicht an; das Mitglied nimmt keine DMs von kitty an. Bans in 7 Tagen: 1 von 1.');
   });
 
+  test('scheitert die DM anders als mit 50007, etwa mit 500, sagt die Antwort nur, dass sie nicht ankam; eine Zeile ins Log', async (t) => {
+    const log = t.mock.method(console, 'error', () => {});
+    fehler = { dm: new DiscordFehler('anderes', 'Internal Server Error') };
+    assert.equal(await fall('ban'), 'nutzer-12 ist gebannt. Grund: Spam. Die DM kam nicht an. Bans in 7 Tagen: 1 von 1.');
+    assert.equal(await fall('warn'), 'nutzer-12 ist verwarnt, zum 1. Mal. Grund: Spam. Die DM kam nicht an.');
+    assert.deepEqual(log.mock.calls.map((c) => String(c.arguments[0])), ['/ban: DM nicht gesendet: Internal Server Error', '/warn: DM nicht gesendet: Internal Server Error']);
+  });
+
   test('ohne DM beim Bann keine DM; der Grund im Audit-Log höchstens wie gegeben', async () => {
     einstellung = { ...einstellung, dm: false };
     assert.equal(await fall('ban', { grund: 'Werbung' }), 'nutzer-12 ist gebannt. Grund: Werbung. Bans in 7 Tagen: 1 von 1.');

@@ -338,6 +338,7 @@ Millisekunden. Darum:
 | zwei Befehle zugleich kommen nicht am Limit vorbei | dieselbe Datei: ein Bann dauert 50 ms; ohne die Sperre je Mitglied bannen beide. Fällt ohne `nacheinander` |
 | Ziel: man selbst, der Bot, der Eigentümer … | dieselbe Datei: jede Regel aus „Ziel“ mit ihrem Satz; der Eigentümer über jeder Rolle, nicht über dem Bot; Bann ohne Mitglied ohne DM |
 | fehlt dem Bot das Recht oder sagt Discord 50013 … | dieselbe Datei: kein Eintrag; 50007 bei der DM bannt trotzdem |
+| scheitert die DM anders als mit 50007, etwa mit 500 … | dieselbe Datei: Bann und Verwarnung mit „Die DM kam nicht an.“, je eine Logzeile ohne IDs. Fällt, wenn jeder Fehler wie `kein_dm` klingt |
 | Verwarnung: DM mit Server und Grund … | dieselbe Datei: gezählt, gespeichert mit wer und Grund, in der Frist des Servers |
 | freier Text ist ein eigener Grund ohne Formular … | dieselbe Datei: ein Text, der nicht in der Liste steht, kickt ohne Formular mit genau diesem Grund; ` CUSTOM ` öffnet das Formular |
 | „custom“ öffnet das Formular … / ein Befehl schiebt die Antwort auf … | dieselbe Datei: `zeigeFormular` mit `strafe:ban:<id>`; das abgeschickte Formular bannt mit dem eigenen Grund; `warte`, dann `fertig` |
