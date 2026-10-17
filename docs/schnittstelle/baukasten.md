@@ -178,7 +178,7 @@ das, was schon gespeichert nicht geht.
 
 | Art | Regel, in dieser Reihenfolge | Satz |
 |---|---|---|
-| `schalter` | mit `gesperrt`: aus; ist er gespeichert an, setzt die Oberfläche ihn aus, ohne Fehler | – |
+| `schalter` | mit `gesperrt`: aus; ist er gespeichert an, setzt die Oberfläche ihn aus, ohne Fehler. Was der Bot dann mit dem Wert tut, sagt die Seite des Moduls, etwa [Board der Module](module.md), „Schalter ohne Freischaltung“ | – |
 | `auswahl` | der Wert steht unter den Optionen, bis man wählt | `unbekannt` |
 | `auswahl` | mit `pflicht`: etwas gewählt, nur beim Speichern | `pflicht` |
 | `auswahl` | die Option ist nicht gesperrt | ihr `code` |

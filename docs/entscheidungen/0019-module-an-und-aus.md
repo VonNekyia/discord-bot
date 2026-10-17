@@ -87,7 +87,9 @@ Ein Board je Server hält, welches Modul an ist, wie in
 - Das Board ist ein Tab; mit Begrüssung, Sprachräumen und Managed
   Commands sind es 5 von 6; das Log braucht den sechsten.
 - Wer das Board speichert, verliert, was in anderen Tabs ungespeichert war.
-- Ein gesperrter Schalter geht beim Speichern mit `false`; nach einer
-  neuen Freischaltung schaltet das Team das Modul selbst wieder an.
+- Für ein bezahltes Modul, das nicht freigeschaltet ist, behält der Bot
+  beim Speichern den gespeicherten Schalter. Kommt die Freischaltung
+  wieder, ist das Modul ohne Zutun so wie vorher; dafür hält der Bot je
+  Server einen Schalter, den die Oberfläche gerade nicht zeigt.
 - Wie der Bot eine Freischaltung prüft, kommt mit dem ersten bezahlten
   Modul in eine eigene Entscheidung.

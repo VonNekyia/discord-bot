@@ -37,8 +37,8 @@ Fehlerformat und Grenzen gelten wie im Baukasten und in
 - Ein bezahltes Modul ist an, wenn sein Schalter gespeichert an ist und
   es auf dem Server freigeschaltet ist. Endet die Freischaltung, etwa mit
   einem Abo, ist es aus; der gespeicherte Schalter bleibt. Kommt sie
-  wieder, ist es ohne neues Speichern wieder an, es sei denn, jemand hat
-  das Board inzwischen gespeichert, siehe „Schalter ohne Freischaltung“.
+  wieder, ist es ohne neues Speichern wieder an, auch wenn jemand das
+  Board inzwischen gespeichert hat, siehe „Schalter ohne Freischaltung“.
 
 ## Freischaltung
 
@@ -97,8 +97,7 @@ Feld:
 
 | Feld | Regel | Code |
 |---|---|---|
-| alle | ein Objekt, je Modul mit Schalter ein `boolean`; andere Felder zählen nicht | `ungueltig` |
-| `<modul>` | `true` bei einem bezahlten Modul nur, wenn es freigeschaltet ist | `nicht_freigeschaltet` |
+| alle | ein Objekt, je Modul mit Schalter ein `boolean`; ausgenommen ein bezahltes Modul, das nicht freigeschaltet ist, siehe unten; andere Felder zählen nicht | `ungueltig` |
 
 - Die Antwort ist `{ wert, meldung }`; `meldung` sagt, wie viele Module an
   sind.
@@ -106,10 +105,12 @@ Feld:
 
 ### Schalter ohne Freischaltung
 
-Ein gesperrter Schalter ist in der Oberfläche aus und geht mit `false` in
-den Body. Wer das Board speichert, solange ein bezahltes Modul nicht
-freigeschaltet ist, speichert es also aus. Kommt die Freischaltung danach,
-schaltet das Team es auf dem Board wieder an.
+Für ein bezahltes Modul, das nicht freigeschaltet ist, behält der Bot den
+gespeicherten Schalter, egal was im Body steht. Die Oberfläche darf das
+Feld weglassen; das ist kein Fehler, wie beim Wert eines `bild`. Wer das
+Board in der Lücke speichert, etwa nachdem ein Abo endete und bevor ein
+neues läuft, ändert am bezahlten Modul also nichts. Kommt die
+Freischaltung wieder, ist es so an oder aus wie vorher.
 
 ## Ein Modul ist aus
 
