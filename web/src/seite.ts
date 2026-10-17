@@ -73,8 +73,15 @@ export interface Rahmen {
   alleNeu(seite: string, nachricht: { art: 'ok' | 'error'; satz: Satz }): void;
 }
 
-// `start` ist die Meldung unter „Speichern“ nach dem Neubau, etwa „Gespeichert.“.
-export function baueSeite(seite: Seite, server: string, rahmen: Rahmen, start?: Satz): HTMLElement {
+// Eine gebaute Seite. `nachDemNeubau` setzt, wenn das Panel im DOM hängt,
+// die Meldung unter „Speichern“ und den Fokus auf den Knopf; vorher meldete
+// die Live-Region nichts. Siehe docs/frontend/dashboard.md, „Tabs“.
+export interface GebauteSeite {
+  element: HTMLElement;
+  nachDemNeubau(gespeichert: Satz): void;
+}
+
+export function baueSeite(seite: Seite, server: string, rahmen: Rahmen): GebauteSeite {
   const teile = new Map<string, Teil>();
   const form = document.createElement('form');
   form.className = 'form';
@@ -174,7 +181,10 @@ export function baueSeite(seite: Seite, server: string, rahmen: Rahmen, start?: 
   if (fund && !(fund.feld !== undefined && amFeld(fund.code, fund.feld))) meldung(meldungen, 'warn', satz(fund.code, seite.saetze));
   geaendert(true);
   basis = werte();
-  if (start) meldung(meldungen, 'ok', start);
+  const nachDemNeubau = (gespeichert: Satz) => {
+    meldung(meldungen, 'ok', gespeichert);
+    knopf.focus();
+  };
 
   form.addEventListener('submit', (ereignis) => {
     ereignis.preventDefault();
@@ -201,11 +211,11 @@ export function baueSeite(seite: Seite, server: string, rahmen: Rahmen, start?: 
     })();
   });
 
-  if (seite.daneben.length === 0) return form;
+  if (seite.daneben.length === 0) return { element: form, nachDemNeubau };
   const raster = document.createElement('div');
   raster.className = 'grid grid-2';
   const daneben = document.createElement('div');
   daneben.append(...elemente(seite.daneben));
   raster.append(form, daneben);
-  return raster;
+  return { element: raster, nachDemNeubau };
 }

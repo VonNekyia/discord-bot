@@ -4,7 +4,7 @@
 import { api, ApiFehler, type Ich, type Satz, type Seite, type Server } from './api/klient.js';
 import { debugAnsicht } from './debug.js';
 import { meldung, satz } from './kern/texte.js';
-import { baueSeite, type Rahmen } from './seite.js';
+import { baueSeite, type GebauteSeite, type Rahmen } from './seite.js';
 
 // Ein Element aus dashboard/index.html, geprüft mit instanceof; fehlt es
 // oder hat es die falsche Art, ist die Seite kaputt, und das sagt die Meldung.
@@ -127,7 +127,9 @@ type Nachricht = Parameters<Rahmen['alleNeu']>[1];
 // Die Tabs aus dem Guide, je Seite einer, in der Reihenfolge des Bots; das
 // Dashboard hat Regeln für höchstens 6. Gewählt ist `gewaehlt`, sonst der
 // erste; die Nachricht steht in dieser Seite, gibt es sie nicht, über den
-// Tabs. Siehe docs/frontend/dashboard.md, „Tabs“.
+// Tabs. Mit Nachricht, also nach einem Neubau, bekommt „Speichern“ der
+// gewählten Seite den Fokus, sonst das Radio des ersten Tabs.
+// Siehe docs/frontend/dashboard.md, „Tabs“.
 function tabs(seiten: Seite[], server: string, gewaehlt?: string, nachricht?: Nachricht): void {
   const gezeigte = seiten.slice(0, 6);
   const wahl = Math.max(0, gezeigte.findIndex((s) => s.id === gewaehlt));
@@ -146,6 +148,7 @@ function tabs(seiten: Seite[], server: string, gewaehlt?: string, nachricht?: Na
   });
   const liste = document.createElement('div');
   liste.className = 'tab-list';
+  let gewaehlteSeite: GebauteSeite | undefined;
   const panels = gezeigte.map((seite, i) => {
     const label = document.createElement('label');
     label.htmlFor = `tab-${i + 1}`;
@@ -153,12 +156,17 @@ function tabs(seiten: Seite[], server: string, gewaehlt?: string, nachricht?: Na
     liste.append(label);
     const panel = document.createElement('div');
     panel.className = `tab-panel tab-p${i + 1}`;
-    panel.append(baueSeite(seite, server, rahmen, inSeite && seite.id === gewaehlt ? nachricht?.satz : undefined));
+    const gebaut = baueSeite(seite, server, rahmen);
+    if (seite.id === gewaehlt) gewaehlteSeite = gebaut;
+    panel.append(gebaut.element);
     return panel;
   });
   element('tabs').replaceChildren(...radios, liste, ...panels);
   element('tabs').hidden = gezeigte.length === 0;
   element('keine-seite').hidden = gezeigte.length > 0;
+  // Erst jetzt, im DOM und sichtbar: Ansage und Fokus.
+  if (nachricht && inSeite && gewaehlteSeite) gewaehlteSeite.nachDemNeubau(nachricht.satz);
+  else if (nachricht) radios[0]?.focus();
 }
 
 // Ein Fehler beim Holen der Seiten betrifft nur diesen Server: zurück zur

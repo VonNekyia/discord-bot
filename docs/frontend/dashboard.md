@@ -96,6 +96,13 @@ nach dem Speichern einer Seite mit `alleNeu` und auf jede Antwort `409`
 nicht mehr, der erste Tab. `meldung` des Speicherns steht danach in dieser
 Seite unter „Speichern“. Der Satz zu `modul_aus` steht über den Tabs, denn
 die Seite ist weg. Was in anderen Tabs ungespeichert war, geht verloren.
+
+Nach dem Neubau bekommt der Knopf „Speichern“ der gewählten Seite den
+Fokus; gibt es sie nicht mehr, das Radio des ersten Tabs. So verliert die
+Tastatur nicht ihren Platz, wenn der alte Knopf ersetzt ist. Die Meldung
+in der Seite setzt `nachDemNeubau` aus `web/src/seite.ts` erst, wenn das
+Panel im DOM hängt: Eine Live-Region (`role="status"`) sagt nur an, was
+sich ändert, während sie im DOM ist.
 Scheitert das Holen, gilt es wie beim Öffnen des Servers, siehe „Zustände“. `web/site.css` hat Regeln für
 die Tabs 1 bis 6, siehe [Design der Oberfläche](design.md), „Vom
 Orchestrator festgelegt“. Mehr Seiten zeigt das Dashboard nicht; der Bot
