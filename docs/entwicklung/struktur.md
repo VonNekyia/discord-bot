@@ -54,7 +54,7 @@ allen. `dist/` spiegelt `src/`; `npm test` findet die Tests mit
 | `web/src/dashboard.ts` | Rahmen: Anmeldung, Serverliste, je Seite ein Tab |
 | `web/src/seite.ts` | baut eine Seite aus ihren Bausteinen: Formular, Speichern, Fehler am Feld |
 | `web/src/debug.ts` | die Debug-Ansicht: keine Seite des Baukastens, eine feste Ansicht im Rahmen |
-| `web/src/bausteine/` | je Art von Baustein eine Datei: `schalter.ts`, `auswahl.ts`, `text.ts`, `zahl.ts`, `bild.ts`, `vorschau.ts`, `aktion.ts`, `liste.ts`, `hinweis.ts` |
+| `web/src/bausteine/` | je Art von Baustein eine Datei: `schalter.ts`, `auswahl.ts`, `text.ts`, `zahl.ts`, `bild.ts`, `vorschau.ts`, `aktion.ts`, `liste.ts`, `hinweis.ts`, `link.ts` |
 | `web/src/api/` | die einzige Stelle mit `fetch`: Aufrufe und Typen der [API des Dashboards](../schnittstelle/api.md) und des [Baukastens](../schnittstelle/baukasten.md) |
 | `web/src/kern/` | was alle Bausteine nutzen: Teil und Umgebung, Feld, Länge eines Texts, allgemeine Sätze und Meldungen |
 

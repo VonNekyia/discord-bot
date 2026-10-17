@@ -863,7 +863,7 @@ i.card-icon {
   justify-self: start;
 }
 
-.section-heading + .tabs {
+.section-heading ~ .tabs {
   margin-top: 32px;
 }
 

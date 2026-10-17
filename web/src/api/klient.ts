@@ -19,7 +19,14 @@ export type Option = {
 };
 export type Bedingung = { feld: string; merkmal?: string; sonst: string };
 
-export type Schalter = { art: 'schalter'; id: string; titel: string; hilfe?: string; braucht?: Bedingung[] };
+export type Schalter = {
+  art: 'schalter';
+  id: string;
+  titel: string;
+  hilfe?: string;
+  braucht?: Bedingung[];
+  gesperrt?: { grund: string; code: string };
+};
 export type Auswahl = {
   art: 'auswahl';
   id: string;
@@ -80,10 +87,11 @@ export type Liste = {
   bausteine: (Schalter | Auswahl | Text | Zahl)[];
 };
 export type Hinweis = { art: 'hinweis'; id: string; ton: 'info' | 'warn'; satz: Satz };
+export type Link = { art: 'link'; id: string; titel: string; url: string; hilfe?: string };
 // Eine Art, die die Oberfläche nicht kennt, oder ein Baustein, der nicht zu
 // seiner Beschreibung passt; die Seite zeigt ihn als Warnung an seiner Stelle.
 export type Unbekannt = { art: 'unbekannt'; id: string };
-export type Baustein = Schalter | Auswahl | Text | Zahl | Bild | Vorschau | Aktion | Liste | Hinweis | Unbekannt;
+export type Baustein = Schalter | Auswahl | Text | Zahl | Bild | Vorschau | Aktion | Liste | Hinweis | Link | Unbekannt;
 
 export type Seite = {
   id: string;
@@ -93,6 +101,8 @@ export type Seite = {
   wert: Eintrag;
   saetze: Record<string, Satz>;
   fund: Fund | null;
+  // Nach dem Speichern alle Seiten neu holen; fehlt es im Vertrag, false.
+  alleNeu: boolean;
 };
 
 // Die Debug-Seite, siehe docs/schnittstelle/debug.md, „Typen“.
@@ -174,7 +184,14 @@ const istOption = form<Option>({
 const istBedingung = form<Bedingung>({ feld: istText, merkmal: vielleicht(istText), sonst: istText });
 
 // Je Art ihre Felder aus dem Vertrag. Siehe docs/schnittstelle/baukasten.md, „Typen“.
-const istSchalter = form<Schalter>({ art: genau('schalter'), id: istText, titel: istText, hilfe: vielleicht(istText), braucht: vielleicht(listeVon(istBedingung)) });
+const istSchalter = form<Schalter>({
+  art: genau('schalter'),
+  id: istText,
+  titel: istText,
+  hilfe: vielleicht(istText),
+  braucht: vielleicht(listeVon(istBedingung)),
+  gesperrt: vielleicht(form<{ grund: string; code: string }>({ grund: istText, code: istText })),
+});
 const istAuswahl = form<Auswahl>({
   art: genau('auswahl'),
   id: istText,
@@ -237,12 +254,15 @@ const istListe = form<Liste>({
   bausteine: listeVon(istInListe),
 });
 const istHinweis = form<Hinweis>({ art: genau('hinweis'), id: istText, ton: genau('info', 'warn'), satz: istSatz });
+// Nur Links zu Discord; jeder andere passt nicht. Siehe docs/schnittstelle/baukasten.md, „Bausteine“.
+const istDiscordUrl = (x: unknown): x is string => istText(x) && x.startsWith('https://discord.com/') && URL.canParse(x);
+const istLink = form<Link>({ art: genau('link'), id: istText, titel: istText, url: istDiscordUrl, hilfe: vielleicht(istText) });
 
 // Ein Baustein, wie er passt, sonst `unbekannt` mit seiner ID; ohne ID mit `ersatz`,
 // damit zwei solche sich auf der Seite nicht überschreiben.
 function alsBaustein(x: unknown, ersatz: string): Baustein {
   if (istSchalter(x) || istAuswahl(x) || istTextBaustein(x) || istZahlBaustein(x) || istBild(x)) return x;
-  if (istVorschau(x) || istAktion(x) || istListe(x) || istHinweis(x)) return x;
+  if (istVorschau(x) || istAktion(x) || istListe(x) || istHinweis(x) || istLink(x)) return x;
   return { art: 'unbekannt', id: istObjekt(x) && istText(x.id) ? x.id : ersatz };
 }
 
@@ -250,8 +270,17 @@ function alsBaustein(x: unknown, ersatz: string): Baustein {
 // als nicht erreichbar. Siehe docs/schnittstelle/baukasten.md, „Bausteine“.
 function alsSeite(x: unknown): Seite | undefined {
   if (!istObjekt(x) || !istText(x.id) || !istText(x.titel) || !Array.isArray(x.bausteine) || !Array.isArray(x.daneben)) return undefined;
-  if (!istEintrag(x.wert) || !tabelleVon(istSatz)(x.saetze) || !oderNull(istFund)(x.fund)) return undefined;
-  return { id: x.id, titel: x.titel, bausteine: x.bausteine.map((b, i) => alsBaustein(b, `unbekannt-${i}`)), daneben: x.daneben.map((b, i) => alsBaustein(b, `unbekannt-daneben-${i}`)), wert: x.wert, saetze: x.saetze, fund: x.fund };
+  if (!istEintrag(x.wert) || !tabelleVon(istSatz)(x.saetze) || !oderNull(istFund)(x.fund) || !vielleicht(istWahr)(x.alleNeu)) return undefined;
+  return {
+    id: x.id,
+    titel: x.titel,
+    bausteine: x.bausteine.map((b, i) => alsBaustein(b, `unbekannt-${i}`)),
+    daneben: x.daneben.map((b, i) => alsBaustein(b, `unbekannt-daneben-${i}`)),
+    wert: x.wert,
+    saetze: x.saetze,
+    fund: x.fund,
+    alleNeu: x.alleNeu === true,
+  };
 }
 function alsSeiten(x: unknown): Seite[] | undefined {
   if (!Array.isArray(x)) return undefined;

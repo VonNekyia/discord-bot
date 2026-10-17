@@ -1,6 +1,6 @@
 // Ein Schalter: Checkbox aus dem Guide („Checkbox, radio and switch“). Mit
-// `braucht` gesperrt und aus, solange eine Bedingung fehlt; dann sagt die
-// Hilfe, warum. Siehe docs/schnittstelle/baukasten.md, „Bausteine“.
+// `gesperrt` immer gesperrt und aus, mit `braucht`, solange eine Bedingung
+// fehlt; dann sagt die Hilfe, warum. Siehe docs/schnittstelle/baukasten.md, „Bausteine“.
 import type { Schalter } from '../api/klient.js';
 import { schreibe } from '../kern/feld.js';
 import { erfuellt, type Bauer } from '../kern/teil.js';
@@ -20,11 +20,11 @@ export const schalter: Bauer<Schalter> = (b, u, start) => {
   box.addEventListener('change', () => u.geaendert());
 
   const aktualisiere = (): boolean => {
-    const fehlt = b.braucht?.find((bedingung) => !erfuellt(bedingung, u));
-    schreibe(hilfe, fehlt?.sonst ?? b.hilfe ?? '');
+    const fehlt = b.gesperrt?.grund ?? b.braucht?.find((bedingung) => !erfuellt(bedingung, u))?.sonst;
+    schreibe(hilfe, fehlt ?? b.hilfe ?? '');
     hilfe.hidden = hilfe.textContent === '';
     box.disabled = fehlt !== undefined;
-    if (!fehlt || !box.checked) return false;
+    if (fehlt === undefined || !box.checked) return false;
     box.checked = false;
     return true;
   };

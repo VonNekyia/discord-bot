@@ -4,7 +4,7 @@
 import { api, ApiFehler, type Ich, type Satz, type Seite, type Server } from './api/klient.js';
 import { debugAnsicht } from './debug.js';
 import { meldung, satz } from './kern/texte.js';
-import { baueSeite } from './seite.js';
+import { baueSeite, type GebauteSeite, type Rahmen } from './seite.js';
 
 // Ein Element aus dashboard/index.html, geprüft mit instanceof; fehlt es
 // oder hat es die falsche Art, ist die Seite kaputt, und das sagt die Meldung.
@@ -21,6 +21,7 @@ const abschnitte = { laden: element('laden'), server: element('server'), einstel
 const kopfMeldung = element('kopf-meldung');
 const anmelden = element('anmelden');
 const serverMeldung = element('server-meldung');
+const einstellungenMeldung = element('einstellungen-meldung');
 
 let serverListe: Server[] = [];
 let gezeigt: string | null = null;
@@ -121,20 +122,33 @@ function karte(server: Server): HTMLAnchorElement {
   return link;
 }
 
+type Nachricht = Parameters<Rahmen['alleNeu']>[1];
+
 // Die Tabs aus dem Guide, je Seite einer, in der Reihenfolge des Bots; das
-// Dashboard hat Regeln für höchstens 6. Siehe docs/frontend/dashboard.md, „Tabs“.
-function tabs(seiten: Seite[], server: string): void {
+// Dashboard hat Regeln für höchstens 6. Gewählt ist `gewaehlt`, sonst der
+// erste; die Nachricht steht in dieser Seite, gibt es sie nicht, über den
+// Tabs. Mit Nachricht, also nach einem Neubau, bekommt „Speichern“ der
+// gewählten Seite den Fokus, sonst das Radio des ersten Tabs.
+// Siehe docs/frontend/dashboard.md, „Tabs“.
+function tabs(seiten: Seite[], server: string, gewaehlt?: string, nachricht?: Nachricht): void {
   const gezeigte = seiten.slice(0, 6);
+  const wahl = Math.max(0, gezeigte.findIndex((s) => s.id === gewaehlt));
+  const inSeite = gezeigte.some((s) => s.id === gewaehlt) && nachricht?.art === 'ok';
+  einstellungenMeldung.hidden = !nachricht || inSeite;
+  if (nachricht && !inSeite) meldung(einstellungenMeldung, nachricht.art, nachricht.satz);
+  else einstellungenMeldung.replaceChildren();
+  const rahmen: Rahmen = { abgemeldet: abgelaufen, alleNeu: (seite, n) => void alleNeu(server, seite, n) };
   const radios = gezeigte.map((_, i) => {
     const radio = document.createElement('input');
     radio.type = 'radio';
     radio.name = 'tabs';
     radio.id = `tab-${i + 1}`;
-    radio.checked = i === 0;
+    radio.checked = i === wahl;
     return radio;
   });
   const liste = document.createElement('div');
   liste.className = 'tab-list';
+  let gewaehlteSeite: GebauteSeite | undefined;
   const panels = gezeigte.map((seite, i) => {
     const label = document.createElement('label');
     label.htmlFor = `tab-${i + 1}`;
@@ -142,12 +156,40 @@ function tabs(seiten: Seite[], server: string): void {
     liste.append(label);
     const panel = document.createElement('div');
     panel.className = `tab-panel tab-p${i + 1}`;
-    panel.append(baueSeite(seite, server, abgelaufen));
+    const gebaut = baueSeite(seite, server, rahmen);
+    if (seite.id === gewaehlt) gewaehlteSeite = gebaut;
+    panel.append(gebaut.element);
     return panel;
   });
   element('tabs').replaceChildren(...radios, liste, ...panels);
   element('tabs').hidden = gezeigte.length === 0;
   element('keine-seite').hidden = gezeigte.length > 0;
+  // Erst jetzt, im DOM und sichtbar: Ansage und Fokus.
+  if (nachricht && inSeite && gewaehlteSeite) gewaehlteSeite.nachDemNeubau(nachricht.satz);
+  else if (nachricht) radios[0]?.focus();
+}
+
+// Ein Fehler beim Holen der Seiten betrifft nur diesen Server: zurück zur
+// Liste, die Meldung steht über ihr; bei 401 die Anmeldung.
+// Siehe docs/frontend/dashboard.md, „Zustände“.
+function serverFehler(fehler: unknown): void {
+  if (fehler instanceof ApiFehler && fehler.status === 401) return abgemeldet(satz('abgelaufen'), 'warn');
+  meldung(serverMeldung, 'error', satz(fehler));
+  serverMeldung.hidden = false;
+  history.replaceState(null, '', location.pathname);
+  gezeigt = null;
+  zeigen('server');
+}
+
+// Holt die Seiten neu und baut die Tabs neu. Siehe docs/schnittstelle/baukasten.md, „Typen“.
+async function alleNeu(server: string, seite: string, nachricht: Nachricht): Promise<void> {
+  try {
+    const seiten = await api.seiten(server);
+    if (gezeigt !== server) return;
+    tabs(seiten, server, seite, nachricht);
+  } catch (fehler) {
+    if (gezeigt === server) serverFehler(fehler);
+  }
 }
 
 // Zeigt die Liste, den Server aus dem Hash (#server-<id>) oder, mit
@@ -179,15 +221,7 @@ async function route(): Promise<void> {
     tabs(seiten, server.id);
     zeigen('einstellungen');
   } catch (fehler) {
-    if (gezeigt !== server.id) return;
-    if (fehler instanceof ApiFehler && fehler.status === 401) return abgemeldet(satz('abgelaufen'), 'warn');
-    // Jeder andere Fehler betrifft nur diesen Server: zurück zur Liste, die
-    // Meldung steht über ihr. Siehe docs/frontend/dashboard.md, „Zustände“.
-    meldung(serverMeldung, 'error', satz(fehler));
-    serverMeldung.hidden = false;
-    history.replaceState(null, '', location.pathname);
-    gezeigt = null;
-    zeigen('server');
+    if (gezeigt === server.id) serverFehler(fehler);
   }
 }
 

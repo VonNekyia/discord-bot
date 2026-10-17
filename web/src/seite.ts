@@ -2,11 +2,12 @@
 // Knopf „Speichern“, Meldungen und was daneben steht. Jede Art von Baustein
 // liegt in src/bausteine/; diese Datei verbindet sie.
 // Siehe docs/frontend/dashboard.md, „Eine Seite“.
-import { api, ApiFehler, type Baustein, type Eintrag, type Seite, type Wert } from './api/klient.js';
+import { api, ApiFehler, type Baustein, type Eintrag, type Satz, type Seite, type Wert } from './api/klient.js';
 import { aktion } from './bausteine/aktion.js';
 import { auswahl } from './bausteine/auswahl.js';
 import { bild } from './bausteine/bild.js';
 import { hinweis } from './bausteine/hinweis.js';
+import { link } from './bausteine/link.js';
 import { liste } from './bausteine/liste.js';
 import { schalter } from './bausteine/schalter.js';
 import { text } from './bausteine/text.js';
@@ -44,6 +45,8 @@ function baue(b: Baustein, u: Umgebung, start: Wert | undefined): Teil {
       return liste(b, u, start);
     case 'hinweis':
       return hinweis(b, u, start);
+    case 'link':
+      return link(b, u, start);
     case 'unbekannt':
       break;
   }
@@ -59,8 +62,26 @@ const kanonisch = (wert: Eintrag): string =>
     w !== null && typeof w === 'object' && !Array.isArray(w) ? Object.fromEntries(Object.entries(w).toSorted(([a], [b]) => (a < b ? -1 : 1))) : w,
   );
 
-// `abgemeldet` zeigt die Anmeldung, wenn eine Anfrage 401 gibt.
-export function baueSeite(seite: Seite, server: string, abgemeldet: () => void): HTMLElement {
+// Was eine Seite vom Dashboard braucht.
+export interface Rahmen {
+  // Eine Anfrage gibt 401: die Anmeldung zeigen.
+  abgemeldet(): void;
+  // Alle Seiten neu holen und die Tabs neu bauen, mit dieser Seite gewählt
+  // und der Meldung darin; gibt es sie nicht mehr, steht die Meldung über
+  // den Tabs. Nach dem Speichern mit `alleNeu` und bei 409 `modul_aus`.
+  // Siehe docs/schnittstelle/baukasten.md, „Typen“.
+  alleNeu(seite: string, nachricht: { art: 'ok' | 'error'; satz: Satz }): void;
+}
+
+// Eine gebaute Seite. `nachDemNeubau` setzt, wenn das Panel im DOM hängt,
+// die Meldung unter „Speichern“ und den Fokus auf den Knopf; vorher meldete
+// die Live-Region nichts. Siehe docs/frontend/dashboard.md, „Tabs“.
+export interface GebauteSeite {
+  element: HTMLElement;
+  nachDemNeubau(gespeichert: Satz): void;
+}
+
+export function baueSeite(seite: Seite, server: string, rahmen: Rahmen): GebauteSeite {
   const teile = new Map<string, Teil>();
   const form = document.createElement('form');
   form.className = 'form';
@@ -113,7 +134,9 @@ export function baueSeite(seite: Seite, server: string, abgemeldet: () => void):
 
   // Siehe docs/schnittstelle/baukasten.md, „Fehler am Feld“.
   const zeige = (fehler: unknown, ort: HTMLElement) => {
-    if (fehler instanceof ApiFehler && fehler.status === 401) return abgemeldet();
+    if (fehler instanceof ApiFehler && fehler.status === 401) return rahmen.abgemeldet();
+    // Das Modul ist inzwischen aus. Siehe docs/schnittstelle/api.md, „Fehler“.
+    if (fehler instanceof ApiFehler && fehler.code === 'modul_aus') return rahmen.alleNeu(seite.id, { art: 'error', satz: satz(fehler) });
     if (fehler instanceof ApiFehler && fehler.feld && amFeld(fehler.code, fehler.feld)) return;
     meldung(ort, 'error', satz(fehler, seite.saetze));
   };
@@ -158,6 +181,10 @@ export function baueSeite(seite: Seite, server: string, abgemeldet: () => void):
   if (fund && !(fund.feld !== undefined && amFeld(fund.code, fund.feld))) meldung(meldungen, 'warn', satz(fund.code, seite.saetze));
   geaendert(true);
   basis = werte();
+  const nachDemNeubau = (gespeichert: Satz) => {
+    meldung(meldungen, 'ok', gespeichert);
+    knopf.focus();
+  };
 
   form.addEventListener('submit', (ereignis) => {
     ereignis.preventDefault();
@@ -169,6 +196,8 @@ export function baueSeite(seite: Seite, server: string, abgemeldet: () => void):
     void (async () => {
       try {
         const antwort = await api.speichern(server, seite.id, gesendet);
+        // Etwa das Board: Danach stimmen die Tabs nicht mehr.
+        if (seite.alleNeu) return rahmen.alleNeu(seite.id, { art: 'ok', satz: antwort.meldung });
         // Gespeichert ist, was der Bot zurückgibt, nicht das Gesendete.
         // Siehe docs/schnittstelle/baukasten.md, „Routen“.
         basis = ausAntwort(antwort.wert);
@@ -182,11 +211,11 @@ export function baueSeite(seite: Seite, server: string, abgemeldet: () => void):
     })();
   });
 
-  if (seite.daneben.length === 0) return form;
+  if (seite.daneben.length === 0) return { element: form, nachDemNeubau };
   const raster = document.createElement('div');
   raster.className = 'grid grid-2';
   const daneben = document.createElement('div');
   daneben.append(...elemente(seite.daneben));
   raster.append(form, daneben);
-  return raster;
+  return { element: raster, nachDemNeubau };
 }
