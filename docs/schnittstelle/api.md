@@ -95,6 +95,7 @@ selbst.
 | `403` | `kein_recht` | kein „Server verwalten“ auf diesem Server; bei `GET /api/debug` nicht Eigentümer der Anwendung und nicht in ihrem Team |
 | `403` | `origin_falsch` | `Origin` fehlt oder passt nicht |
 | `404` | `nicht_gefunden` | Route, Server, Seite oder Baustein unbekannt, oder der Bot ist nicht auf dem Server |
+| `409` | `modul_aus` | das Modul der Seite ist auf dem Server aus, siehe [Board der Module](module.md), „Ein Modul ist aus“; die Oberfläche zeigt den Satz und holt die Seiten neu wie nach `alleNeu`, siehe [Baukasten](baukasten.md), „Typen“ |
 | `413` | `zu_gross` | JSON-Body zu gross |
 | `415` | `kein_json` | JSON ohne `Content-Type: application/json` |
 | `429` | `zu_viele` | siehe „Grenzen je Sitzung“, mit `Retry-After` |

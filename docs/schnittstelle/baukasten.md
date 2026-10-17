@@ -32,7 +32,7 @@ Anmeldung, Grenzen und das Format der Fehler gelten wie in
 
 - `{seite}` und `{baustein}` sind IDs, die ein Modul anmeldet. Welche es
   gibt, steht auf der Seite des Moduls: [API der Begrüssung](begruessung.md),
-  [API der Sprachräume](sprachraeume.md).
+  [API der Sprachräume](sprachraeume.md), [Board der Module](module.md).
 - Eine ID beginnt mit einem Kleinbuchstaben und hat nur Buchstaben und
   Ziffern, höchstens 32 Zeichen.
 - Eine Route unter `…/{baustein}` hat nur ein Baustein der Art `bild`,
@@ -40,6 +40,9 @@ Anmeldung, Grenzen und das Format der Fehler gelten wie in
 - Eine unbekannte Seite, ein unbekannter Baustein oder eine Methode, die
   seine Art nicht hat, gibt `404` `nicht_gefunden`, noch vor Sitzung und
   Rechten.
+- Ist das Modul einer Seite auf dem Server aus, gibt jede Route unter
+  `…/{seite}` `409` `modul_aus`, nach Sitzung, Grenzen und Rechten, siehe
+  [Board der Module](module.md), „Ein Modul ist aus“.
 - `PUT …/{seite}` nimmt die Werte der Seite als JSON, so wie in `wert`.
   Den Wert eines `bild` ändert nur seine eigene Route; fehlt er im Body,
   zählt das nicht als Fehler. Was nicht passt, gibt `400` mit Code und
@@ -49,10 +52,12 @@ Anmeldung, Grenzen und das Format der Fehler gelten wie in
 - `GET …/{baustein}`: Eine Query wird ignoriert. Die Oberfläche hängt eine
   neue an, damit der Browser das Bild neu lädt.
 - `POST …/{baustein}` liest keinen Body und prüft keinen `Content-Type`.
-- `GET …/seiten` holt die Seiten aller Module in einer Anfrage. Scheitert
+- `GET …/seiten` holt die Seiten aller Module in einer Anfrage, ohne die
+  Seiten der Module, die auf dem Server aus sind. Scheitert
   ein Modul dabei, antwortet die Route `503` `nicht_erreichbar`, auch für
   die Seiten der anderen. Die Oberfläche zeigt so keinen halben Stand.
-- Höchstens 6 Seiten, eine je Tab. Meldet ein Modul mehr, eine ID doppelt
+- Höchstens 6 Seiten, eine je Tab, das [Board der Module](module.md)
+  mitgezählt. Meldet ein Modul mehr, eine ID doppelt
   oder einen Baustein mit Route ohne die Funktion dazu, endet der Bot beim
   Start mit Exit 1.
 
@@ -72,6 +77,7 @@ type Seite = {
   wert: Eintrag; // der gespeicherte Stand, ein Feld je Baustein mit Wert
   saetze: Record<string, Satz>; // der Satz zu jedem Code dieser Seite
   fund: Fund | null; // was der gespeicherte Stand heute nicht mehr besteht
+  alleNeu?: boolean; // true: nach dem Speichern alle Seiten neu holen
 };
 
 type Option = {
@@ -88,7 +94,8 @@ type Option = {
 type Bedingung = { feld: string; merkmal?: string; sonst: string };
 
 type Baustein =
-  | { art: 'schalter'; id: string; titel: string; hilfe?: string; braucht?: Bedingung[] }
+  | { art: 'schalter'; id: string; titel: string; hilfe?: string; braucht?: Bedingung[];
+      gesperrt?: { grund: string; code: string } }
   | { art: 'auswahl'; id: string; titel: string; hilfe?: string; leer: string; optionen: Option[];
       unbekannt: string; pflicht?: string; einmalig?: string; vergeben?: string }
   | { art: 'text'; id: string; titel: string; hilfe?: string; mehrzeilig: boolean; grenze: number;
@@ -102,7 +109,8 @@ type Baustein =
   | { art: 'liste'; id: string; eintrag: string; kopf?: string; hoechstens: number;
       hinzufuegen: string; entfernen: string; voll: string; leer: Satz; neu: Eintrag;
       bausteine: Baustein[] } // nur schalter, auswahl, text und zahl
-  | { art: 'hinweis'; id: string; ton: 'info' | 'warn'; satz: Satz };
+  | { art: 'hinweis'; id: string; ton: 'info' | 'warn'; satz: Satz }
+  | { art: 'link'; id: string; titel: string; url: string; hilfe?: string };
 ```
 
 - Jeder Text ist reiner Text, kein HTML. In `hilfe` zeigt die Oberfläche
@@ -119,12 +127,19 @@ type Baustein =
   senden ist.
 - `wert` kommt so, wie er gespeichert ist, auch mit IDs, die es nicht mehr
   gibt.
+- `alleNeu`: Nach einem Speichern mit `200` holt die Oberfläche
+  `GET …/seiten` neu und baut alle Tabs neu; der Tab dieser Seite bleibt
+  gewählt, ihre `meldung` steht darin unter „Speichern“. Was in anderen Tabs
+  ungespeichert war, geht dabei verloren. Fehlt das Feld, gilt `false`.
+  Scheitert das Holen, gilt es wie beim Öffnen des Servers, siehe
+  [Dashboard](../frontend/dashboard.md), „Zustände“. Heute hat nur das
+  [Board der Module](module.md) `alleNeu`.
 
 ## Bausteine
 
 | Art | Wert | Was die Oberfläche tut |
 |---|---|---|
-| `schalter` | `boolean` | Checkbox mit `titel`. Mit `braucht`: Ist eine Bedingung nicht erfüllt, ist er gesperrt und aus, und `sonst` der ersten steht als Hilfe darunter |
+| `schalter` | `boolean` | Checkbox mit `titel`. Mit `gesperrt`: gesperrt und aus, `grund` steht als Hilfe darunter, `braucht` zählt dann nicht. Mit `braucht`: Ist eine Bedingung nicht erfüllt, ist er gesperrt und aus, und `sonst` der ersten steht als Hilfe darunter |
 | `auswahl` | `string` oder `null` | Select. `leer` ist die Option für `null`. Die Optionen kommen in ihrer Reihenfolge; Optionen mit derselben `gruppe` hintereinander stehen in einer Gruppe. Eine gesperrte Option ist nicht wählbar und nennt `grund` hinter ihrem Namen. In einer Liste mit `einmalig`: Eine Option, die ein anderer Eintrag schon gewählt hat, ist ebenso nicht wählbar und nennt `vergeben` hinter ihrem Namen; fehlt `vergeben`, ohne Text dahinter. Ist sie zugleich gesperrt, steht `grund` dahinter |
 | `text` | `string` | Textfeld, mit `mehrzeilig` eine Textarea. Die Hilfe zeigt, wie viele Zeichen frei sind, gerechnet wie unter „Länge eines Texts“, mit `rechnung` als Zusatz |
 | `zahl` | `number` | Zahlfeld von `min` bis `max` in Schritten von 1 |
@@ -133,6 +148,7 @@ type Baustein =
 | `aktion` | – | Link-Knopf unter „Speichern“. Während die Anfrage läuft, gesperrt und mit der Beschriftung `laeuft`. Die Antwort steht als Erfolg darunter. Weicht das Formular vom gespeicherten Stand ab, hängt `ungespeichert` an die Hilfe |
 | `liste` | `Eintrag[]` | Ohne eigene Überschrift. Je Eintrag eine Karte mit `bausteine`. Ihr Kopf ist `eintrag` mit Nummer und, mit `kopf`, dem Namen der Option, die in der Auswahl `kopf` gewählt ist. `hinzufuegen` legt einen Eintrag mit `neu` an, bis `hoechstens`; dann ist der Knopf gesperrt, und `voll` steht darunter. `entfernen` je Karte. Ohne Eintrag der leere Zustand `leer` |
 | `hinweis` | – | Meldung mit `satz`, im Ton `ton`, an ihrer Stelle im Formular |
+| `link` | – | Link mit `titel` auf `url`, an seiner Stelle im Formular, `hilfe` darunter. Öffnet in einem neuen Tab mit `rel="noopener noreferrer"`. `url` beginnt mit `https://discord.com/`; sonst passt der Baustein nicht zu seiner Beschreibung |
 
 Die Oberfläche baut die Bausteine einer Seite in ihrer Reihenfolge, nur
 `aktion` steht unter „Speichern“. Welches Element des Design-Guides zu
@@ -162,6 +178,7 @@ das, was schon gespeichert nicht geht.
 
 | Art | Regel, in dieser Reihenfolge | Satz |
 |---|---|---|
+| `schalter` | mit `gesperrt`: aus; ist er gespeichert an, setzt die Oberfläche ihn aus, ohne Fehler. Was der Bot dann mit dem Wert tut, sagt die Seite des Moduls, etwa [Board der Module](module.md), „Schalter ohne Freischaltung“ | – |
 | `auswahl` | der Wert steht unter den Optionen, bis man wählt | `unbekannt` |
 | `auswahl` | mit `pflicht`: etwas gewählt, nur beim Speichern | `pflicht` |
 | `auswahl` | die Option ist nicht gesperrt | ihr `code` |
@@ -204,7 +221,9 @@ Ein Modul gibt ein `Bereich` aus `bot/src/kern/baukasten.ts` heraus:
 
 Ein erwarteter Fehler ist ein `BausteinFehler` mit Status, Code, Feld und,
 bei `429`, den Sekunden für `Retry-After`. `bot/src/index.ts` reicht die
-Bereiche der API in der Reihenfolge der Tabs. Ein neues Modul mit
+Bereiche der API in der Reihenfolge der Tabs, das Board als letzten. Soll
+ein Modul auf dem Board stehen, meldet es dazu seinen Schalter an, siehe
+[Board der Module](module.md), „Im Bot“. Ein neues Modul mit
 Oberfläche beschreibt seine Seiten zuerst auf einer eigenen Seite hier
 unter `docs/schnittstelle/` (`AGENTS.md`, „Rollen“).
 
