@@ -115,7 +115,7 @@ Je Art von Baustein, siehe [Baukasten](../schnittstelle/baukasten.md),
 
 | Art | Klasse | Element im Guide |
 |---|---|---|
-| `schalter` | `label.choice` mit Checkbox, darunter `.help` | Inputs, „Checkbox, radio and switch“; Checkbox statt Switch, vom Orchestrator festgelegt |
+| `schalter` | `label.choice` mit Checkbox, darunter `.help`; gesperrt mit `disabled` | Inputs, „Checkbox, radio and switch“; Checkbox statt Switch, vom Orchestrator festgelegt |
 | `auswahl` | `select` in `.field`, Gruppen als `optgroup` | Inputs, „Select“ |
 | `text` | `input type="text"` oder `textarea` in `.field`, mit `.help` und `.error` | Inputs, „Text fields and text area“ |
 | `zahl` | `input type="number"` in `.field` | Inputs, „Text fields and text area“; vom Orchestrator festgelegt |
@@ -124,6 +124,7 @@ Je Art von Baustein, siehe [Baukasten](../schnittstelle/baukasten.md),
 | `aktion` | `button.link-button`, darunter `.help` und Meldungen | Actions, „Links“, „In text“; vom Orchestrator festgelegt |
 | `liste` | `.grid` mit je einem `article.card`, darin `.form` mit `.kicker` als Kopf; `.empty`; `button.link-button` zum Hinzufügen und Entfernen | Content, „Cards“; vom Orchestrator festgelegt |
 | `hinweis` | `.message-warn` oder `.message-info` | Feedback, „Messages“ |
+| `link` | `a` in einem `p`, darunter `.help`; `target="_blank"` | Actions, „Links“, „In text“ |
 | eine Art, die die Oberfläche nicht kennt, oder ein Baustein, der nicht passt | `.message-warn` | Feedback, „Messages“ |
 
 ## Herkunft der Regeln
@@ -162,7 +163,7 @@ stehen. Stand 2026-10-11, alle für das [Dashboard](dashboard.md).
 | `.tabs > input` | ersetzt `.tabs input` mit denselben Werten; versteckt nur die Radios der Tabs, nicht die Felder in den Panels |
 | `.tab-list` | `overflow-y: hidden`; sonst zeigt `overflow-x: auto` einen senkrechten Rollbalken, weil der Strich des aktiven Tabs 1 px übersteht |
 | `.form .button` | `justify-self: start`; der Knopf im Formular bleibt so breit wie sein Text |
-| `.section-heading + .tabs` | 32 px Abstand wie `.grid` |
+| `.section-heading ~ .tabs` | 32 px Abstand wie `.grid`; mit `~`, damit er auch hinter der Meldung über den Tabs gilt |
 | `.link-button` | zweite Aktion auf hellem Grund: ein `button`, der aussieht wie ein Link im Text |
 | `.field-error textarea`, `.field-error select` | Fehler wie bei `.field-error input` |
 | `.form .field input::file-selector-button` | Datei-Feld: Rahmen, Höhe, Fokus und Fehler wie das Textfeld; der Knopf darin in `--sans`, `--ink` auf `--cream`, ohne Rand |
@@ -173,8 +174,8 @@ Ohne eigene Regel, ebenso festgelegt:
 
 - Eine Seite mit Bausteinen `daneben` steht als `.grid.grid-2`: links das
   Formular, rechts was daneben steht, etwa die Vorschau.
-- Eine Meldung über der Serverliste steht in einem `.grid`, für den
-  Abstand.
+- Eine Meldung über der Serverliste und über den Tabs steht in einem
+  `.grid`, für den Abstand.
 - Auf der Startseite ist „Einstellen | Dashboard“ der Primary button und
   „Ansehen | Quelltext“ ein `.button.button-quiet`.
 - Das Datei-Feld nimmt die Typen aus `typen`; Hilfe und Texte kommen vom

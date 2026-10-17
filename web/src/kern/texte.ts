@@ -16,6 +16,8 @@ const saetze: Record<string, Satz> = {
     text: 'Sie ist nur für den Eigentümer der Anwendung und ihr Team. Lade die Seite neu.',
   },
   nicht_gefunden: { titel: 'kitty ist nicht mehr auf diesem Server.', text: 'Wähl einen anderen Server.' },
+  // 409, wenn das Modul einer Seite inzwischen aus ist. Siehe docs/schnittstelle/module.md, „Ein Modul ist aus“.
+  modul_aus: { titel: 'Dieses Modul ist inzwischen aus.', text: 'Die Tabs sind neu geladen. Auf „Module“ schaltest du es wieder an.' },
   zu_gross: { titel: 'Das ist zu viel auf einmal.', text: 'Kürz den Text und speicher noch einmal.' },
   steuerzeichen: {
     titel: 'Im Text steht ein unsichtbares Zeichen, das kitty nicht speichern kann.',

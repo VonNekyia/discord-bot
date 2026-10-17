@@ -64,7 +64,10 @@ noch einmal öffnen.
   `PUT …/seiten/{seite}` mit den Werten aller Bausteine ausser Bildern.
   Während die Anfrage läuft, ist der Knopf gesperrt. Danach gilt `wert`
   aus der Antwort als gespeicherter Stand, nicht das Gesendete; `meldung`
-  steht unter dem Knopf, und die Vorschau lädt neu.
+  steht unter dem Knopf, und die Vorschau lädt neu. Hat die Seite
+  `alleNeu`, etwa das [Board der Module](../schnittstelle/module.md), holt
+  das Dashboard stattdessen `GET …/seiten` neu und baut alle Tabs neu,
+  siehe „Tabs“.
 - **Bild:** Sobald eine Datei gewählt ist, prüft die Seite sie und
   schickt sie mit `PUT …/{baustein}` roh, mit dem Typ der Datei. Danach
   gilt das Bild als da: Bedingungen, die es brauchen, sind erfüllt, und die
@@ -85,7 +88,15 @@ noch einmal öffnen.
 ## Tabs
 
 Je Seite ein Tab aus dem Guide, in der Reihenfolge von `GET …/seiten`,
-mit `titel` als Name; der erste ist gewählt. `web/site.css` hat Regeln für
+mit `titel` als Name; der erste ist gewählt.
+
+`alleNeu` in `web/src/dashboard.ts` baut die Tabs neu, ohne Skeleton:
+nach dem Speichern einer Seite mit `alleNeu` und auf jede Antwort `409`
+`modul_aus`. Gewählt bleibt die Seite, von der es ausging; gibt es sie
+nicht mehr, der erste Tab. `meldung` des Speicherns steht danach in dieser
+Seite unter „Speichern“. Der Satz zu `modul_aus` steht über den Tabs, denn
+die Seite ist weg. Was in anderen Tabs ungespeichert war, geht verloren.
+Scheitert das Holen, gilt es wie beim Öffnen des Servers, siehe „Zustände“. `web/site.css` hat Regeln für
 die Tabs 1 bis 6, siehe [Design der Oberfläche](design.md), „Vom
 Orchestrator festgelegt“. Mehr Seiten zeigt das Dashboard nicht; der Bot
 meldet auch nicht mehr an, siehe [Baukasten](../schnittstelle/baukasten.md),
@@ -147,7 +158,9 @@ Sätze, Werte und Optionen anderer Bausteine, die Routen, das Zeigen von
 Fehlern und, in einer Liste, die Werte der anderen Einträge. Ein Feld aus
 Label, Eingabe, Hilfe und Fehler baut `Feld` in `web/src/kern/feld.ts`.
 
-Texte eines Moduls kommen vom Bot; die Oberfläche erfindet keinen. Eine
+Texte eines Moduls kommen vom Bot; die Oberfläche erfindet keinen. Ein
+`schalter` mit `gesperrt` ist gesperrt und aus, mit `grund` als Hilfe;
+`braucht` zählt dann nicht. Ein `link` öffnet in einem neuen Tab. Eine
 gesperrte Option einer `auswahl` nennt hinter ihrem Namen `grund`. Mit
 `einmalig` ist eine Option, die ein anderer Eintrag der Liste schon gewählt
 hat, ebenso gesperrt und nennt `vergeben`; fehlt `vergeben`, steht kein
@@ -169,8 +182,8 @@ API-Schicht importiert nichts Eigenes, siehe
 | Antwort | wie streng | passt sie nicht |
 |---|---|---|
 | `Ich`, `Server[]`, `{ wert, meldung }` beim Speichern, `Satz` einer Aktion, `Debug` | jedes Feld | `nicht_erreichbar`, wie eine Antwort ohne JSON |
-| `Seite[]`: der äussere Aufbau jeder Seite, `wert` als Objekt, `saetze`, `fund` | jedes Feld | die ganze Antwort `nicht_erreichbar`; die Seite geht zurück zur Liste |
-| ein Baustein | jedes Feld seiner Art aus dem Vertrag; optionale nur, wenn da; weitere Felder zählen nicht | er wird `{ art: 'unbekannt', id }` und zur Warnung an seiner Stelle; die übrigen bleiben |
+| `Seite[]`: der äussere Aufbau jeder Seite, `wert` als Objekt, `saetze`, `fund`, `alleNeu`, wenn da | jedes Feld | die ganze Antwort `nicht_erreichbar`; die Seite geht zurück zur Liste |
+| ein Baustein | jedes Feld seiner Art aus dem Vertrag; optionale nur, wenn da; weitere Felder zählen nicht; ein `link` nur mit `url` ab `https://discord.com/` | er wird `{ art: 'unbekannt', id }` und zur Warnung an seiner Stelle; die übrigen bleiben |
 | eine `liste` | wie ein Baustein, dazu jeder innere Baustein; nur `schalter`, `auswahl`, `text` und `zahl` | die ganze Liste wird zur Warnung |
 | der Body eines Fehlers | `code` und `feld` je als Text | ohne `code`: `nicht_erreichbar` ab 500, sonst `unbekannt` |
 
@@ -239,7 +252,8 @@ passiert ist, der zweite, was zu tun ist.
 | am Bild | jeder Fehler beim Hochladen und Entfernen |
 | unter „Speichern“ | Erfolg und jeder andere Fehler beim Speichern, auch mit `feld` an einem Schalter |
 | unter einer Aktion | Erfolg und jeder Fehler der Aktion ohne Feld; mit Feld steht er dort |
-| über der Serverliste | jeder Fehler beim Öffnen eines Servers ausser `401` |
+| über der Serverliste | jeder Fehler beim Öffnen eines Servers ausser `401`, auch beim Neubau der Tabs |
+| über den Tabs | `modul_aus`, nachdem die Tabs neu gebaut sind, siehe „Tabs“ |
 | im Hero | Anmeldung gescheitert, abgelaufen, nicht erreichbar, Abmelden gescheitert |
 | über der Debug-Ansicht | jeder Fehler von `GET /api/debug` ausser `401`, siehe „Debug“ |
 
