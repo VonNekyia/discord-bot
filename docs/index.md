@@ -17,6 +17,7 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 - [Befehle](benutzung/befehle.md): jeder Slash-Befehl mit Antwort, Sichtbarkeit, Rechten und Intents; was Modul und Discord-Schicht tun, Fehler.
 - [Begrüssung bei Beitritt und Abschied](benutzung/begruessung.md): Platzhalter, Banner aus einem eigenen Bild, Standardwerte, Rechte, der Intent `GuildMembers`, die Bremse bei vielen Beitritten.
 - [Sprachräume](benutzung/sprachraeume.md): Räume auf Zeit über Erzeuger, Namensvorlage, Menü mit Knöpfen im Textchat des Raums, Grenzen, Rechte und der Intent `GuildVoiceStates`.
+- [Managed Commands](benutzung/managed-commands.md): `/ban`, `/kick` und `/warn` mit vorgefertigtem oder eigenem Grund über Autocomplete und Formular, wer darf, Limit je Rolle über 7 Tage, Ziel und Rollenhierarchie, DM beim Bann und bei der Verwarnung, Antworten, Rechte.
 
 ## Schnittstelle
 
@@ -25,7 +26,8 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 - [Anmeldung am Dashboard](schnittstelle/anmeldung.md): Discord-Login mit OAuth2, Sitzung und Cookie, Rechte, Origin, Umgebungsvariablen.
 - [API der Begrüssung](schnittstelle/begruessung.md): die Seiten Beitritt und Abschied, ihre Bausteine, Optionen des Kanals, Einstellung speichern, Bild und Vorschau, Testnachricht mit Grenze je Server.
 - [API der Sprachräume](schnittstelle/sprachraeume.md): die Seite Sprachräume, ihre Bausteine, Sprachkanäle und Kategorien mit `bereit`, Sprachräume einstellen, Codes.
-- [Board der Module](schnittstelle/module.md): je Server jedes Modul an oder aus, gesperrt bis zur Freischaltung, mit Link in den Store von Discord, `alleNeu` nach dem Speichern, `409` `modul_aus`, Aufräumen auch wenn aus, das Board als eigene Schicht `bot/src/brett/`.
+- [API der Managed Commands](schnittstelle/strafen.md): die Seite `strafen`, Gründe, Limits je Rolle, DM beim Bann mit Text zur Entbannung, Regeln beim Speichern und Codes.
+- [Board der Module](schnittstelle/module.md): je Server jedes Modul an oder aus, gesperrt bis zur Freischaltung, mit Link in den Store von Discord, `alleNeu` nach dem Speichern und nach einer Aktion, einen Kauf binden, `409` `modul_aus`, Aufräumen auch wenn aus, das Board als eigene Schicht `bot/src/brett/`.
 - [API der Debug-Seite](schnittstelle/debug.md): Anfragen an Discord je Route, 429, ungültige Anfragen, eigene Grenzen; eine feste Ansicht ausserhalb des Baukastens, nur für Eigentümer und Team der Anwendung, nie IDs oder Tokens.
 
 ## Bot
@@ -76,3 +78,5 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 - [0017: Das Dashboard als Baukasten](entscheidungen/0017-dashboard-als-baukasten.md): Module melden Seiten aus Bausteinen an, die Oberfläche baut jede Art allgemein, Regeln über mehrere Felder nur im Bot; kein Formular je Modul, kein Schema-Standard, kein HTML vom Bot.
 - [0018: Zierbuchstaben im Banner nach NFKC, Hakenkreuze und SS-Runen gefiltert](entscheidungen/0018-zierbuchstaben-und-filter.md): Glyphen aus der `cmap` der Schriften, sonst NFKC oder weg, nie ein Kästchen; Hakenkreuze und SS-Runen schreibt der Bot nie, ohne Namen der Benutzername; kein Zeichnen je Zeichen, keine Bibliothek, keine neuen Schriften.
 - [0019: Module je Server an und aus](entscheidungen/0019-module-an-und-aus.md): ein Board als eigene Schicht neben `api/`, frei heisst an, bezahlt heisst aus bis zur Freischaltung, aus heisst inaktiv bis auf das Aufräumen; Bausteine `link` und `schalter` mit `gesperrt`, `alleNeu`; kein Modul fürs Board, kein Löschen der Einstellungen, kein Ausblenden der Befehle.
+- [0020: Bezahlte Module über Discord](entscheidungen/0020-bezahlte-module.md): Einmalkauf als Consumable, im Dashboard an einen Server gebunden und verbraucht; Abos je Server in zwei Stufen, „Log“ und „Alles“; Entitlements mit Cache je Server, geleert bei `ENTITLEMENT_*`; SKU-IDs in `.env`; nicht Durable, keine Abos je Person, keine eigene Zahlung.
+- [0021: Managed Commands mit Rollenliste, Limit und eigenem Grund](entscheidungen/0021-managed-commands.md): eigene Liste der Rollen statt `default_member_permissions`, Hierarchie auch für den Nutzer, Grund mit Autocomplete, freiem Text und Formular für `custom`, Limit rollierend 168 h, wenig gespeichert; keine festen `choices`, keine Kalenderwoche.

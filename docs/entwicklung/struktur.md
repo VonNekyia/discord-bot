@@ -40,7 +40,7 @@ Linter. Warum so, steht in
 | `bot/src/module/befehle/` | Slash-Befehle, heute `/ping` | `befehle.ts`, `modul.ts` |
 | `bot/src/module/begruessung/` | Beitritt und Abschied: Einstellungen, Senden, Banner, Seiten im Dashboard | `begruessung.ts`, `senden.ts`, `banner.ts`, `seiten.ts`, `modul.ts` |
 | `bot/src/module/sprachraeume/` | Sprachräume: Einstellungen, Räume, Menü, Knöpfe, Rechte, Seite im Dashboard | `sprachraeume.ts`, `raeume.ts`, `menue.ts`, `knoepfe.ts`, `raumrechte.ts`, `seiten.ts`, `modul.ts` |
-| `bot/src/module/strafen/` | geplant, kommt mit seinem Auftrag | – |
+| `bot/src/module/strafen/` | Managed Commands: `/ban`, `/kick`, `/warn`, Seite „Managed Commands“; geplant, siehe [API der Managed Commands](../schnittstelle/strafen.md) | – |
 
 Tests liegen neben dem Code, den sie prüfen; `bot/src/testhilfe.ts` hilft
 allen. `dist/` spiegelt `src/`; `npm test` findet die Tests mit
