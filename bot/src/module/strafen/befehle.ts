@@ -131,7 +131,8 @@ export class Strafbefehle {
   }
 
   // Prüft und führt aus; gibt die Antwort an den, der den Befehl nutzt.
-  // Siehe docs/benutzung/managed-commands.md, „Ablauf“ und „Antworten“.
+  // Die Sätze stehen auf derselben Seite unter „Antworten“.
+  // Siehe docs/benutzung/managed-commands.md, „Ablauf“.
   async fuehreAus(f: Fall): Promise<string> {
     if (f.grund === '') return 'Der Grund fehlt.';
     const s = await this.k.einstellungen.fetch(f.server.id);

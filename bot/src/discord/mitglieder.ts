@@ -1,7 +1,7 @@
 import { PermissionFlagsBits as R, type GuildMember, type User } from 'discord.js';
 
-// Wer etwas tut und wen es trifft, mit eigenen Typen. Siehe
-// docs/benutzung/managed-commands.md, „Wer darf“ und „Ziel“.
+// Wer etwas tut und wen es trifft, mit eigenen Typen; die Regeln dazu
+// stehen auch unter „Ziel“. Siehe docs/benutzung/managed-commands.md, „Wer darf“.
 
 // Eine Person bei Discord, auf einem Server oder nicht.
 export interface Person {
