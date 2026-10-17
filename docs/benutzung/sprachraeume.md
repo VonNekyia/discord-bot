@@ -19,7 +19,9 @@ verschwindet mit ihm. Welche Erzeuger es gibt, stellt das Team im
 Dashboard ein, siehe
 [API der Sprachräume](../schnittstelle/sprachraeume.md), „Sprachräume einstellen“.
 Warum es so gebaut ist, steht in Entscheidung
-[0011](../entscheidungen/0011-sprachraeume-mit-knoepfen.md).
+[0011](../entscheidungen/0011-sprachraeume-mit-knoepfen.md). Auf dem
+[Board der Module](../schnittstelle/module.md) lässt sich das ganze Modul
+ausschalten; dann entstehen keine Räume mehr, leere gehen aber weiter.
 
 ## Ablauf
 

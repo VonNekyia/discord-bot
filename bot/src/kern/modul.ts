@@ -13,4 +13,17 @@ export interface Modul<K> {
   vergiss?(server: string): void;
   // Seine Seiten im Dashboard.
   bereich?: Bereich<K>;
+  // Sein Schalter auf dem Board; ohne ihn ist das Modul immer an. Die ID
+  // des Schalters ist `name`. Siehe docs/schnittstelle/module.md.
+  schalter?: Schalter;
+}
+
+// Wie ein Modul auf dem Board steht.
+export interface Schalter {
+  titel: string;
+  // Was das Modul tut, ein Satz.
+  hilfe: string;
+  // Nur an, wenn es auf dem Server freigeschaltet ist; ohne gespeicherten
+  // Stand aus. Freie Module sind ohne gespeicherten Stand an.
+  bezahlt?: boolean;
 }

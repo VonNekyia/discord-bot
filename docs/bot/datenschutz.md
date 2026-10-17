@@ -34,7 +34,7 @@ nicht gebaut.
 | Bild je Server und Art, beim Hochladen auf 1100 × 440 px zugeschnitten und neu kodiert, ohne Metadaten wie EXIF oder GPS; es kann Personen zeigen | Hintergrund des Banners | bis es ersetzt oder gelöscht wird oder der Bot den Server verlässt | gebaut |
 | Sprachräume je Server: Server-ID, Schalter, Erzeuger mit Kanal-ID, Kategorie-ID, Namensvorlage und Limit | Räume anlegen | bis das Team sie ändert oder der Bot den Server verlässt | gebaut |
 | Raum: Server-ID, Kanal-ID, Discord-ID des Besitzers, Zeit der Anlage | wissen, welche Kanäle Räume sind und wem sie gehören, auch nach einem Neustart | bis der Raum gelöscht ist, der Besitz wechselt oder der Bot den Server verlässt; beim Start vergisst der Bot Räume, die es nicht mehr gibt | gebaut |
-| Board je Server und Modul: Server-ID, ID des Moduls, Schalter | welche Module auf dem Server an sind, siehe [Board der Module](../schnittstelle/module.md) | bis das Team es ändert oder der Bot den Server verlässt | kommt mit `module-schalten-backend` |
+| Board je Server und Modul: Server-ID, ID des Moduls, Schalter | welche Module auf dem Server an sind, siehe [Board der Module](../schnittstelle/module.md) | bis das Team es ändert oder der Bot den Server verlässt | gebaut |
 
 Mit den Sprachräumen hält discord.js zudem für jedes Mitglied, das einen
 Sprachkanal betreten hat, einen Voice State mit Discord-ID, Kanal und

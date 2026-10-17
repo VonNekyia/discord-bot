@@ -18,7 +18,9 @@ Text mit Platzhaltern, ein Banner aus einem eigenen Bild, oder beides.
 Beitritt und Abschied werden getrennt eingestellt. Dafür braucht der Bot den
 privilegierten Intent `GuildMembers` und `Partials.GuildMember`, siehe
 [Intents](../bot/intents.md). Eingestellt wird über die
-[API des Dashboards](../schnittstelle/api.md).
+[API des Dashboards](../schnittstelle/api.md). Auf dem
+[Board der Module](../schnittstelle/module.md) lässt sich das ganze Modul
+ausschalten; dann schickt der Bot nichts, und die Einstellungen bleiben.
 
 ## Platzhalter
 

@@ -37,6 +37,7 @@ ersten, der welche braucht. Den Rest macht die Discord-Schicht:
 | den Befehl zum Namen finden und ausführen | `beantworte`, aus `haengeAn` in `bot/src/discord/modul.ts` bei jedem Slash-Befehl, mit den Befehlen aller Module (`befehleVon`) |
 | antworten | `Aufruf#antworte`: gleich, nur für den Nutzer (ephemeral), ohne Erwähnungen; scheitert es, wirft es `DiscordFehler` |
 | Fehler | `beantworte` fängt sie, siehe „Fehler“ |
+| Modul aus | ist das Modul des Befehls auf dem Server aus, antwortet `haengeAn` statt des Befehls nur für den Nutzer `modulAus`, siehe [Board der Module](../schnittstelle/module.md), „Ein Modul ist aus“; scheitert die Frage danach, den Satz aus „Fehler“; `/ping` hat keinen Schalter |
 
 ## Antwortzeit
 
@@ -51,7 +52,9 @@ Befehl, der länger braucht, muss die Antwort aufschieben; dafür bekommt
 ## Fehler
 
 Schlägt ein Befehl fehl oder ist er unbekannt, sieht der Nutzer
-„Das hat nicht geklappt.“, nur für ihn. Hat der Befehl schon geantwortet,
+„Das hat nicht geklappt.“ (`fehlgeschlagen` in `bot/src/discord/befehle.ts`),
+nur für ihn. Ebenso, wenn sich nicht klären lässt, ob sein Modul an ist,
+etwa ohne Datenbank; dann steht `Board: <Fehler>` im Log. Hat der Befehl schon geantwortet,
 kommt die Meldung als zweite Nachricht (`followUp`). Scheitert auch sie,
 steht `/<befehl>: Antwort fehlgeschlagen: <Fehler>` im Log. Was ins Log geht, steht in
 [Datenschutz](../bot/datenschutz.md), „Was ins Log geht“.

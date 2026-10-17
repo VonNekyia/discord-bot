@@ -20,6 +20,9 @@ export interface Befehl {
 
 const ohneErwaehnung = { parse: [] };
 
+// Der Satz, wenn etwas schiefgeht. Siehe docs/benutzung/befehle.md, „Fehler“.
+export const fehlgeschlagen = 'Das hat nicht geklappt.';
+
 // Ersetzt alle globalen Befehle der Anwendung mit einem Aufruf.
 // Siehe docs/bot/rate-limits.md, „Befehle registrieren“.
 export async function registriere(rest: REST, anwendung: string, befehle: readonly Befehl[]): Promise<void> {
@@ -42,7 +45,7 @@ export async function beantworte(i: ChatInputCommandInteraction, befehle: readon
     await befehl.ausfuehren(aufruf);
   } catch (fehler) {
     console.error(`/${i.commandName}: ${text(fehler)}`);
-    const antwort = { content: 'Das hat nicht geklappt.', flags: MessageFlags.Ephemeral } as const;
+    const antwort = { content: fehlgeschlagen, flags: MessageFlags.Ephemeral } as const;
     const senden = i.replied || i.deferred ? i.followUp(antwort) : i.reply(antwort);
     await senden.catch((e: unknown) => console.error(`/${i.commandName}: Antwort fehlgeschlagen: ${text(e)}`));
   }
