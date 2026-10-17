@@ -60,6 +60,12 @@ zeigt. Er antwortet der Reihe nach mit den Statuscodes, die der Test
 vorgibt, danach mit 200, und merkt sich jede Anfrage mit Methode, Pfad
 und Body. Ein 429 kommt mit `Retry-After: 0`.
 
+`mockDiscord` in `bot/src/testhilfe.ts` kennt auch Entitlements:
+`kaeufe` mit `einmalkauf` und `abo`, die Liste mit den Filtern und Seiten
+von Discord, `GET` eines Kaufs, `consume`, dazu `kaeufeFehler`,
+`kaeufeFolge` je Anfrage, `kaeufeWarten` für ein 429 und
+`verbrauchenFehler`.
+
 Slash-Befehle ruft `ruft` in derselben Datei so auf, wie Discord sie
 schickt: durch die Action `InteractionCreate` eines eigenen Clients aus
 `discordClient`, die Antworten gehen an `mockDiscord`. Die Befehle des
@@ -282,7 +288,7 @@ Millisekunden. Darum:
 | channelDelete vergisst den Raum … | `geloescht`, `Aufraeumen#vergiss` und `#behalteNur` für Sprachräume und Räume |
 | Aufraeumen prüft die Tabellen beim Bauen … | `bot/src/kern/aufraeumen.test.ts`: Umlaut und SQL im Namen werfen, eine Tabelle in zwei Modulen wirft, Module ohne Tabellen zählen nicht |
 | vergiss und behalteNur löschen in einer Anweisung … | dieselbe Datei, ohne Datenbank: je eine Anfrage mit jeder Tabelle genau einmal, die Werte mit Shards; ohne Tabellen keine Anfrage |
-| jede Tabelle mit Daten je Server (Spalte server bigint) gehört genau einem Modul oder dem Board | `bot/src/modulliste.test.ts`, PostgreSQL: die Tabellen aus `information_schema` nach allen Migrationen gegen die Tabellen aus `alleModule` und `Brett` |
+| jede Tabelle mit Daten je Server (Spalte server bigint) gehört genau einem Modul oder dem Board, ausser bindungen | `bot/src/modulliste.test.ts`, PostgreSQL: die Tabellen aus `information_schema` nach allen Migrationen gegen die Tabellen aus `alleModule` und `Brett` und die Liste der Tabellen, die bleiben: nur `bindungen` |
 | die Seiten kommen in der Reihenfolge der Tabs; vergiss leert den Cache … | dieselbe Datei: `beitritt`, `abschied`, `sprachraeume`; `vergiss` nimmt nur den einen Server aus beiden Caches |
 | welches Modul welche Ereignisse, Befehle, Knöpfe und welchen Schalter hat | dieselbe Datei: Befehle `ping`, ohne Schalter; Begrüssung `beitritt`, `abschied`; Sprachräume `stimme` in `ereignisse`, `bereit`, `stimme`, `kanalWeg` in `aufraeumen` und das Präfix `sprachraum:`; beide mit freiem Schalter |
 | ein Modul, das aus ist, bekommt keine Ereignisse, nur sein Aufräumen … | `bot/src/discord/modul.test.ts`: `haengeAn` mit einem Modul ohne und einem mit Schalter; an bekommt es alles, aus nur `aufraeumen`, und Befehl und Knopf antworten `modulAus`, ephemeral. Fällt, wenn `haengeAn` `istAn` nicht beachtet |
@@ -293,6 +299,28 @@ Millisekunden. Darum:
 | speichern schaltet um und gilt sofort … | dieselbe Datei: `istAn` gleich danach, ein anderer Server bleibt; `ungueltig` mit Feld bei falschem Typ, fehlendem Feld und einer Liste; `404` für eine andere Seite; fremde Felder zählen nicht |
 | nicht freigeschaltet behält das Board den gespeicherten Schalter … | dieselbe Datei: freigeschaltet an, die Freischaltung endet, Speichern mit `false` und ohne Feld lässt die Zeile `true`, kommt sie wieder, ist das Modul ohne Speichern an |
 | der Cache: Speichern und vergiss lesen neu, sonst nicht | dieselbe Datei: zwei `istAn`, eine Abfrage; nach `vergiss` eine zweite |
+| Kauf binden: die Aktion steht nur, solange das Modul gesperrt ist … | dieselbe Datei: `seiten` mit `<modul>Binden` nur bei `bindbar`, die Aktion nach dem Link, nicht mehr nach der Freischaltung; `loeseAus` bindet mit der ID der angemeldeten Person und gibt den Satz; ein anderes Modul `404` |
+| binde bindet den ältesten freien Kauf: erst eintragen, dann verbrauchen | `bot/src/brett/freischaltung.test.ts`, PostgreSQL und `mockDiscord`: zwei Käufe, der ältere wird gebunden und verbraucht, der andere bleibt; `user_id` und `sku_ids` in der Anfrage |
+| ein Kauf bindet nie zwei Server, auch nicht bei zwei Anfragen zugleich | dieselbe Datei: ein Kauf, zwei Server zugleich: eine Bindung, die andere Anfrage `kein_kauf`. Fällt ohne den Schlüssel auf der Entitlement-ID |
+| zwei Anfragen zugleich für einen Server … | dieselbe Datei: zwei Käufe, ein Server zugleich: eine Bindung, die andere `schon_freigeschaltet`, ein Kauf bleibt unverbraucht |
+| schon über das Abo „Alles“ freigeschaltet … | dieselbe Datei: `schon_freigeschaltet`, keine Bindung, der Kauf bleibt frei |
+| kein freier Kauf: kein_kauf … | dieselbe Datei: ein Kauf einer anderen Person, und einer, der schon an einem anderen Server hängt |
+| scheitert das Verbrauchen, ist das Modul trotzdem frei … | dieselbe Datei: `consume` mit 500, die Bindung steht, `verbraucht` falsch; `nachverbrauche` holt es nach; das Log „Käufe nachverbraucht: 1 von 1.“ ohne IDs |
+| führt Discord den Kauf schon als verbraucht … | dieselbe Datei: keine Anfrage an `consume`, die Bindung `verbraucht` |
+| liefert Discord die Käufe nicht, 5xx oder Abbruch: nicht_erreichbar … | dieselbe Datei: 502 und Abbruch geben `503`, keine Bindung; nach einem 429 mit `Retry-After: 0` klappt es |
+| Abos: im Cache, ein Ereignis leert den Server … | dieselbe Datei: zwei Fragen, eine Anfrage; ein beendetes Abo im Cache zählt bis zum Ereignis, danach fragt der Bot neu und es fehlt |
+| ein Abo zählt bis zu seinem Ende, auch im Cache … | dieselbe Datei: Ende nach 150 ms, nach 200 ms aus ohne neue Anfrage; nach der Zeit des Caches eine zweite |
+| ohne SKU des Einmalkaufs schaltet „Alles“ trotzdem frei … | dieselbe Datei: frei über „Alles“, nicht `bindbar`, binden `404`; der Link in den Store ohne SKU, mit SKU zu ihr, ohne Abo keiner |
+| ein gelöschter Kauf beendet seine Bindung | dieselbe Datei: `ENTITLEMENT_DELETE` löscht die Zeile, das Modul ist nicht mehr frei |
+| Abgleich: ein gelöschter Kauf entfernt die Bindung … | dieselbe Datei: drei Bindungen; `deleted: true` fällt, ein unverbrauchter wird verbraucht, einer, der fehlt, bleibt; `exclude_deleted=false`; eine Logzeile nur mit Zahlen |
+| Abgleich über zwei Seiten … | dieselbe Datei: scheitert die zweite Seite, fällt nur die Bindung der ersten; der nächste Durchgang holt die zweite nach; `after` der zweiten Seite |
+| Abgleich bei 5xx und Abbruch … | dieselbe Datei: die Bindung bleibt; nach einem 429 fällt sie |
+| Abgleich nur für die Server des eigenen Shards | dieselbe Datei: zwei Shards, je Durchgang nur die Bindung seines Shards |
+| vonPerson liest alle Seiten … | `bot/src/discord/kaeufe.test.ts`: 101 Käufe, zwei Anfragen, `after` hinter dem grössten |
+| vonServer fragt mit guild_id, sku_ids und exclude_ended … | dieselbe Datei: das beendete Abo fehlt; ein unbekannter Kauf (10029) gibt `undefined`; die Links in den Store |
+| verbrauche setzt consumed bei Discord | dieselbe Datei: `POST …/consume` |
+| Ereignisse kommen als Kauf, ohne Discord-ID der Person … | dieselbe Datei: Create, Update, Delete über die Actions von discord.js; nach Create und Update ist der Cache der Anwendung leer. Fällt ohne `EntitlementManager` mit `maxSize` 0 |
+| jede neue Sitzung eines Shards meldet Shard und Anzahl … | dieselbe Datei: `ShardReady` meldet, `ShardResume` nicht |
 | ist ein Modul aus, fehlen seine Seiten, und seine Routen geben 409 … | `bot/src/api/server.test.ts`: `istAn` je Bereich; `GET …/seiten` ohne die Seiten, `PUT`, `POST`, `GET` und `DELETE` geben `409` `modul_aus`, ohne Rechte zuerst `403`. Fällt, wenn die Routen `istAn` nicht fragen |
 | Beitritt und Abschied gehen als Mitglied an jedes Modul … | `bot/src/discord/modul.test.ts`: `haengeAn` mit zwei falschen Modulen, `guildMemberAdd` und `guildMemberRemove` aus discord.js; beide Module in der Reihenfolge der Liste |
 | ein Wechsel des Sprachkanals kommt mit Griff, Person, vorher und nachher | dieselbe Datei: `voiceStateUpdate` mit zwei `VoiceState` |
@@ -381,3 +409,5 @@ läuft PostgreSQL 18 als Service im Job „Backend“, und fehlt dort die
 Datenbank, scheitert der Test, statt übersprungen zu werden (`CI` ist
 gesetzt). Die Tests legen die Tabellen `probe` und `probe_halb` und
 Einträge `probe-…` in `migrationen` an und räumen sie danach weg.
+`bot/src/brett/freischaltung.test.ts` legt Bindungen erfundener Server an
+und löscht sie vor jedem Test und danach.

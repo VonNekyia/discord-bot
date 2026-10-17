@@ -4,6 +4,7 @@ description: Welche Gateway-Intents und Partials der Bot anfordert und warum; we
 code:
   - bot/src/index.ts
   - bot/src/discord/client.ts
+  - bot/src/discord/kaeufe.ts
 ---
 
 # Intents
@@ -22,6 +23,11 @@ und eine Zeile hier (`AGENTS.md`, Regel 24).
 | `GuildPresences` | nein | privilegiert; nichts braucht den Status |
 | `MessageContent` | nein | privilegiert; Befehle kommen als Interaktion, nicht als Nachricht |
 
+Was privilegiert ist und was jeder Intent liefert, steht in der
+[Doku von Discord](https://docs.discord.com/developers/events/gateway#list-of-intents).
+
+## Ohne Intent
+
 Die Managed Commands brauchen keinen neuen Intent: Befehle, Autocomplete
 und Formulare kommen als Interaktion, Bann, Kick und DM gehen über die
 REST-API, siehe [Managed Commands](../benutzung/managed-commands.md),
@@ -29,9 +35,7 @@ REST-API, siehe [Managed Commands](../benutzung/managed-commands.md),
 `ENTITLEMENT_DELETE` für die bezahlten Module kommen ohne Intent: Ein
 Ereignis, das die Liste der Intents nicht nennt, „will always be sent to
 your app“, siehe [0020](../entscheidungen/0020-bezahlte-module.md).
-
-Was privilegiert ist und was jeder Intent liefert, steht in der
-[Doku von Discord](https://docs.discord.com/developers/events/gateway#list-of-intents).
+`hoereAufKaeufe` in `bot/src/discord/kaeufe.ts` hört auf sie.
 
 ## Ein privilegierter Intent kommt dazu
 

@@ -27,6 +27,7 @@ function codeVon(fehler: unknown): FehlerCode {
     case Code.MissingPermissions:
       return 'kein_recht';
     case Code.UnknownChannel:
+    case Code.UnknownEntitlement:
       return 'nicht_gefunden';
     case Code.UnknownMember:
     case Code.UnknownUser:

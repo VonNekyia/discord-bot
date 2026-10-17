@@ -115,6 +115,7 @@ stehen ihre Spalten.
 | `bilder` | `0003-bilder.sql` | Hintergrund des Banners je Server und Art, 1100 × 440 px als WebP | [API im Bot](dashboard-api.md), „Bilder“ |
 | `sprachraeume` | `0004-sprachraeume.sql` | Einstellungen der Sprachräume je Server, die Erzeuger als `jsonb` | [API der Sprachräume](../schnittstelle/sprachraeume.md) |
 | `module_an` | `0006-module-an.sql` | je Server und Modul, ob es an ist; ohne Zeile der Standard des Moduls | [Board der Module](../schnittstelle/module.md) |
+| `bindungen` | `0007-bindungen.sql` | je Einmalkauf der Server, an den er gebunden ist, SKU, ob verbraucht, Zeit; die Entitlement-ID ist der Schlüssel, `UNIQUE (server, sku)`; bleibt, wenn der Bot den Server verlässt | [Board der Module](../schnittstelle/module.md), „Kauf binden“ |
 | `raeume` | `0005-raeume.sql` | jeder Raum mit Server, Besitzer und Zeit der Anlage; `UNIQUE (server, besitzer)`: höchstens ein Raum je Mitglied und Server, auch wenn der Besitz wechselt | [Sprachräume im Bot](sprachraeume-bau.md), [Menü der Sprachräume im Bot](sprachraeume-menue.md) |
 
 Was davon personenbezogen ist und wie lange es bleibt, steht in

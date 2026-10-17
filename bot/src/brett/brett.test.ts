@@ -114,6 +114,39 @@ describe('Board', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt' }, () 
     frei.delete(SERVER);
   });
 
+  // Siehe docs/schnittstelle/module.md, „Kauf binden“.
+  test('Kauf binden: die Aktion steht nur, solange das Modul gesperrt ist; loeseAus bindet für die angemeldete Person', async () => {
+    const gebunden: [string, string, string][] = [];
+    const mitBinden = new Brett({
+      db,
+      module,
+      freigeschaltet: async (server) => frei.has(server),
+      kaufen: () => LADEN,
+      bindbar: (m) => m === 'teuer',
+      binde: async (server, nutzer, modul) => {
+        gebunden.push([server, nutzer, modul]);
+      },
+    });
+    assert.deepEqual(mitBinden.bereich.seiten, { module: { teuerBinden: 'aktion' } });
+    assert.deepEqual(brett.bereich.seiten, { module: {} });
+    const [seite] = await mitBinden.bereich.zeige(k(ANDERER));
+    assert.deepEqual(seite?.bausteine.map((b) => b.id), ['hinweis', 'frei', 'teuer', 'teuerKaufen', 'teuerBinden']);
+    assert.ok(seite.saetze.kein_kauf && seite.saetze.schon_freigeschaltet);
+
+    const loeseAus = mitBinden.bereich.loeseAus?.bind(mitBinden.bereich);
+    assert.ok(loeseAus);
+    const person = { server: { id: ANDERER, name: 'Probe' }, mitglied: { id: '200000000000000002' } } as unknown as Kontext;
+    assert.deepEqual(await loeseAus(person, 'module', 'teuerBinden'), { titel: 'Teuer ist freigeschaltet.', text: 'Schalte es hier an, damit es auf dem Server läuft.' });
+    assert.deepEqual(gebunden, [[ANDERER, '200000000000000002', 'teuer']]);
+    await assert.rejects(loeseAus(person, 'module', 'freiBinden'), (e: unknown) => e instanceof BausteinFehler && e.status === 404);
+
+    // Freigeschaltet: keine Aktion mehr.
+    frei.add(ANDERER);
+    const [danach] = await mitBinden.bereich.zeige(k(ANDERER));
+    assert.ok(!danach?.bausteine.some((b) => b.art === 'aktion'));
+    frei.delete(ANDERER);
+  });
+
   test('der Cache: Speichern und vergiss lesen neu, sonst nicht', async () => {
     const gelesen: string[] = [];
     const zaehlend = new Brett({

@@ -10,6 +10,14 @@ export interface Shards {
   count: number;
 }
 
+// SQL: Gehört die Spalte `server` zu einem der Shards in `ids` bei `anzahl`
+// Shards? Ist `anzahl` NULL, gehört jeder Server dazu. `anzahl` und `ids`
+// sind Parameter, etwa `$2` und `$3`. Der Shard eines Servers ist
+// (ID >> 22) % Anzahl, siehe docs/bot/dashboard-api.md, „Aufräumen“.
+export function aufShards(anzahl: string, ids: string): string {
+  return `(${anzahl}::int IS NULL OR (server >> 22) % ${anzahl} = ANY(${ids}::int[]))`;
+}
+
 // Löscht die Daten je Server aus den Tabellen aller Module, jedes Mal in
 // einer Anweisung und damit in einer Transaktion. Die Namen der Tabellen
 // prüft es beim Bauen, bevor sie ins SQL kommen; jede gehört genau einem
@@ -42,7 +50,7 @@ export class Aufraeumen {
   // dieser Shards; die anderen sieht der Prozess nicht.
   async behalteNur(db: Pick<Pool, 'query'>, server: string[], shards?: Shards): Promise<number> {
     if (this.tabellen.length === 0) return 0;
-    const fremd = `NOT (server = ANY($1)) AND ($2::int IS NULL OR (server >> 22) % $2 = ANY($3::int[]))`;
+    const fremd = `NOT (server = ANY($1)) AND ${aufShards('$2', '$3')}`;
     const weg = this.tabellen.map((t) => `${t}_weg AS (DELETE FROM ${t} WHERE ${fremd} RETURNING server)`).join(', ');
     const alle = this.tabellen.map((t) => `SELECT server FROM ${t}_weg`).join(' UNION ALL ');
     const { rows } = await db.query<{ zahl: number }>(

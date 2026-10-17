@@ -7,6 +7,8 @@ code:
   - bot/src/api/server.ts
   - bot/src/index.ts
   - bot/src/brett/brett.ts
+  - bot/src/brett/freischaltung.ts
+  - bot/src/discord/kaeufe.ts
   - bot/src/discord/modul.ts
 ---
 
@@ -55,14 +57,18 @@ freigeschaltet ist, steht in
 | Abo „Log“ | ein Abo des Servers im Store | das Speichern des Logs, 4,99 € im Monat; kommt mit dem Modul Log |
 | Abo „Alles“ | ein Abo des Servers im Store | jedes bezahlte Modul, 19,99 € im Monat, solange es läuft |
 
-- Die IDs der SKUs sind Konfiguration in `.env`, nie im Code. Fehlt die
-  eines Moduls, ist es überall aus und gesperrt.
+- Die IDs der SKUs sind Konfiguration in `.env`, nie im Code, siehe
+  [Einrichtung und Betrieb](../benutzung/einrichtung.md), „Bezahlte
+  Module“. Fehlt eine, ist ihr Angebot aus: Ohne SKU eines Einmalkaufs
+  kann man ihn weder kaufen noch binden. Gesperrt ist das Modul dann nur,
+  wenn auch kein Abo es enthält; „Alles“ schaltet es trotzdem frei. Davon
+  hängt der eigene Server mit seinem Test-Entitlement ab.
 - Ein gebundener Kauf bleibt, auch wenn der Bot den Server verlässt.
 
 ### Kauf binden
 
 `POST /api/server/{id}/seiten/module/<modul>Binden`, ohne Body. Der Bot
-sucht einen Kauf des Moduls, den die angemeldete Person noch nicht
+sucht den ältesten Kauf des Moduls, den die angemeldete Person noch nicht
 gebunden hat, bindet ihn an diesen Server und antwortet mit `200` und
 einem `Satz`, etwa „Managed Commands ist freigeschaltet.“. Danach baut die
 Oberfläche die Tabs neu, weil die Seite `alleNeu` hat.
@@ -72,20 +78,45 @@ Oberfläche die Tabs neu, weil die Seite `alleNeu` hat.
   Entitlement-ID ist dort eindeutig, so bindet ein Kauf nie zwei Server,
   auch nicht bei zwei Anfragen zugleich.
 - Erst eintragen, dann bei Discord verbrauchen. Scheitert das Verbrauchen,
-  ist das Modul trotzdem freigeschaltet, und der Bot holt es nach. Wie
+  antwortet der Bot trotzdem `200`: Das Modul ist freigeschaltet. Er holt
+  das Verbrauchen vor jedem Binden nach und beim Abgleich unten. Wie
   genau, steht in [0020](../entscheidungen/0020-bezahlte-module.md),
   „Entscheidung“.
+- Bindet eine zweite Anfrage zugleich denselben Kauf, nimmt der Bot den
+  nächsten freien. Bindet sie zugleich einen anderen Kauf an denselben
+  Server, gilt `schon_freigeschaltet`.
 
 | Status | Code | Wann |
 |---|---|---|
 | `400` | `kein_kauf` | die Person hat keinen Kauf des Moduls, der noch nicht gebunden ist |
 | `400` | `schon_freigeschaltet` | das Modul ist auf dem Server schon freigeschaltet; der Kauf bleibt frei |
-| `503` | `nicht_erreichbar` | Discord liefert die Käufe nicht oder nimmt das Verbrauchen nicht an |
+| `503` | `nicht_erreichbar` | Discord liefert die Käufe der Person oder die Abos des Servers nicht: `5xx` nach den Wiederholungen von `@discordjs/rest` oder Abbruch. Auf ein `429` wartet der Bot und fragt dann noch einmal |
 
 Die Aktion zählt zur Grenze für Bausteine, siehe
 [API des Dashboards](api.md), „Grenzen je Sitzung“. Ein Kauf gilt für
 einen Server und lässt sich nicht verschieben; das sagt die Hilfe der
 Aktion.
+
+Die Bindung endet, wenn Discord das Entitlement löscht, etwa bei einer
+Erstattung (`ENTITLEMENT_DELETE`). War der Bot dabei nicht verbunden, holt
+er es nach: Nach jeder neuen Sitzung eines Shards, beim Start und nach
+einem neuen Identify ohne Resume (`ShardReady`), gleicht `gleicheAb` die
+Bindungen der Server dieses Shards ab. Nach einem Resume spielt Discord
+die Ereignisse selbst nach.
+
+- Je gebundener SKU liest der Bot alle Käufe mit `exclude_deleted=false`,
+  in Seiten zu 100 mit `after`. Gelöscht ist ein Kauf nur, wenn Discord ihn
+  dort mit `deleted: true` führt
+  ([List Entitlements](https://docs.discord.com/developers/resources/entitlement#list-entitlements),
+  `exclude_deleted`); dann fällt die Bindung. Get Entitlement sagt nicht,
+  wie es einen gelöschten Kauf liefert.
+- Fehlt ein Kauf in der Liste oder scheitert eine Seite, bleibt die
+  Bindung. Was die Seiten davor mit `deleted: true` belegt haben, gilt.
+  So verliert niemand ein bezahltes Modul wegen eines `5xx`.
+- Ist ein gebundener Kauf noch nicht verbraucht, verbraucht der Bot ihn im
+  selben Durchgang.
+- Das Log nennt nur Zahlen: `Käufe abgeglichen: n Bindungen, n gelöscht,
+  n nachverbraucht, n offen.`
 
 ## Bausteine
 
@@ -184,8 +215,21 @@ Gebaut ist das in `Brett` in `bot/src/brett/brett.ts`:
 - Ein Modul meldet `schalter` im Vertrag `Modul` an und, was es auch aus
   tun muss, in `aufraeumen` seines `DiscordModul`, siehe
   [Struktur von Bot und Oberfläche](../entwicklung/struktur.md), „Ein Modul“.
-- Ob ein bezahltes Modul freigeschaltet ist und wohin der Link zeigt, gibt
-  `bot/src/index.ts` dem Board mit `freigeschaltet` und `kaufen`. Heute hat
-  kein Modul `bezahlt`; beides kommt mit `managed-commands-backend`, dazu
-  die Aktion `<modul>Binden` nach
-  [0020](../entscheidungen/0020-bezahlte-module.md).
+- Ob ein bezahltes Modul freigeschaltet ist, wohin der Link zeigt und wie
+  ein Kauf gebunden wird, gibt `bot/src/index.ts` dem Board mit
+  `freigeschaltet`, `kaufen`, `bindbar` und `binde`. Die Regeln dahinter
+  stehen in `Freischaltung` in `bot/src/brett/freischaltung.ts`, nach
+  [0020](../entscheidungen/0020-bezahlte-module.md): Bindungen aus der
+  Tabelle `bindungen` und laufende Abos von Discord, je Server in einem
+  Cache, die Abos 10 min; ein Abo zählt bis zu `ends_at`, auch im Cache.
+- Welches Modul zu welcher SKU gehört, steht nur in `bot/src/index.ts`:
+  `strafen` zu `SKU_MANAGED_COMMANDS`, „Alles“ zu jedem bezahlten Modul,
+  „Log“ zu `log`. `Freischaltung` kennt kein Modul, nur diese Zuordnung.
+- Mit Discord spricht sie nur über `Kaeufe` aus
+  `bot/src/discord/kaeufe.ts`. `ENTITLEMENT_CREATE`, `ENTITLEMENT_UPDATE`
+  und `ENTITLEMENT_DELETE` leeren den Server im Cache der Abos;
+  `ENTITLEMENT_DELETE` beendet dazu eine Bindung.
+- Die Tabelle `bindungen` löscht `Aufraeumen` nicht, wenn der Bot einen
+  Server verlässt.
+- Noch hat kein Modul `bezahlt`; Managed Commands kommt mit
+  `managed-commands-backend`.
