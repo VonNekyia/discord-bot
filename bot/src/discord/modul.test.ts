@@ -97,7 +97,7 @@ async function nach(tue: () => void): Promise<string[]> {
 }
 
 // Eine Interaktion, wie Discord sie schickt.
-function interaktion(type: 2 | 3, data: object, an: Client = client) {
+function interaktion(type: 2 | 3 | 5, data: object, an: Client = client) {
   zaehler += 1;
   const aktionen = (an as unknown as { actions: { InteractionCreate: { handle(d: unknown): void } } }).actions;
   aktionen.InteractionCreate.handle({
@@ -165,6 +165,8 @@ test('ein Modul, das aus ist, bekommt keine Ereignisse, nur sein Aufräumen; Bef
     ...(await nach(() => geschaltet.emit(Events.ChannelDelete, text as never))),
     ...(await nach(() => interaktion(2, { id: '930000000000000082', name: 'schalter', type: 1 }, geschaltet))),
     ...(await nach(() => interaktion(3, { custom_id: 'c:sperren', component_type: 2 }, geschaltet))),
+    // Ein abgeschicktes Formular: Zwischen Befehl und Formular kann das Modul ausgehen.
+    ...(await nach(() => interaktion(5, { custom_id: 'c:formular', components: [] }, geschaltet))),
   ];
 
   // An: alles kommt an, das Aufräumen dazu.
@@ -186,6 +188,7 @@ test('ein Modul, das aus ist, bekommt keine Ereignisse, nur sein Aufräumen; Bef
     `b kanalWeg ${TEXT}`,
     'c befehl',
     'c knopf sperren',
+    'c knopf formular',
   ]);
   assert.ok(gefragt.every((g) => g === `c ${SERVER}`) && gefragt.length > 0);
 
@@ -194,10 +197,11 @@ test('ein Modul, das aus ist, bekommt keine Ereignisse, nur sein Aufräumen; Bef
   const vorher = mock.antworten.length;
   assert.deepEqual(await alles(), [`a beitritt ${PERSON}`, `a abschied ${PERSON}`, `a stimme ${SERVER} ${PERSON} ${STIMME} null`, 'c räumt stimme', `a kanalWeg ${TEXT}`, 'c räumt kanalWeg']);
   const antworten = mock.antworten.slice(vorher);
-  assert.equal(antworten.length, 2);
+  assert.equal(antworten.length, 3);
   for (const a of antworten) {
     assert.equal(a.daten.content, modulAus);
     assert.equal(a.daten.flags, 64);
+    assert.deepEqual((a.daten as { allowed_mentions?: unknown }).allowed_mentions, { parse: [] });
   }
   aus.clear();
 });

@@ -97,6 +97,13 @@ const brett = new Brett({
 const istAn = (modul: string, server: string) => brett.istAn(modul, server);
 // Ihre Tabellen und die des Boards löscht `aufraeumer`, wenn der Bot einen Server verlässt.
 const aufraeumer = new Aufraeumen([...modulListe, brett]);
+// Was über seiner Frist ist, löschen die Module beim Start und dann stündlich,
+// auch ohne API und wo sie aus sind. Siehe docs/entwicklung/struktur.md, „Ein Modul“.
+function raeumeModuleAuf(): void {
+  for (const m of modulListe) void m.raeumeAuf?.().catch((e: unknown) => console.error(`${m.name}: nicht aufgeräumt: ${text(e)}`));
+}
+raeumeModuleAuf();
+setInterval(raeumeModuleAuf, 60 * 60 * 1000).unref();
 let api: Server | undefined;
 
 // Was nach dem Verbinden läuft. Scheitert es unerwartet, endet der Prozess,

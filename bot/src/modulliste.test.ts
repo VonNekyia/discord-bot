@@ -44,15 +44,15 @@ describe('Module', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt' }, ()
 
   test('die Seiten kommen in der Reihenfolge der Tabs; vergiss leert den Cache jedes Moduls nur für seinen Server', () => {
     // Caches, die sich merken, was sie vergessen.
-    const vergessen: Record<'einstellungen' | 'sprachraeume', string[]> = { einstellungen: [], sprachraeume: [] };
+    const vergessen: Record<'einstellungen' | 'sprachraeume' | 'strafen', string[]> = { einstellungen: [], sprachraeume: [], strafen: [] };
     const cache = (name: keyof typeof vergessen) => ({ fetch: async () => undefined, delete: (server: string) => vergessen[name].push(server) });
-    const liste = alleModule({ db, zaehlung: new Zaehlung(), kanal: () => undefined, einstellungen: cache('einstellungen'), sprachraeume: cache('sprachraeume') });
+    const liste = alleModule({ db, zaehlung: new Zaehlung(), kanal: () => undefined, einstellungen: cache('einstellungen'), sprachraeume: cache('sprachraeume'), strafen: cache('strafen') });
     assert.deepEqual(
       liste.flatMap((m) => (m.bereich ? Object.keys(m.bereich.seiten) : [])),
-      ['beitritt', 'abschied', 'sprachraeume'],
+      ['beitritt', 'abschied', 'sprachraeume', 'strafen'],
     );
     for (const m of liste) m.vergiss?.('300000000000000071');
-    assert.deepEqual(vergessen, { einstellungen: ['300000000000000071'], sprachraeume: ['300000000000000071'] });
+    assert.deepEqual(vergessen, { einstellungen: ['300000000000000071'], sprachraeume: ['300000000000000071'], strafen: ['300000000000000071'] });
   });
 
   test('welches Modul welche Ereignisse, Befehle, Knöpfe und welchen Schalter hat', () => {
@@ -62,14 +62,16 @@ describe('Module', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt' }, ()
         name: m.name,
         ereignisse: Object.keys(m.ereignisse ?? {}),
         aufraeumen: Object.keys(m.aufraeumen ?? {}),
+        raeumeAuf: m.raeumeAuf !== undefined,
         befehle: (m.befehle ?? []).map((b) => b.name),
         praefix: m.knoepfe?.praefix,
         schalter: m.schalter ? { bezahlt: m.schalter.bezahlt ?? false } : undefined,
       })),
       [
-        { name: 'befehle', ereignisse: [], aufraeumen: [], befehle: ['ping'], praefix: undefined, schalter: undefined },
-        { name: 'begruessung', ereignisse: ['beitritt', 'abschied'], aufraeumen: [], befehle: [], praefix: undefined, schalter: { bezahlt: false } },
-        { name: 'sprachraeume', ereignisse: ['stimme'], aufraeumen: ['bereit', 'stimme', 'kanalWeg'], befehle: [], praefix: 'sprachraum:', schalter: { bezahlt: false } },
+        { name: 'befehle', ereignisse: [], aufraeumen: [], befehle: ['ping'], praefix: undefined, schalter: undefined, raeumeAuf: false },
+        { name: 'begruessung', ereignisse: ['beitritt', 'abschied'], aufraeumen: [], befehle: [], praefix: undefined, schalter: { bezahlt: false }, raeumeAuf: false },
+        { name: 'sprachraeume', ereignisse: ['stimme'], aufraeumen: ['bereit', 'stimme', 'kanalWeg'], befehle: [], praefix: 'sprachraum:', schalter: { bezahlt: false }, raeumeAuf: false },
+        { name: 'strafen', ereignisse: [], aufraeumen: [], befehle: ['ban', 'kick', 'warn'], praefix: 'strafe:', schalter: { bezahlt: true }, raeumeAuf: true },
       ],
     );
   });

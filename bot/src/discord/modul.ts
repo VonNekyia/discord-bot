@@ -1,7 +1,7 @@
 import { Events, MessageFlags, type Client } from 'discord.js';
 import { text } from '../kern/fehler.js';
 import type { Modul } from '../kern/modul.js';
-import { beantworte, fehlgeschlagen, type Befehl } from './befehle.js';
+import { beantworte, fehlgeschlagen, schlageVor, type Befehl } from './befehle.js';
 import { alsDruck, type Druck } from './interaktionen.js';
 import type { Kontext } from './kontext.js';
 import { alsMitglied, type Mitglied } from './nachrichten.js';
@@ -122,6 +122,13 @@ export function haengeAn(client: Client, module: readonly DiscordModul[], istAn:
     verteile(module, kanal.guildId, istAn, (e) => void e.kanalWeg?.(kanal.id));
   });
   client.on(Events.InteractionCreate, (interaction) => {
+    // Vorschläge nur, wenn das Modul an ist; sonst eine leere Liste.
+    if (interaction.isAutocomplete()) {
+      const besitzer = module.find((m) => m.befehle?.some((b) => b.name === interaction.commandName));
+      const server = interaction.guildId;
+      void (besitzer && server ? zustand(besitzer, server, istAn) : Promise.resolve('an' as const)).then((z) => schlageVor(interaction, befehle, z === 'an'));
+      return;
+    }
     if (interaction.isChatInputCommand()) {
       const besitzer = module.find((m) => m.befehle?.some((b) => b.name === interaction.commandName));
       const server = interaction.guildId;
@@ -133,7 +140,7 @@ export function haengeAn(client: Client, module: readonly DiscordModul[], istAn:
         z === 'an'
           ? beantworte(interaction, befehle)
           : interaction
-              .reply({ content: statt[z], flags: MessageFlags.Ephemeral })
+              .reply({ content: statt[z], flags: MessageFlags.Ephemeral, allowedMentions: { parse: [] } })
               .then(
                 () => undefined,
                 (e: unknown) => console.error(`/${interaction.commandName}: Antwort fehlgeschlagen: ${text(e)}`),

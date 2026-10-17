@@ -4,6 +4,10 @@ description: Die Befehle /ban, /kick und /warn mit vorgefertigten oder eigenen G
 code:
   - bot/src/discord/befehle.ts
   - bot/src/discord/modul.ts
+  - bot/src/discord/moderation.ts
+  - bot/src/discord/mitglieder.ts
+  - bot/src/module/strafen/befehle.ts
+  - bot/src/module/strafen/modul.ts
 ---
 
 # Managed Commands
@@ -18,8 +22,9 @@ Das Modul kostet etwas und ist nur an, wenn es auf dem Server
 freigeschaltet ist, siehe [Board der Module](../schnittstelle/module.md).
 Warum es so gebaut ist, steht in
 [0021](../entscheidungen/0021-managed-commands.md), die Bezahlung in
-[0020](../entscheidungen/0020-bezahlte-module.md). Gebaut wird es mit
-`managed-commands-backend`; bis dahin beschreibt diese Seite den Plan.
+[0020](../entscheidungen/0020-bezahlte-module.md). Gebaut ist es in
+`bot/src/module/strafen/`; die Discord-Schicht dazu steht in
+`bot/src/discord/moderation.ts`.
 
 ## Befehle
 
@@ -78,7 +83,13 @@ zählen nur Bans und Kicks, die geklappt haben. Ist das Limit erreicht,
 sagt die Antwort, wann der nächste wieder geht: 7 Tage nach dem ältesten,
 der noch zählt. Ein Limit von 0 heisst: Diese Rolle darf nicht bannen
 oder kicken. Zwei Befehle desselben Mitglieds zur selben Zeit zählen
-nacheinander, damit keiner am Limit vorbeikommt.
+nacheinander, damit keiner am Limit vorbeikommt. Die Sperre dafür liegt im
+Speicher des Prozesses (`Strafbefehle` in
+`bot/src/module/strafen/befehle.ts`) und deckt Zählen, DM, Bann oder Kick
+und Eintragen ab. Das genügt, solange ein Server nur von einem Prozess
+bedient wird: Alle Interaktionen eines Servers kommen über seinen Shard.
+Bedienen einmal zwei Prozesse denselben Server, braucht es eine Sperre in
+PostgreSQL.
 
 ## Ziel
 
@@ -100,7 +111,10 @@ der Liste über den Bot Mitglieder bannen, die über ihm stehen.
 ## Ablauf
 
 1. Ist das Modul aus, die Antwort, dass es aus ist.
-2. Ist `grund` `custom`, das Formular; weiter, wenn es abgeschickt ist.
+2. Ist `grund` `custom`, gross oder klein, das Formular; weiter, wenn es
+   abgeschickt ist. Ist das Modul inzwischen aus, antwortet der Bot auch
+   dann, dass es aus ist: Jedes Formular prüft das wie ein Befehl
+   (`haengeAn` in `bot/src/discord/modul.ts`).
 3. Die Antwort aufschieben (`deferReply`), denn Discord wartet höchstens
    3 s auf die erste
    ([Interaction Callback](https://docs.discord.com/developers/interactions/receiving-and-responding#responding-to-an-interaction)).
@@ -123,21 +137,34 @@ der Liste über den Bot Mitglieder bannen, die über ihm stehen.
 Scheitert die DM, weil das Mitglied keine DMs vom Bot annimmt (Discord
 antwortet 50007, „Cannot send messages to this user“,
 [JSON Error Codes](https://docs.discord.com/developers/topics/opcodes-and-status-codes#json-json-error-codes)),
-geht der Rest trotzdem, und die Antwort sagt das.
+geht der Rest trotzdem, und die Antwort sagt das. Scheitert sie anders,
+ebenso. Die Sätze dazu stehen unter „Antworten“.
 
 ## Antworten
 
 | Fall | Antwort |
 |---|---|
-| gebannt | „<Name> ist gebannt. Grund: <grund>.“, dazu, ob die DM ankam, und „Bans in 7 Tagen: n von m.“, ohne Limit ohne diesen Satz |
+| gebannt | „<Name> ist gebannt. Grund: <grund>.“, dazu, ob die DM ankam, siehe unten, und „Bans in 7 Tagen: n von m.“, ohne Limit ohne diesen Satz |
 | gekickt | ebenso mit „gekickt“ und „Kicks in 7 Tagen“ |
-| verwarnt | „<Name> ist verwarnt, zum n. Mal. Grund: <grund>.“, dazu, ob die DM ankam; n zählt die Verwarnungen dieses Mitglieds auf diesem Server in den letzten `verwarnungTage` Tagen, Standard 365, siehe [API der Managed Commands](../schnittstelle/strafen.md) |
+| verwarnt | „<Name> ist verwarnt, zum n. Mal. Grund: <grund>.“, dazu, ob die DM ankam, siehe unten; n zählt die Verwarnungen dieses Mitglieds auf diesem Server in den letzten `verwarnungTage` Tagen, Standard 365, siehe [API der Managed Commands](../schnittstelle/strafen.md) |
 | keine Rolle aus der Liste | „Du darfst diesen Befehl hier nicht nutzen.“ |
+| Limit 0 für alle eigenen Rollen | „Deine Rollen dürfen nicht bannen.“, ebenso für Kicks |
 | Limit erreicht | „Du hast dein Limit erreicht: m Bans in 7 Tagen. Der nächste geht ab <Zeit>.“ |
 | Ziel geht nicht | je Regel aus „Ziel“ ein Satz |
 | dem Bot fehlt ein Recht oder die Hierarchie, Discord antwortet 50013 | „kitty fehlt das Recht dazu, oder die Rolle von kitty steht zu tief.“ |
 | das Mitglied ist schon weg (10007) oder kein Nutzer (10013) | „Diesen Nutzer gibt es auf dem Server nicht mehr.“ |
 | jeder andere Fehler | „Das hat nicht geklappt.“, siehe [Befehle](befehle.md), „Fehler“ |
+
+Ob die DM ankam, sagt ein Satz; der Befehl geht in jedem Fall weiter:
+
+| DM | Satz |
+|---|---|
+| angekommen | „Die DM ist angekommen.“ |
+| das Mitglied nimmt keine DMs vom Bot an (50007 oder 50278, `kein_dm`) | „Die DM kam nicht an; das Mitglied nimmt keine DMs von kitty an.“ |
+| jeder andere Fehler, etwa ein 5xx | „Die DM kam nicht an.“, und eine Zeile `/<befehl>: DM nicht gesendet: <Fehler>` ins Log |
+
+Ohne DM fehlt der Satz: beim Kick, beim Bann ohne DM in den Einstellungen
+und beim Bann eines Nutzers, der nicht auf dem Server ist.
 
 `<Zeit>` ist ein Zeitstempel von Discord (`<t:…:R>`), den jeder in seiner
 Zeitzone sieht
@@ -159,7 +186,9 @@ stehen, die er bannen oder kicken soll, siehe „Ziel“.
 
 Einen neuen Intent brauchen die Befehle nicht: Sie kommen als
 Interaktion, die Rollen von Ziel und Nutzer stehen in der Interaktion,
-und Bann, Kick und DM gehen über die REST-API. Siehe [Intents](../bot/intents.md).
+nach dem Formular holt der Bot das Ziel über die REST-API (`zielAuf` in
+`bot/src/discord/moderation.ts`), und Bann, Kick und DM gehen ebenso über
+die REST-API. Siehe [Intents](../bot/intents.md).
 
 ## Was noch fehlt
 

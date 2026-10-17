@@ -17,6 +17,7 @@ code:
   - bot/src/discord/eigentuemer.ts
   - bot/src/brett/freischaltung.ts
   - bot/src/discord/kaeufe.ts
+  - bot/src/module/strafen/befehle.ts
 ---
 
 # Datenschutz
@@ -36,9 +37,9 @@ nicht gebaut.
 | Bild je Server und Art, beim Hochladen auf 1100 × 440 px zugeschnitten und neu kodiert, ohne Metadaten wie EXIF oder GPS; es kann Personen zeigen | Hintergrund des Banners | bis es ersetzt oder gelöscht wird oder der Bot den Server verlässt | gebaut |
 | Sprachräume je Server: Server-ID, Schalter, Erzeuger mit Kanal-ID, Kategorie-ID, Namensvorlage und Limit | Räume anlegen | bis das Team sie ändert oder der Bot den Server verlässt | gebaut |
 | Raum: Server-ID, Kanal-ID, Discord-ID des Besitzers, Zeit der Anlage | wissen, welche Kanäle Räume sind und wem sie gehören, auch nach einem Neustart | bis der Raum gelöscht ist, der Besitz wechselt oder der Bot den Server verlässt; beim Start vergisst der Bot Räume, die es nicht mehr gibt | gebaut |
-| Managed Commands je Server: Server-ID, vorgefertigte Gründe, Rollen-IDs mit Limits, Text der DM und zur Entbannung, Frist der Verwarnungen | die Befehle `/ban`, `/kick` und `/warn`, siehe [API der Managed Commands](../schnittstelle/strafen.md) | bis das Team sie ändert oder der Bot den Server verlässt | kommt mit `managed-commands-backend` |
-| Ban oder Kick: Server-ID, Discord-ID dessen, der den Befehl nutzt, Art, Zeit; nicht das Ziel und nicht der Grund | das Limit je Rolle, siehe [Managed Commands](../benutzung/managed-commands.md), „Limit“ | 7 Tage; der Bot löscht ältere Zeilen mindestens stündlich, und wenn er den Server verlässt | kommt mit `managed-commands-backend` |
-| Verwarnung: Server-ID, Discord-ID des Verwarnten und dessen, der verwarnt, Grund, Zeit | die Zahl in „verwarnt, zum n. Mal“ | so viele Tage, wie der Server in `verwarnungTage` einstellt, 30 bis 730, Standard 365, siehe [API der Managed Commands](../schnittstelle/strafen.md); der Bot löscht ältere Zeilen mindestens stündlich, auch nachdem die Frist kürzer geworden ist, und wenn er den Server verlässt | kommt mit `managed-commands-backend` |
+| Managed Commands je Server: Server-ID, vorgefertigte Gründe, Rollen-IDs mit Limits, Text der DM und zur Entbannung, Frist der Verwarnungen | die Befehle `/ban`, `/kick` und `/warn`, siehe [API der Managed Commands](../schnittstelle/strafen.md) | bis das Team sie ändert oder der Bot den Server verlässt | gebaut |
+| Ban oder Kick: Server-ID, Discord-ID dessen, der den Befehl nutzt, Art, Zeit; nicht das Ziel und nicht der Grund | das Limit je Rolle, siehe [Managed Commands](../benutzung/managed-commands.md), „Limit“ | 7 Tage; der Bot löscht ältere Zeilen mindestens stündlich, und wenn er den Server verlässt | gebaut |
+| Verwarnung: Server-ID, Discord-ID des Verwarnten und dessen, der verwarnt, Grund, Zeit | die Zahl in „verwarnt, zum n. Mal“ | so viele Tage, wie der Server in `verwarnungTage` einstellt, 30 bis 730, Standard 365, siehe [API der Managed Commands](../schnittstelle/strafen.md); der Bot löscht ältere Zeilen mindestens stündlich, auch nachdem die Frist kürzer geworden ist, und wenn er den Server verlässt | gebaut |
 | Bindung eines Kaufs: Server-ID, SKU-ID, Entitlement-ID, ob verbraucht, Zeit; keine Discord-ID einer Person | dass ein bezahltes Modul auf dem Server freigeschaltet ist, siehe [0020](../entscheidungen/0020-bezahlte-module.md) | bis Discord das Entitlement löscht, etwa bei einer Rückerstattung; bleibt, wenn der Bot den Server verlässt, damit der Kauf nicht verloren geht | gebaut |
 | Board je Server und Modul: Server-ID, ID des Moduls, Schalter | welche Module auf dem Server an sind, siehe [Board der Module](../schnittstelle/module.md) | bis das Team es ändert oder der Bot den Server verlässt | gebaut |
 
@@ -142,6 +143,10 @@ etwa `Käufe abgeglichen: 3 Bindungen, 1 gelöscht, 1 nachverbraucht, 1
 offen.`; nie Entitlement-, Nutzer- oder Server-IDs. Die Tests „scheitert
 das Verbrauchen, ist das Modul trotzdem frei …“ und „ein gelöschter Kauf
 entfernt die Bindung …“ prüfen die Zeilen.
+
+Die Managed Commands loggen nur den Befehl und den Text eines Fehlers,
+etwa `/ban: DM nicht gesendet: <Fehler>` oder `strafen: nicht
+aufgeräumt: <Fehler>`; nie Ziel, Grund oder wer den Befehl nutzt.
 
 Die Sprachräume loggen nur einen festen Schritt und den Text des Fehlers,
 etwa `Sprachraum: nicht angelegt: <Fehler>`; das Menü nur

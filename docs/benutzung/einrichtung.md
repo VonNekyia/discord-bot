@@ -119,7 +119,7 @@ der Wert `286362640`, mit den Managed Commands `286362646`:
 |---|---|
 | Kanäle ansehen, Nachrichten senden, Dateien anhängen | die Begrüssung, siehe [Begrüssung bei Beitritt und Abschied](begruessung.md), „Rechte und Intent“ |
 | Kanäle verwalten, Rollen verwalten, Mitglieder verschieben, Verbinden, Nachrichtenverlauf anzeigen | die Sprachräume, siehe [Sprachräume](sprachraeume.md), „Rechte und Intent“ |
-| Mitglieder kicken, Mitglieder bannen | die Managed Commands, siehe [Managed Commands](managed-commands.md), „Rechte und Intent“; kommen mit `managed-commands-backend` |
+| Mitglieder kicken, Mitglieder bannen | die Managed Commands, siehe [Managed Commands](managed-commands.md), „Rechte und Intent“ |
 
 `/ping` braucht keine Rechte, siehe [Befehle](befehle.md).
 Die Rechte der Sprachräume braucht der Bot auf dem ganzen Server. Wer den

@@ -12,6 +12,8 @@ code:
   - bot/migrationen/0004-sprachraeume.sql
   - bot/migrationen/0005-raeume.sql
   - bot/migrationen/0006-module-an.sql
+  - bot/migrationen/0007-bindungen.sql
+  - bot/migrationen/0008-strafen.sql
 ---
 
 # Datenbank
@@ -116,6 +118,9 @@ stehen ihre Spalten.
 | `sprachraeume` | `0004-sprachraeume.sql` | Einstellungen der Sprachräume je Server, die Erzeuger als `jsonb` | [API der Sprachräume](../schnittstelle/sprachraeume.md) |
 | `module_an` | `0006-module-an.sql` | je Server und Modul, ob es an ist; ohne Zeile der Standard des Moduls | [Board der Module](../schnittstelle/module.md) |
 | `bindungen` | `0007-bindungen.sql` | je Einmalkauf der Server, an den er gebunden ist, SKU, ob verbraucht, Zeit; die Entitlement-ID ist der Schlüssel, `UNIQUE (server, sku)`; bleibt, wenn der Bot den Server verlässt | [Board der Module](../schnittstelle/module.md), „Kauf binden“ |
+| `strafen` | `0008-strafen.sql` | Einstellungen der Managed Commands je Server, Gründe und Limits als `jsonb` | [API der Managed Commands](../schnittstelle/strafen.md) |
+| `strafaktionen` | `0008-strafen.sql` | je Ban und Kick Server, wer, Art, Zeit; für das Limit, 7 Tage | [Managed Commands](../benutzung/managed-commands.md), „Limit“ |
+| `verwarnungen` | `0008-strafen.sql` | je Verwarnung Server, Ziel, wer, Grund, Zeit; so lange wie `verwarnungTage` | [Managed Commands](../benutzung/managed-commands.md), „Antworten“ |
 | `raeume` | `0005-raeume.sql` | jeder Raum mit Server, Besitzer und Zeit der Anlage; `UNIQUE (server, besitzer)`: höchstens ein Raum je Mitglied und Server, auch wenn der Besitz wechselt | [Sprachräume im Bot](sprachraeume-bau.md), [Menü der Sprachräume im Bot](sprachraeume-menue.md) |
 
 Was davon personenbezogen ist und wie lange es bleibt, steht in

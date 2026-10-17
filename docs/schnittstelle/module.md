@@ -31,7 +31,7 @@ Fehlerformat und Grenzen gelten wie im Baukasten und in
 | Befehle (`/ping`) | keiner, immer an | nein | an |
 | Begrüssung | `begruessung` | nein | an |
 | Sprachräume | `sprachraeume` | nein | an |
-| Managed Commands | `strafen`, kommt mit seinem Modul | ja, einmalig | aus |
+| Managed Commands | `strafen` | ja, einmalig | aus |
 | Log | `log`, kommt mit seinem Modul | frei, das Speichern in der Datenbank bezahlt | an |
 
 - Ein Modul steht auf dem Board, wenn es einen Schalter anmeldet, siehe
@@ -237,5 +237,5 @@ Gebaut ist das in `Brett` in `bot/src/brett/brett.ts`:
   `ENTITLEMENT_DELETE` beendet dazu eine Bindung.
 - Die Tabelle `bindungen` löscht `Aufraeumen` nicht, wenn der Bot einen
   Server verlässt.
-- Noch hat kein Modul `bezahlt`; Managed Commands kommt mit
-  `managed-commands-backend`.
+- Bezahlt ist heute Managed Commands (`strafen`), siehe
+  [Managed Commands](../benutzung/managed-commands.md).
