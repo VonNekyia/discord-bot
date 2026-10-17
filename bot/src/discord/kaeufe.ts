@@ -63,7 +63,8 @@ export function kaeufeVon(client: Client): Kaeufe {
     return id;
   };
   // Die Liste Seite für Seite, mit `after` hinter dem grössten Kauf der
-  // Seite, bis eine kürzer ist.
+  // Seite, bis eine kürzer ist. Dass Discord die Käufe direkt hinter `after`
+  // liefert, ist nicht belegt; siehe docs/schnittstelle/module.md, „Kauf binden“.
   async function* seiten(filter: Record<string, string>): AsyncGenerator<Kauf[]> {
     let nach = 0n;
     /* oxlint-disable no-await-in-loop */

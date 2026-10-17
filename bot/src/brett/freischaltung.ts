@@ -144,8 +144,9 @@ export class Freischaltung {
             offen.delete(kauf.id);
           }
         }
-      } catch {
-        // Discord liefert die Liste nicht weiter; die Bindungen bleiben.
+      } catch (fehler) {
+        // Die Liste bricht ab; die Bindungen, die noch fehlen, bleiben.
+        console.error(`Käufe nicht abgeglichen: ${text(fehler)}`);
       }
     }
     /* oxlint-enable no-await-in-loop */

@@ -105,7 +105,13 @@ Bindungen der Server dieses Shards ab. Nach einem Resume spielt Discord
 die Ereignisse selbst nach.
 
 - Je gebundener SKU liest der Bot alle Käufe mit `exclude_deleted=false`,
-  in Seiten zu 100 mit `after`. Gelöscht ist ein Kauf nur, wenn Discord ihn
+  in Seiten zu 100 mit `after` hinter dem grössten Kauf der Seite. Dabei
+  nimmt er an, dass Discord die Käufe direkt hinter `after` liefert; die
+  Doku sagt nur „Retrieve entitlements after this entitlement ID“. Stimmt
+  das nicht, fehlen ihm Seiten: Im Abgleich bleibt eine Bindung dann
+  stehen, beim Binden kann `kein_kauf` kommen, obwohl ein Kauf frei ist,
+  erst ab mehr als 100 Käufen einer Person für dieselbe SKU. Gebunden oder
+  gelöscht wird so nie etwas zu Unrecht. Gelöscht ist ein Kauf nur, wenn Discord ihn
   dort mit `deleted: true` führt
   ([List Entitlements](https://docs.discord.com/developers/resources/entitlement#list-entitlements),
   `exclude_deleted`); dann fällt die Bindung. Get Entitlement sagt nicht,

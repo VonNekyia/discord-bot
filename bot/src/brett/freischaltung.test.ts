@@ -277,9 +277,9 @@ describe('Freischaltung', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt
       assert.equal(new URLSearchParams(seiten[1]?.pfad.split('?')[1] ?? '').get('after'), String(510000000000000198n));
     });
 
-    test('bei 5xx und Abbruch bleiben alle Bindungen; bei 429 wartet der Bot und gleicht danach ab', async (t) => {
+    test('bei 5xx und Abbruch bleiben alle Bindungen, mit einer Zeile je Fehler ohne IDs; bei 429 wartet der Bot und gleicht danach ab', async (t) => {
       t.mock.method(console, 'log', () => {});
-      t.mock.method(console, 'error', () => {});
+      const fehlerLog = t.mock.method(console, 'error', () => {});
       mock.kaeufe = [geloescht(KAUF_1)];
       await binde(KAUF_1, SERVER);
       const f = baue({ abos: [] });
@@ -288,6 +288,12 @@ describe('Freischaltung', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt
       mock.kaeufeFolge = ['abbruch'];
       await f.gleicheAb(shard0);
       assert.equal((await gebunden()).length, 1);
+      const zeilen = fehlerLog.mock.calls.map((c) => String(c.arguments[0]));
+      assert.equal(zeilen.length, 2);
+      for (const zeile of zeilen) {
+        assert.match(zeile, /^Käufe nicht abgeglichen: \S/);
+        for (const id of [KAUF_1, SERVER, SKU, PERSON]) assert.ok(!zeile.includes(id), zeile);
+      }
       mock.kaeufeWarten = [0];
       await f.gleicheAb(shard0);
       assert.deepEqual(await gebunden(), []);
