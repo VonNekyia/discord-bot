@@ -1,6 +1,6 @@
 ---
 title: "0019: Module je Server an und aus"
-description: Warum ein Board je Server die Module an- und ausschaltet, als eigene Schicht neben api/ und nicht als Modul; frei heisst an, bezahlt heisst aus bis zum Abo, aus heisst inaktiv bis auf das Aufräumen; neue Bausteine link und schalter mit gesperrt, alleNeu an der Seite.
+description: Warum ein Board je Server die Module an- und ausschaltet, als eigene Schicht neben api/ und nicht als Modul; frei heisst an, bezahlt heisst aus bis zur Freischaltung, aus heisst inaktiv bis auf das Aufräumen; neue Bausteine link und schalter mit gesperrt, alleNeu an der Seite.
 status: gilt
 date: 2026-10-17
 issues: []
@@ -17,7 +17,7 @@ code:
 
 Der Maintainer will je Server die Module an- und ausschalten. Im Dashboard
 sollen nur die Module stehen, die an sind. Mit Managed Commands kommt das
-erste bezahlte Modul; es soll nur mit einem Abo des Servers angehen.
+erste bezahlte Modul; es soll nur angehen, wenn es auf dem Server freigeschaltet ist.
 Stand vorher:
 
 - jedes Modul wirkt auf jedem Server, sobald es eingestellt ist;
@@ -36,7 +36,9 @@ Ein Board je Server hält, welches Modul an ist, wie in
   anmeldet. `haengeAn` und die API bekommen von `index.ts` nur eine
   Funktion „ist an“.
 - **Standard:** Freie Module sind ohne gespeicherten Stand an, bezahlte
-  aus. Ein bezahltes ist nur mit Abo an. Befehle (`/ping`) steht nicht auf
+  aus. Ein bezahltes ist nur an, wenn es freigeschaltet ist; wie, ob
+  einmalig oder im Abo, entscheidet eine eigene Entscheidung mit dem
+  ersten bezahlten Modul. Befehle (`/ping`) steht nicht auf
   dem Board.
 - **Aus heisst inaktiv:** keine Ereignisse, keine Seiten, Befehle und
   Knöpfe sagen, dass das Modul aus ist. Was ein Modul aufräumen muss,
@@ -53,7 +55,7 @@ Ein Board je Server hält, welches Modul an ist, wie in
 - **Das Board in `api/`.** Die Sperre gilt auch für Ereignisse, Befehle
   und Knöpfe, die mit der API nichts zu tun haben; und die API soll kein
   Modul kennen.
-- **Das Board in `kern/`.** Es braucht den `Kontext` und die Abos aus der
+- **Das Board in `kern/`.** Es braucht den `Kontext` und die Entitlements aus der
   Discord-Schicht; der Kern kennt keine Schicht über sich.
 - **Je Modul ein Schalter auf seinem eigenen Tab.** Ein ausgeschaltetes
   Modul hätte dann keinen Tab mehr, auf dem man es wieder anschaltet.
@@ -70,9 +72,10 @@ Ein Board je Server hält, welches Modul an ist, wie in
   Sitzung und Rechten und hiesse, die Seite gibt es nicht; ob ein Modul an
   ist, hängt aber vom Server ab, und die Oberfläche soll den Fall erkennen
   und die Tabs neu holen.
-- **Den Preis auf dem Board nennen.** Er steht dann zweimal, im Code und
-  bei der SKU, und Discord zeigt ihn im Store ohnehin in der Währung der
-  Person.
+- **Die Art der Bezahlung im Vertrag des Boards festlegen.** Einmalkauf
+  und Abo binden Entitlements verschieden an Nutzer und Server; das Board
+  braucht nur „freigeschaltet, ja oder nein“. Preis, Art und Link zum
+  Kaufen kommen mit dem ersten bezahlten Modul dazu.
 
 ## Folgen
 
@@ -82,9 +85,9 @@ Ein Board je Server hält, welches Modul an ist, wie in
   auf dem Server an ist; das kostet je Server eine Abfrage, bis der Cache
   sie hält.
 - Das Board ist ein Tab; mit Begrüssung, Sprachräumen und Managed
-  Commands sind es 5 von 6.
+  Commands sind es 5 von 6; das Log braucht den sechsten.
 - Wer das Board speichert, verliert, was in anderen Tabs ungespeichert war.
-- Ein gesperrter Schalter geht beim Speichern mit `false`; nach einem
-  neuen Abo schaltet das Team das Modul selbst wieder an.
-- Wie der Bot ein Abo prüft, kommt mit dem ersten bezahlten Modul in eine
-  eigene Entscheidung.
+- Ein gesperrter Schalter geht beim Speichern mit `false`; nach einer
+  neuen Freischaltung schaltet das Team das Modul selbst wieder an.
+- Wie der Bot eine Freischaltung prüft, kommt mit dem ersten bezahlten
+  Modul in eine eigene Entscheidung.

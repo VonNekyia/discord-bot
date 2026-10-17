@@ -1,6 +1,6 @@
 ---
 title: Board der Module
-description: Die Seite module im Baukasten; je Server jedes Modul an oder aus, gesperrt ohne Abo, ein Link in den Store von Discord, was gespeichert wird, wann die Tabs neu laden, wie ein ausgeschaltetes Modul antwortet und wo das Board im Bot lebt.
+description: Die Seite module im Baukasten; je Server jedes Modul an oder aus, gesperrt, solange ein bezahltes nicht freigeschaltet ist, ein Link in den Store von Discord, was gespeichert wird, wann die Tabs neu laden, wie ein ausgeschaltetes Modul antwortet und wo das Board im Bot lebt.
 code:
   - bot/src/kern/baukasten.ts
   - bot/src/kern/modul.ts
@@ -14,7 +14,7 @@ Auf dem Board schaltet das Team je Server die Module an und aus. Es ist
 eine Seite im [Baukasten](baukasten.md) mit der ID `module` und dem Titel
 „Module“, der letzte Tab. Ein Modul, das aus ist, tut auf dem Server
 nichts, und seine Tabs fehlen; seine Einstellungen bleiben. Ein bezahltes
-Modul geht nur mit einem Abo des Servers an. Das Board ist kein Modul,
+Modul geht nur an, wenn es auf dem Server freigeschaltet ist. Das Board ist kein Modul,
 denn ein Modul kennt kein anderes, siehe „Im Bot“. Warum so, steht in
 [0019](../entscheidungen/0019-module-an-und-aus.md). Routen, Typen,
 Fehlerformat und Grenzen gelten wie im Baukasten und in
@@ -28,38 +28,32 @@ Fehlerformat und Grenzen gelten wie im Baukasten und in
 | Begrüssung | `begruessung` | nein | an |
 | Sprachräume | `sprachraeume` | nein | an |
 | Managed Commands | `strafen`, kommt mit seinem Modul | ja | aus |
+| Log | `log`, kommt mit seinem Modul | frei, das Speichern in der Datenbank bezahlt | an |
 
 - Ein Modul steht auf dem Board, wenn es einen Schalter anmeldet, siehe
   „Im Bot“. Befehle meldet keinen an.
 - Freie Module sind ohne gespeicherten Stand an. Auf bestehenden Servern
   ändert sich so nichts.
 - Ein bezahltes Modul ist an, wenn sein Schalter gespeichert an ist und
-  der Server ein Abo hat. Endet das Abo, ist es aus; der gespeicherte
-  Schalter bleibt. Kommt ein Abo wieder, ist es ohne neues Speichern
-  wieder an, es sei denn, jemand hat das Board inzwischen gespeichert,
-  siehe „Schalter ohne Abo“.
+  es auf dem Server freigeschaltet ist. Endet die Freischaltung, etwa mit
+  einem Abo, ist es aus; der gespeicherte Schalter bleibt. Kommt sie
+  wieder, ist es ohne neues Speichern wieder an, es sei denn, jemand hat
+  das Board inzwischen gespeichert, siehe „Schalter ohne Freischaltung“.
 
-## Abo
+## Freischaltung
 
-Ein bezahltes Modul gehört zu einer SKU bei Discord, einem monatlichen Abo
-je Server. Die SKU hat das Flag `GUILD_SUBSCRIPTION` (`1 << 7`): Eine
-Person kauft es für einen Server, und es gilt für alle dort
-([SKU Flags](https://docs.discord.com/developers/resources/sku#sku-object-sku-flags)).
-Discord nimmt Zahlung und Steuern; der Bot prüft nur, ob ein Entitlement
-da ist ([Monetization](https://docs.discord.com/developers/monetization/overview)).
+Ein bezahltes Modul kauft man bei Discord; Discord nimmt Zahlung und
+Steuern, der Bot prüft nur Entitlements
+([Monetization](https://docs.discord.com/developers/monetization/overview)).
+Für das Board zählt nur eins: ob das Modul auf dem Server freigeschaltet
+ist, ja oder nein.
 
-- **Abo da** heisst: ein Entitlement zur SKU mit `guild_id` dieses
-  Servers, nicht `deleted`, und `ends_at` ist leer oder in der Zukunft
-  ([Entitlement Object](https://docs.discord.com/developers/resources/entitlement#entitlement-object)).
-  Ein laufendes Abo hat `ends_at` leer; kündigt jemand, gilt es bis zum
-  Ende der bezahlten Zeit
-  ([Implementing App Subscriptions](https://docs.discord.com/developers/monetization/implementing-app-subscriptions)).
-- Die ID der SKU ist Konfiguration in `.env`, nie im Code. Fehlt sie, ist
-  das bezahlte Modul überall aus und gesperrt.
-- Wie und wie oft der Bot das Entitlement fragt, kommt mit dem ersten
-  bezahlten Modul in den Vertrag `vertrag-managed-commands`.
-- Den Preis nennt das Board nicht. Er steht bei der SKU im Developer
-  Portal, und Discord zeigt ihn im Store in der Währung der Person.
+- Wie ein Modul freigeschaltet wird, einmalig oder im Abo, wie der Bot
+  das prüft und welcher Server zu einem Kauf gehört, kommt mit dem ersten
+  bezahlten Modul in den Vertrag `vertrag-managed-commands` und in eine
+  eigene Entscheidung. Dort kommen auch Preis und Art auf das Board.
+- Die IDs der SKUs sind Konfiguration in `.env`, nie im Code. Fehlt die
+  eines Moduls, ist es überall aus und gesperrt.
 
 ## Bausteine
 
@@ -68,16 +62,17 @@ Für jedes Modul mit Schalter, in der Reihenfolge der Tabs:
 | ID | Art | Was |
 |---|---|---|
 | `hinweis` | `hinweis`, `info` | einmal oben: Ein Modul, das aus ist, tut nichts; seine Einstellungen bleiben |
-| `<modul>` | `schalter` | `titel` ist der Name des Moduls, `hilfe` sagt, was es tut. Bezahlt und ohne Abo: `gesperrt` mit Code `kein_abo` |
-| `<modul>Abo` | `link` | nur bezahlt und ohne Abo, direkt unter dem Schalter: in den Store von Discord |
+| `<modul>` | `schalter` | `titel` ist der Name des Moduls, `hilfe` sagt, was es tut. Bezahlt und nicht freigeschaltet: `gesperrt` mit Code `nicht_freigeschaltet` |
+| `<modul>Kaufen` | `link` | nur bezahlt und nicht freigeschaltet, direkt unter dem Schalter: in den Store von Discord |
 
 Die Seite hat `alleNeu: true`, siehe [Baukasten](baukasten.md), „Typen“:
 Nach dem Speichern holt die Oberfläche alle Seiten neu und baut die Tabs
 neu. Ein Modul, das angeht, zeigt so gleich seine Tabs, eins, das ausgeht,
 verliert sie.
 
-Der Link zeigt auf die SKU im Store:
-`https://discord.com/application-directory/<Anwendung>/store/<SKU>`
+Der Link zeigt auf die SKU im Store,
+`https://discord.com/application-directory/<Anwendung>/store/<SKU>`, oder
+auf den Store der Anwendung, ohne `/<SKU>`
 ([Managing SKUs](https://docs.discord.com/developers/monetization/managing-skus)).
 Die IDs setzt der Bot ein; hier stehen sie nicht.
 
@@ -89,7 +84,8 @@ Die IDs setzt der Bot ein; hier stehen sie nicht.
 type Module = Record<string, boolean>;
 ```
 
-`Module` ist der Wert der Seite. Für ein bezahltes Modul ohne Abo ist der
+`Module` ist der Wert der Seite. Für ein bezahltes Modul, das nicht
+freigeschaltet ist, ist der
 Wert `false`, auch wenn er gespeichert `true` ist; der Schalter ist dann
 gesperrt und aus.
 
@@ -102,18 +98,18 @@ Feld:
 | Feld | Regel | Code |
 |---|---|---|
 | alle | ein Objekt, je Modul mit Schalter ein `boolean`; andere Felder zählen nicht | `ungueltig` |
-| `<modul>` | `true` bei einem bezahlten Modul nur mit Abo | `kein_abo` |
+| `<modul>` | `true` bei einem bezahlten Modul nur, wenn es freigeschaltet ist | `nicht_freigeschaltet` |
 
 - Die Antwort ist `{ wert, meldung }`; `meldung` sagt, wie viele Module an
   sind.
 - Ein Modul, das ausgeht, hört sofort auf, siehe „Ein Modul ist aus“.
 
-### Schalter ohne Abo
+### Schalter ohne Freischaltung
 
 Ein gesperrter Schalter ist in der Oberfläche aus und geht mit `false` in
-den Body. Wer das Board ohne Abo speichert, speichert das bezahlte Modul
-also aus. Kommt das Abo danach, schaltet das Team es auf dem Board wieder
-an.
+den Body. Wer das Board speichert, solange ein bezahltes Modul nicht
+freigeschaltet ist, speichert es also aus. Kommt die Freischaltung danach,
+schaltet das Team es auf dem Board wieder an.
 
 ## Ein Modul ist aus
 
