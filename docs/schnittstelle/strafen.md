@@ -42,6 +42,7 @@ Bausteine und die Sätze zu den Codes stehen im Modul.
 | `dm` | `schalter` | DM beim Bann |
 | `dmText` | `text` | mehrzeilig, `grenze` 1400, `platzhalter` `{ server: 100, grund: 400 }`; die Nachricht an den Gebannten |
 | `entbannung` | `text` | mehrzeilig, `grenze` 500, ohne Platzhalter; wie man entbannt wird, unter `dmText` |
+| `verwarnungTage` | `zahl` | wie viele Tage der Bot eine Verwarnung speichert und mitzählt, 30 bis 730, `ungueltig` `verwarnung_tage_ungueltig` |
 
 - **Höchstens 24 Gründe:** Discord zeigt in einer Antwort auf Autocomplete
   höchstens 25 Vorschläge
@@ -76,6 +77,7 @@ type Strafen = {
   dm: boolean;
   dmText: string;
   entbannung: string;
+  verwarnungTage: number; // 30 bis 730
 };
 ```
 
@@ -88,6 +90,7 @@ type Strafen = {
   dm: true,
   dmText: 'Du wurdest von {server} gebannt. Grund: {grund}',
   entbannung: '',
+  verwarnungTage: 365,
 }
 ```
 
@@ -115,6 +118,7 @@ Feld, in einer Liste mit der Stelle, etwa `limits.0.rolle`.
 | `limits.<i>.bans`, `limits.<i>.kicks` | ganze Zahl von 0 bis 100 | `limit_ungueltig` |
 | `dmText` | höchstens 1400 Zeichen, wenn `{server}` 100 und `{grund}` 400 Zeichen hat | `dm_zu_lang` |
 | `entbannung` | höchstens 500 Zeichen | `entbannung_zu_lang` |
+| `verwarnungTage` | ganze Zahl von 30 bis 730 | `verwarnung_tage_ungueltig` |
 | `dm` | `true` nur mit einem `dmText`, der nicht leer ist | `dm_ohne_text` |
 
 - `rolle_fehlt` meldet nur die Oberfläche, wenn keine Rolle gewählt ist;
@@ -124,6 +128,9 @@ Feld, in einer Liste mit der Stelle, etwa `limits.0.rolle`.
 - Zeichen zählen wie in [Baukasten](baukasten.md), „Länge eines Texts“.
 - Die Antwort ist `{ wert, meldung }`; `meldung` sagt, wie viele Rollen
   die Befehle nutzen dürfen.
+- Wird `verwarnungTage` kürzer, löscht der Bot die älteren Verwarnungen
+  beim nächsten Aufräumen, siehe [Datenschutz](../bot/datenschutz.md).
+  Wird es länger, kommen schon gelöschte nicht zurück.
 - Neue Werte gelten für den nächsten Befehl. Das Limit zählt Bans und
   Kicks der letzten 7 Tage mit dem Limit, das dann gilt.
 

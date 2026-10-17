@@ -41,7 +41,9 @@ Wie in [Managed Commands](../benutzung/managed-commands.md) und
   der letzten 168 Stunden. Zählen und Eintragen geschehen unter einer
   Sperre je Mitglied und Server.
 - **Speichern:** Für das Limit nur Server, wer, was und wann, 7 Tage lang.
-  Für die Verwarnung Server, Ziel, wer, Grund und wann, 365 Tage lang.
+  Für die Verwarnung Server, Ziel, wer, Grund und wann, so lange, wie der
+  Server in `verwarnungTage` einstellt: 30 bis 730 Tage, Standard 365. So
+  hat der Maintainer entschieden.
   Siehe [Datenschutz](../bot/datenschutz.md).
 
 ## Verworfene Alternativen
@@ -62,6 +64,8 @@ Wie in [Managed Commands](../benutzung/managed-commands.md) und
 - **Nur die Hierarchie von Discord.** Sie schützt nur vor dem Bot. Mit
   einer Rolle aus der Liste könnte jemand über den Bot Mitglieder bannen,
   die über ihm stehen.
+- **Eine feste Frist für Verwarnungen, gleich für alle Server.** Der
+  Maintainer will, dass jeder Server sie selbst einstellt.
 - **Ein festes Limit je Kalenderwoche.** Am Montag wäre alles wieder frei;
   der Maintainer will rollierend 7 Tage.
 - **Ziel und Grund jedes Bans und Kicks speichern.** Für das Limit reicht,
@@ -73,7 +77,8 @@ Wie in [Managed Commands](../benutzung/managed-commands.md) und
   erste Antwort und `warte` für Befehle, siehe `managed-commands-backend`.
 - Wer die Befehle nutzen darf, ist nicht in Discord sichtbar, nur im
   Dashboard.
-- Die Verwarnungen zählen 365 Tage; „zum n. Mal“ heisst also im letzten
-  Jahr. Die Frist ist ein Vorschlag an den Maintainer.
+- „Zum n. Mal“ zählt in der Frist des Servers, ohne Einstellung im
+  letzten Jahr. Wird die Frist kürzer, gehen ältere Verwarnungen beim
+  nächsten Aufräumen.
 - Ein Mitglied, das nicht auf dem Server ist, lässt sich bannen, aber
   nicht kicken oder verwarnen, und bekommt keine DM.

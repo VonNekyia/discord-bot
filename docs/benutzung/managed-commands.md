@@ -131,7 +131,7 @@ geht der Rest trotzdem, und die Antwort sagt das.
 |---|---|
 | gebannt | „<Name> ist gebannt. Grund: <grund>.“, dazu, ob die DM ankam, und „Bans in 7 Tagen: n von m.“, ohne Limit ohne diesen Satz |
 | gekickt | ebenso mit „gekickt“ und „Kicks in 7 Tagen“ |
-| verwarnt | „<Name> ist verwarnt, zum n. Mal. Grund: <grund>.“, dazu, ob die DM ankam; n zählt die gespeicherten Verwarnungen auf diesem Server, siehe [Datenschutz](../bot/datenschutz.md) |
+| verwarnt | „<Name> ist verwarnt, zum n. Mal. Grund: <grund>.“, dazu, ob die DM ankam; n zählt die Verwarnungen dieses Mitglieds auf diesem Server in den letzten `verwarnungTage` Tagen, Standard 365, siehe [API der Managed Commands](../schnittstelle/strafen.md) |
 | keine Rolle aus der Liste | „Du darfst diesen Befehl hier nicht nutzen.“ |
 | Limit erreicht | „Du hast dein Limit erreicht: m Bans in 7 Tagen. Der nächste geht ab <Zeit>.“ |
 | Ziel geht nicht | je Regel aus „Ziel“ ein Satz |

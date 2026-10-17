@@ -122,6 +122,10 @@ der Wert `286362640`, mit den Managed Commands `286362646`:
 | Mitglieder kicken, Mitglieder bannen | die Managed Commands, siehe [Managed Commands](managed-commands.md), „Rechte und Intent“; kommen mit `managed-commands-backend` |
 
 `/ping` braucht keine Rechte, siehe [Befehle](befehle.md).
+Die Rechte der Sprachräume braucht der Bot auf dem ganzen Server. Wer den
+Bot schon eingeladen hat, gibt sie seiner Rolle von Hand oder lädt ihn neu
+ein; ebenso die der Managed Commands. Solange der Bot privat ist, geht der
+Link nur für das Team.
 
 Für die bezahlten Module legt der Maintainer im Developer Portal unter
 „Monetization“ die SKUs an und trägt ihre IDs in `bot/.env` ein:
@@ -129,10 +133,18 @@ Für die bezahlten Module legt der Maintainer im Developer Portal unter
 `SKU_ABO_ALLES` (Abos je Server, 4,99 € und 19,99 € im Monat). Sie sind
 keine Secrets. Fehlt eine, ist ihr Angebot aus, siehe
 [0020](../entscheidungen/0020-bezahlte-module.md). Kommt mit
-`managed-commands-backend`. Die Rechte
-der Sprachräume braucht der Bot auf dem ganzen Server. Wer den Bot schon
-eingeladen hat, gibt sie seiner Rolle von Hand oder lädt ihn neu ein.
-Solange der Bot privat ist, geht der Link nur für das Team.
+`managed-commands-backend`.
+
+### Eigener Server
+
+Der eigene Server bekommt die bezahlten Module über ein Test-Entitlement,
+ohne Ausnahme im Code, siehe [0020](../entscheidungen/0020-bezahlte-module.md).
+Der Maintainer legt es einmal an, mit `POST
+/applications/{Anwendung}/entitlements`, der SKU aus `SKU_ABO_ALLES`, der
+ID des Servers als `owner_id` und `owner_type` 1
+([Create Test Entitlement](https://docs.discord.com/developers/resources/entitlement#create-test-entitlement)).
+Es läuft nicht ab. Mit `DELETE` auf dasselbe Entitlement nimmt er es
+wieder weg. Die IDs stehen nirgends im Repository (`AGENTS.md`, Regel 21).
 
 ## Betrieb
 

@@ -108,6 +108,16 @@ Einmalkäufe wie Managed Commands.
 `SKU_MANAGED_COMMANDS`, `SKU_ABO_LOG`, `SKU_ABO_ALLES`. Fehlt eine, ist ihr
 Angebot aus; ein Modul ohne Freischaltung ist überall aus und gesperrt.
 
+**Eigener Server:** Er bekommt die bezahlten Module über ein
+Test-Entitlement der SKU „Alles“ für den Server (`owner_type` 1), ohne
+Ausnahme im Code. Discord „will act as though that user or guild has
+entitlement to your premium offering“, und ein Test-Entitlement hat kein
+`ends_at`, „as it's valid in perpetuity“
+([Create Test Entitlement](https://docs.discord.com/developers/resources/entitlement#create-test-entitlement)).
+Für den Bot ist es damit ein laufendes Abo. Wie das Team es anlegt, steht
+in [Einrichtung und Betrieb](../benutzung/einrichtung.md), „Eigener
+Server“.
+
 **Store:** Der Link zum Kaufen zeigt auf die SKU,
 `https://discord.com/application-directory/<Anwendung>/store/<SKU>`
 ([Managing SKUs](https://docs.discord.com/developers/monetization/managing-skus)).
@@ -130,6 +140,11 @@ die API.
 - **„Frei“ nach `consumed` von Discord.** Zwei Anfragen zugleich sähen
   denselben unverbrauchten Kauf und bänden ihn beide; ein Kauf, dessen
   Verbrauchen scheiterte, sähe frei aus, obwohl er gebunden ist.
+- **Eine Ausnahme im Code für den eigenen Server**, etwa eine Server-ID
+  in `.env`. Mehr Code und eine Stelle, die niemand testet; das
+  Test-Entitlement nimmt denselben Weg wie ein echtes Abo.
+- **Einen Kauf verschieben.** Der Maintainer will das nicht: Ein Kauf gilt
+  fest für den Server, an den er gebunden ist.
 - **Bindung per Slash-Befehl auf dem Server.** Der Befehl gehörte keinem
   Modul; das Board ist schon der Ort, an dem man Module freischaltet.
 - **Abos je Person (`USER_SUBSCRIPTION`).** Eine Anwendung bietet
@@ -152,8 +167,5 @@ die API.
 - Ob eine Anwendung Consumables und Abos je Server zugleich anbieten kann,
   sagt die Doku von Discord nicht. Das prüft der Maintainer im Developer
   Portal, bevor `managed-commands-backend` gemergt wird.
-- Offen für den Maintainer: ob der eigene Server über Test-Entitlements
-  freigeschaltet wird. Discord erlaubt sie für das Team der Anwendung, und
-  sie laufen nicht ab
-  ([Create Test Entitlement](https://docs.discord.com/developers/resources/entitlement#create-test-entitlement)).
-  Dann bräuchte der Bot keine Ausnahme im Code.
+- Kein Code für den eigenen Server: Wer das Test-Entitlement löscht,
+  nimmt ihm die bezahlten Module wie ein endendes Abo.
