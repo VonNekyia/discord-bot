@@ -16,6 +16,9 @@ import { serverVon, type Server } from './server.js';
 // Ein Vorschlag für Autocomplete: Name, wie Discord ihn zeigt, und Wert.
 export type Vorschlag = { name: string; wert: string };
 
+// Auf einem Server: der Server, wer den Befehl nutzt und sein Rang.
+export type Ort = { server: Server; wer: Person; rang: Rang };
+
 // Eine Option eines Befehls; jede ist Pflicht.
 export type Option =
   | { art: 'nutzer'; name: string; beschreibung: string }
@@ -25,8 +28,9 @@ export type Option =
       beschreibung: string;
       // `max_length` bei Discord.
       hoechstens: number;
-      // Mit Autocomplete: die Vorschläge zum getippten Text, höchstens 25.
-      vorschlaege?(eingabe: string, server: Server): Promise<Vorschlag[]>;
+      // Mit Autocomplete: die Vorschläge zum getippten Text, höchstens 25;
+      // `ort` sagt, wer tippt, damit nur sieht, wer den Befehl nutzen darf.
+      vorschlaege?(eingabe: string, ort: Ort): Promise<Vorschlag[]>;
     };
 
 // Wen eine Nutzer-Option nennt; `rang` nur, wenn er Mitglied des Servers ist.
@@ -39,7 +43,7 @@ export interface Aufruf {
   // Antwortet gleich; Discord wartet höchstens 3 s auf die erste Antwort.
   antworte(inhalt: string): Promise<void>;
   // Auf einem Server: der Server, wer den Befehl nutzt und sein Rang.
-  ort?: { server: Server; wer: Person; rang: Rang };
+  ort?: Ort;
   text(name: string): string | undefined;
   ziel(name: string): Ziel | undefined;
   // Ein Formular muss die erste Antwort sein.
@@ -134,7 +138,7 @@ export async function schlageVor(i: AutocompleteInteraction, befehle: readonly B
   const option = befehle.find((b) => b.name === i.commandName)?.optionen?.find((o) => o.name === fokus.name);
   let vorschlaege: Vorschlag[] = [];
   try {
-    if (an && i.inCachedGuild() && option?.art === 'text' && option.vorschlaege) vorschlaege = await option.vorschlaege(fokus.value, serverVon(i.guild));
+    if (an && i.inCachedGuild() && option?.art === 'text' && option.vorschlaege) vorschlaege = await option.vorschlaege(fokus.value, { server: serverVon(i.guild), wer: personVon(i.user, i.member), rang: rangVon(i.member) });
   } catch (fehler) {
     console.error(`/${i.commandName}: Vorschläge fehlgeschlagen: ${text(fehler)}`);
   }

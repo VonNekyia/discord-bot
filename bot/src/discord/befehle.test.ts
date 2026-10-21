@@ -306,9 +306,11 @@ test('Autocomplete: die Vorschläge der Option, höchstens 25; aus oder bei eine
   const client = discordClient(mock, [gilde(SERVER, 'Befehle', '200000000000000099', [])]);
   t.after(() => client.destroy());
   const eingaben: string[] = [];
+  // Wo und von wem getippt wurde, so wie die Option es bekommt.
+  const orte: string[][] = [];
   const mitVorschlaegen = (vorschlaege: (e: string) => Promise<{ name: string; wert: string }[]>): Befehl => ({
     ...befehl('strafe'),
-    optionen: [{ art: 'text', name: 'grund', beschreibung: 'Warum.', hoechstens: 400, vorschlaege: async (e) => (eingaben.push(e), vorschlaege(e)) }],
+    optionen: [{ art: 'text', name: 'grund', beschreibung: 'Warum.', hoechstens: 400, vorschlaege: async (e, ort) => (eingaben.push(e), orte.push([ort.server.id, ort.wer.id, String(ort.rang.hoechste)]), vorschlaege(e)) }],
   });
   const viele = async () => Array.from({ length: 30 }, (_, n) => ({ name: `Grund ${n}`, wert: `g${n}` }));
   const getippt = [{ name: 'grund', type: 3, value: 'sp', focused: true }];
@@ -322,6 +324,7 @@ test('Autocomplete: die Vorschläge der Option, höchstens 25; aus oder bei eine
   assert.equal(auswahl.length, 25);
   assert.deepEqual(auswahl[0], { name: 'Grund 0', value: 'g0' });
   assert.deepEqual(eingaben, ['sp']);
+  assert.deepEqual(orte, [[SERVER, PERSON, '0']]);
 
   const zwei = interaktion(client, 4, getippt);
   assert.ok(zwei.i?.isAutocomplete());

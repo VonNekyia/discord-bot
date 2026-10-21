@@ -145,15 +145,23 @@ describe('Managed Commands', { skip: ziel ? false : 'keine Datenbank, DB_HOST fe
     });
 
   test('Vorschläge: die Gründe mit dem Text, dahinter „Eigener Grund …“ mit custom; höchstens 24 Gründe', async () => {
-    assert.deepEqual(await befehle.vorschlaege('spam', server), [
+    const ort = { server, wer: person(MOD, 'Moderator'), rang: rang(5, [R_MOD]) };
+    assert.deepEqual(await befehle.vorschlaege('spam', ort), [
       { name: 'Spam', wert: 'Spam' },
       { name: 'Werbung für Spam', wert: 'Werbung für Spam' },
       { name: 'Eigener Grund …', wert: 'custom' },
     ]);
     einstellung = { ...einstellung, gruende: Array.from({ length: 30 }, (_, i) => ({ text: `g${i}` })) };
-    const alle = await befehle.vorschlaege('', server);
+    const alle = await befehle.vorschlaege('', ort);
     assert.equal(alle.length, 25);
     assert.equal(alle.at(-1)?.wert, 'custom');
+  });
+
+  test('Vorschläge nur für den, der die Befehle nutzen darf: ohne Rolle aus der Liste keine, Eigentümer und Administratoren alle', async () => {
+    const fuer = (r: Rang) => befehle.vorschlaege('spam', { server, wer: person(MOD, 'Moderator'), rang: r });
+    assert.deepEqual(await fuer(rang(5, [R_LEER])), []);
+    assert.deepEqual(await fuer(rang(5)), []);
+    for (const r of [rang(5, [R_STARK]), rang(5, [], { eigentuemer: true }), rang(5, [], { admin: true })]) assert.equal((await fuer(r)).length, 3);
   });
 
   test('ohne Rolle aus der Liste nein; Eigentümer und Administratoren ohne Limit', async () => {

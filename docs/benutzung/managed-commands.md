@@ -52,7 +52,10 @@ Warum es so gebaut ist, steht in
 - **Vorschläge:** die Gründe aus dem Dashboard, die den getippten Text
   enthalten, gross und klein gleich, höchstens 24, in ihrer Reihenfolge;
   dahinter immer „Eigener Grund …“ mit dem Wert `custom`. Ist das Modul
-  aus, kommt eine leere Liste.
+  aus, kommt eine leere Liste. Ebenso für jeden, der die Befehle nicht
+  nutzen darf, siehe „Wer darf“: Weil die Befehle ohne
+  `default_member_permissions` jedem Mitglied angezeigt werden, sähe sonst
+  jeder die Liste der Gründe.
 - **„Eigener Grund …“:** Statt den Befehl auszuführen, öffnet der Bot ein
   Formular „Eigener Grund“ mit einem Textfeld von 1 bis 400 Zeichen. Erst
   wer es abschickt, bannt, kickt oder verwarnt. Ein Formular muss die

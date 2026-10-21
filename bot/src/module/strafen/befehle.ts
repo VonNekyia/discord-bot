@@ -1,7 +1,7 @@
 import type { Pool } from 'pg';
 import { text } from '../../kern/fehler.js';
 import { ohneHasszeichen } from '../../kern/namen.js';
-import { fehlgeschlagen, type Befehl, type Vorschlag, type Ziel } from '../../discord/befehle.js';
+import { fehlgeschlagen, type Befehl, type Ort, type Vorschlag, type Ziel } from '../../discord/befehle.js';
 import { DiscordFehler } from '../../discord/fehler.js';
 import type { Druck } from '../../discord/interaktionen.js';
 import type { Formular } from '../../discord/menue.js';
@@ -45,6 +45,12 @@ type Fall = { art: Art; server: Server; wer: Person; rang: Rang; ziel: Ziel; gru
 
 const zeitstempel = (ms: number) => `<t:${Math.ceil(ms / 1000)}:R>`;
 
+// Darf `rang` die Befehle nutzen: Eigentümer, Administrator oder eine Rolle
+// aus der Liste. Siehe docs/benutzung/managed-commands.md, „Wer darf“.
+function darf(s: Strafen, rang: Rang): boolean {
+  return rang.eigentuemer || rang.admin || s.limits.some((l) => rang.rollen.includes(l.rolle));
+}
+
 // Wie eine DM ausging, und der Satz dazu in der Antwort.
 // Siehe docs/benutzung/managed-commands.md, „Antworten“.
 type DmAusgang = 'angekommen' | 'kein_dm' | 'fehler';
@@ -82,9 +88,11 @@ export class Strafbefehle {
     this.uhr = k.uhr ?? (() => Date.now());
   }
 
-  // Die Vorschläge: Gründe, die den Text enthalten, höchstens 24, dazu „Eigener Grund …“.
-  async vorschlaege(eingabe: string, server: Server): Promise<Vorschlag[]> {
-    const s = await this.k.einstellungen.fetch(server.id);
+  // Die Vorschläge: Gründe, die den Text enthalten, höchstens 24, dazu
+  // „Eigener Grund …“. Nur für den, der die Befehle nutzen darf; sonst keine.
+  async vorschlaege(eingabe: string, ort: Ort): Promise<Vorschlag[]> {
+    const s = await this.k.einstellungen.fetch(ort.server.id);
+    if (!s || !darf(s, ort.rang)) return [];
     const gesucht = eingabe.trim().toLowerCase();
     const passend = (s?.gruende ?? []).filter((g) => g.text.toLowerCase().includes(gesucht)).slice(0, 24);
     return [...passend.map((g) => ({ name: g.text, wert: g.text })), { name: 'Eigener Grund …', wert: eigenerGrund }];
@@ -102,7 +110,7 @@ export class Strafbefehle {
       nurServer: true,
       optionen: [
         { art: 'nutzer', name: 'nutzer', beschreibung: beschreibung[art][1] },
-        { art: 'text', name: 'grund', beschreibung: 'Ein Grund aus der Liste oder ein eigener.', hoechstens: 400, vorschlaege: (e, s) => this.vorschlaege(e, s) },
+        { art: 'text', name: 'grund', beschreibung: 'Ein Grund aus der Liste oder ein eigener.', hoechstens: 400, vorschlaege: (e, ort) => this.vorschlaege(e, ort) },
       ],
       ausfuehren: async (a) => {
         const ziel = a.ziel('nutzer');
@@ -161,7 +169,7 @@ export class Strafbefehle {
     if (!s) throw new Error('keine Einstellungen');
     const unbegrenzt = f.rang.eigentuemer || f.rang.admin;
     const eigene = s.limits.filter((l) => f.rang.rollen.includes(l.rolle));
-    if (!unbegrenzt && eigene.length === 0) return 'Du darfst diesen Befehl hier nicht nutzen.';
+    if (!darf(s, f.rang)) return 'Du darfst diesen Befehl hier nicht nutzen.';
 
     const bot = this.k.w.botAuf(f.server);
     const nein = this.zielGehtNicht(f, bot);
