@@ -275,6 +275,22 @@ describe('Managed Commands', { skip: ziel ? false : 'keine Datenbank, DB_HOST fe
     assert.deepEqual(getan, [`ban ${OPFER} Werbung · /ban von Moderator`]);
   });
 
+  test('zwei /warn zugleich auf dasselbe Ziel zählen nacheinander: zum 1. und zum 2. Mal', async () => {
+    // Eine Datenbank, die nach dem Eintragen wartet: Ohne Sperre trügen beide
+    // erst ein und zählten dann beide 2.
+    const langsam = {
+      query: async (sql: string, werte: unknown[]) => {
+        const ergebnis = await db.query(sql, werte);
+        if (sql.startsWith('INSERT INTO verwarnungen')) await new Promise((fertig) => setTimeout(fertig, 50));
+        return ergebnis;
+      },
+    } as unknown as Pool;
+    const b = new Strafbefehle({ db: langsam, einstellungen: { fetch: async () => einstellung }, w, uhr: () => jetzt });
+    const warn = (r: Rang) => b.fuehreAus({ art: 'warn', server, wer: person(MOD, 'Moderator'), rang: r, ziel: { person: person(OPFER), rang: rang(1) }, grund: 'Spam' });
+    const antworten = await Promise.all([warn(rang(5, [R_MOD])), warn(rang(5, [R_STARK]))]);
+    assert.deepEqual(antworten.map((x) => /zum (\d+)\. Mal/.exec(x)?.[1]).toSorted(), ['1', '2']);
+  });
+
   test('Verwarnung: DM mit Server und Grund, gespeichert, gezählt in der Frist des Servers; ohne Limit', async () => {
     for (let n = 1; n <= 3; n++) {
       jetzt += 60_000;

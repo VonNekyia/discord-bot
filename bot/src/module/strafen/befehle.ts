@@ -76,8 +76,10 @@ export function grundFormular(art: Art, ziel: string): Formular {
 // Siehe docs/benutzung/managed-commands.md.
 export class Strafbefehle {
   // Je `<Server>/<Mitglied>` die Kette der Befehle, die zählen; im Speicher,
-  // weil jeder Server nur von einem Prozess bedient wird. Sie deckt Zählen,
-  // DM, Bann oder Kick und Eintragen ab.
+  // weil jeder Server nur von einem Prozess bedient wird. Bei Bann und Kick
+  // ist das Mitglied, wer den Befehl nutzt; die Kette deckt Zählen, DM, Bann
+  // oder Kick und Eintragen ab. Bei /warn ist es das Ziel; die Kette deckt
+  // DM, Eintragen und Zählen ab, damit „zum n. Mal“ nie zweimal gleich lautet.
   // ponytail: Sperre nur in diesem Prozess; bedienen einmal zwei Prozesse
   // denselben Server, eine Sperre in PostgreSQL (pg_advisory_xact_lock).
   // Siehe docs/benutzung/managed-commands.md, „Limit“.
@@ -174,7 +176,7 @@ export class Strafbefehle {
     const bot = this.k.w.botAuf(f.server);
     const nein = this.zielGehtNicht(f, bot);
     if (nein) return nein;
-    if (f.art === 'warn') return this.verwarne(f, s);
+    if (f.art === 'warn') return this.nacheinander(`${f.server.id}/${f.ziel.person.id}`, () => this.verwarne(f, s));
     if (!(f.art === 'ban' ? bot?.bannen : bot?.kicken)) return 'kitty fehlt das Recht dazu, oder die Rolle von kitty steht zu tief.';
 
     const art = f.art;
