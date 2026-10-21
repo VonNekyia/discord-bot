@@ -138,6 +138,12 @@ werden in der CI an ihnen gemessen, siehe Entscheidung
   und einmal ohne.
 - **Bausteine:** Die Beispiele für `Seite[]` zeigen zusammen jede Art von
   Baustein und jedes optionale Feld mindestens einmal, dazu einen `fund`.
+- **Wann ein Feld vorkommt:** wenn es in mindestens einem Beispiel einen
+  Wert hat, der nicht `null`, nicht `[]` und nicht `{}` ist. Sonst
+  prüfte nichts, was darin steht. Das gilt für jeden Typ, nicht nur für
+  Bausteine, also auch für `Ich.avatar`, `Server.icon` oder die Werte zum
+  Rate-Limit in `Debug`. Tabellen wie `wert`, `saetze` und `platzhalter`
+  sind Daten; ihre Schlüssel zählen nicht als Felder.
 - **Werte:** nur erfundene (`AGENTS.md`, Regel 21). IDs wie
   `100000000000000001`, Namen wie „Mia“, Server „Terranova“.
 - **Name der Datei:** klein, ASCII, mit `-`, etwa `ich.json` oder
