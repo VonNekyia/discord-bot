@@ -25,14 +25,10 @@ export class Feld {
   // Hinter der Hilfe, für was sich beim Tippen ändert.
   readonly zusatz = document.createElement('span');
   private readonly fehlerText = document.createElement('span');
+  private readonly eingabe: HTMLElement;
 
-  constructor(
-    u: Umgebung,
-    name: string,
-    titel: string,
-    private readonly eingabe: HTMLElement,
-    hilfe?: string,
-  ) {
+  constructor(u: Umgebung, name: string, titel: string, eingabe: HTMLElement, hilfe?: string) {
+    this.eingabe = eingabe;
     this.element.className = 'field';
     const label = document.createElement('label');
     label.textContent = titel;

@@ -1,6 +1,6 @@
 ---
 title: Tests
-description: Wie die Tests des Bots laufen, was die gemockte Discord-API kann, wie der Test der Beispiele des Vertrags arbeitet und was abgedeckt ist.
+description: Wie die Tests des Bots laufen, was die gemockte Discord-API kann, wie der Test der Beispiele des Vertrags arbeitet und was abgedeckt ist; dazu der Test der Oberfläche, der ihre Prüfer an denselben Beispielen misst.
 code:
   - bot/src/module/befehle/befehle.test.ts
   - bot/src/discord/befehle.test.ts
@@ -38,13 +38,19 @@ code:
   - bot/src/discord/kaeufe.test.ts
   - bot/src/brett/brett.test.ts
   - bot/src/brett/freischaltung.test.ts
+  - web/test/beispiele.test.mjs
+  - web/package.json
+  - web/tsconfig.json
+  - .github/workflows/frontend.yml
 ---
 
 # Tests
 
 Die Tests laufen mit `node --test`, ohne Testframework, gegen eine
 gemockte Discord-API auf `127.0.0.1` und, wo es um SQL geht, gegen eine
-echte PostgreSQL. Kein Test braucht einen Token oder das Netz.
+echte PostgreSQL. Kein Test braucht einen Token oder das Netz. Die
+Oberfläche hat einen Test: Er misst ihre Prüfer an den Beispielen des
+Vertrags, siehe „Die Oberfläche“ unten.
 
 ```bash
 cd bot
@@ -499,3 +505,51 @@ gesetzt). Die Tests legen die Tabellen `probe` und `probe_halb` und
 Einträge `probe-…` in `migrationen` an und räumen sie danach weg.
 `bot/src/brett/freischaltung.test.ts` legt Bindungen erfundener Server an
 und löscht sie vor jedem Test und danach.
+
+## Die Oberfläche
+
+`web/test/beispiele.test.mjs` misst die Prüfer aus `web/src/api/klient.ts`
+an den Beispielen in `docs/schnittstelle/beispiele/`. Warum, steht in
+Entscheidung [0022](../entscheidungen/0022-beispiele-als-vertragstest.md);
+wie die Beispiele aussehen, in
+[API des Dashboards](../schnittstelle/api.md), „Beispiele“.
+
+```bash
+cd web
+npm test
+```
+
+`npm test` startet `node --test test/*.test.mjs` ohne Build: Node liest
+`klient.ts` direkt. Warum, und was das für `web/src/` heisst, steht in
+Entscheidung [0023](../entscheidungen/0023-test-der-oberflaeche-ohne-build.md).
+
+`klient.ts` gibt dem Test zwei Exporte:
+
+| Export | Inhalt |
+|---|---|
+| `pruefer` | je Typ einer Antwort sein Prüfer, unter dem Namen aus dem Vertrag: `Ich`, `Server[]`, `Debug`, `Seite[]`, `Gespeichert`, `Satz`, `Fehler`. `api` liest jede Antwort über diese Tabelle; der Test prüft also, was im Browser läuft |
+| `arten` | die Arten von Bausteinen, für die es einen Prüfer gibt. `tsc` verlangt einen für jede Art aus dem Vertrag |
+
+| Test | fällt, wenn |
+|---|---|
+| je Beispiel, `<datei>: <typ>` | `route`, `status`, `typ` oder `body` fehlt; der Prüfer lehnt den Body ab; auf einer Seite wird ein Baustein `unbekannt`, auch eine Liste, in der einer nicht passt |
+| jeder Typ, den die Oberfläche prüft, hat ein Beispiel | ein Schlüssel von `pruefer` ohne Beispiel ist, auch wenn der Ordner fehlt |
+| jede Art von Baustein kommt in einem Beispiel vor | eine Art aus `arten` auf keiner Seite steht, auch nicht in einer Liste |
+| jedes Feld, das ein Prüfer liest, hat in einem Beispiel einen Wert | ein Feld nie einen anderen Wert hat als `null`, `[]` oder `{}` |
+
+Ein Beispiel mit einem `typ`, den `pruefer` nicht kennt, überspringt der
+Test mit `skip`. In der Ausgabe steht es als übersprungen.
+
+Welche Felder ein Prüfer liest, schreibt der Test mit Proxys mit, die er
+um jedes Beispiel legt:
+
+- Ort eines Feldes ist der Typ mit dem Pfad dorthin, ohne Index, etwa
+  `Seite[].fund`.
+- Ein Baustein zählt nach seiner Art, egal wie tief er steht, etwa
+  `Baustein(auswahl).optionen[].gruppe`. Ein Schalter in einer Liste zählt
+  also für den Schalter.
+- Ein Objekt, das der Prüfer aufzählt, ist eine Tabelle wie `wert`,
+  `saetze` oder `platzhalter`. Ihre Schlüssel sind Daten und zählen nicht.
+- Ein Prüfer, der passt, liest jedes seiner Felder. Steht ein neues
+  optionales Feld im Prüfer, fällt der Test also, bis ein Beispiel es
+  zeigt.

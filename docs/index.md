@@ -55,7 +55,7 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 - [Struktur von Bot und Oberfläche](entwicklung/struktur.md): Schichten `kern/`, `discord/`, `api/` und Feature-Module im Bot, Bausteine und Seite in der Oberfläche, wer wen importieren darf, was ein Modul bündelt, die eigene Schicht über discord.js, was vom Umbau noch fehlt.
 - [Lint mit oxlint](entwicklung/lint.md): `npm run lint`, die Regeln und warum, moderne Sprachmittel mit ES2025 im Bot und ES2024 im Web, Tests, Altlasten mit `maxWarnings`, eine Regel begründet abschalten.
 - [Updates mit Renovate](entwicklung/renovate.md): was Renovate wann aktualisiert, Automerge für Minor, Patch und Digest, Bewertung durch den Orchestrator, Konflikte, Labels, Einrichten.
-- [Tests](entwicklung/tests.md): `node --test`, die gemockte Discord-API, der Test der Beispiele des Vertrags, was abgedeckt ist, Tests gegen PostgreSQL.
+- [Tests](entwicklung/tests.md): `node --test`, die gemockte Discord-API, der Test der Beispiele des Vertrags, was abgedeckt ist, Tests gegen PostgreSQL, der Test der Oberfläche an denselben Beispielen.
 
 ## Entscheidungen
 
@@ -81,3 +81,4 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 - [0020: Bezahlte Module über Discord](entscheidungen/0020-bezahlte-module.md): Einmalkauf als Consumable, im Dashboard an einen Server gebunden und verbraucht; Abos je Server in zwei Stufen, „Log“ und „Alles“; Entitlements mit Cache je Server, geleert bei `ENTITLEMENT_*`; SKU-IDs in `.env`; nicht Durable, keine Abos je Person, keine eigene Zahlung.
 - [0021: Managed Commands mit Rollenliste, Limit und eigenem Grund](entscheidungen/0021-managed-commands.md): eigene Liste der Rollen statt `default_member_permissions`, Hierarchie auch für den Nutzer, Grund mit Autocomplete, freiem Text und Formular für `custom`, Limit rollierend 168 h, wenig gespeichert; keine festen `choices`, keine Kalenderwoche.
 - [0022: Beispiele im Vertrag statt gemeinsamer Typen](entscheidungen/0022-beispiele-als-vertragstest.md): Der Bot erzeugt echte Antworten als JSON in `docs/schnittstelle/beispiele/`, die Prüfer der Oberfläche müssen sie annehmen, beides in der CI; ein Bruch in zwei Schritten; keine gemeinsame Quelle, kein Schema, kein Artefakt zwischen den Jobs.
+- [0023: Test der Oberfläche ohne Build](entscheidungen/0023-test-der-oberflaeche-ohne-build.md): `node --test` direkt auf den Quellen von `web/`, Node entfernt die Typen, `erasableSyntaxOnly` hält `tsc` daran, der Test ist JavaScript; kein zweites `tsconfig`, kein `@types/node`; 0003 gilt nur für `bot/`.

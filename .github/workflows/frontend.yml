@@ -46,6 +46,12 @@ jobs:
         timeout-minutes: 5
         run: npm run build
 
+      # Die Prüfer der API gegen die Beispiele des Vertrags.
+      # Siehe docs/entwicklung/tests.md, „Die Oberfläche“.
+      - name: Tests
+        timeout-minutes: 5
+        run: npm test
+
       - name: Sicherheitslücken
         timeout-minutes: 5
         run: npm audit --omit=dev --audit-level=high

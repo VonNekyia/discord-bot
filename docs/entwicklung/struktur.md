@@ -58,6 +58,7 @@ allen. `dist/` spiegelt `src/`; `npm test` findet die Tests mit
 | `web/src/bausteine/` | je Art von Baustein eine Datei: `schalter.ts`, `auswahl.ts`, `text.ts`, `zahl.ts`, `bild.ts`, `vorschau.ts`, `aktion.ts`, `liste.ts`, `hinweis.ts`, `link.ts` |
 | `web/src/api/` | die einzige Stelle mit `fetch`: Aufrufe und Typen der [API des Dashboards](../schnittstelle/api.md) und des [Baukastens](../schnittstelle/baukasten.md) |
 | `web/src/kern/` | was alle Bausteine nutzen: Teil und Umgebung, Feld, Länge eines Texts, allgemeine Sätze und Meldungen |
+| `web/test/` | der Test der Prüfer an den Beispielen des Vertrags; läuft ohne Build, siehe [Tests](tests.md), „Die Oberfläche“ |
 
 ## Grenzen
 
@@ -200,9 +201,8 @@ nach der Prüfung der Rechte.
 
 ## Was noch fehlt
 
-Stand 2026-10-12. Der Umbau geht Modul für Modul, jede Stufe als eigene
-PR mit gleichem Verhalten und grünen Tests.
-
-| Was | Wo | Lint |
-|---|---|---|
-| Die Typen der API stehen dreimal: in `docs/schnittstelle/`, in `bot/src/kern/baukasten.ts` und in `web/src/api/klient.ts` | – | – |
+Stand 2026-10-21: nichts. Die Typen der API stehen zwar weiter in
+`docs/schnittstelle/`, in `bot/src/kern/baukasten.ts` und in
+`web/src/api/klient.ts`. Beispiele im Vertrag halten sie aber zusammen, und
+die CI misst Bot und Oberfläche an ihnen, siehe Entscheidung
+[0022](../entscheidungen/0022-beispiele-als-vertragstest.md).

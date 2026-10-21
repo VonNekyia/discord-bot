@@ -4,12 +4,16 @@
 
 export type Ich = { id: string; name: string; avatar: string | null; debug: boolean };
 export type Server = { id: string; name: string; icon: string | null };
+// Der Body jedes Fehlers. Siehe docs/schnittstelle/api.md, „Fehler“.
+export type Fehler = { code: string; feld?: string };
 
 // Der Baukasten. Siehe docs/schnittstelle/baukasten.md, „Typen“.
 export type Wert = boolean | number | string | null | Eintrag[];
 export type Eintrag = { [feld: string]: Wert };
 export type Satz = { titel: string; text: string };
 export type Fund = { code: string; feld?: string };
+// Die Antwort auf das Speichern einer Seite.
+export type Gespeichert = { wert: Eintrag; meldung: Satz };
 export type Option = {
   id: string;
   name: string;
@@ -168,12 +172,14 @@ const form =
 
 const istIch = form<Ich>({ id: istText, name: istText, avatar: oderNull(istText), debug: istWahr });
 const istServer = form<Server>({ id: istText, name: istText, icon: oderNull(istText) });
+const istFehler = form<Fehler>({ code: istText, feld: vielleicht(istText) });
 const istSatz = form<Satz>({ titel: istText, text: istText });
 const istFund = form<Fund>({ code: istText, feld: vielleicht(istText) });
 const istWert = (x: unknown): x is Wert => istWahr(x) || istZahl(x) || istText(x) || istNull(x) || listeVon(istEintrag)(x);
 function istEintrag(x: unknown): x is Eintrag {
   return istObjekt(x) && Object.values(x).every(istWert);
 }
+const istGespeichert = form<Gespeichert>({ wert: istEintrag, meldung: istSatz });
 const istOption = form<Option>({
   id: istText,
   name: istText,
@@ -258,11 +264,32 @@ const istHinweis = form<Hinweis>({ art: genau('hinweis'), id: istText, ton: gena
 const istDiscordUrl = (x: unknown): x is string => istText(x) && x.startsWith('https://discord.com/') && URL.canParse(x);
 const istLink = form<Link>({ art: genau('link'), id: istText, titel: istText, url: istDiscordUrl, hilfe: vielleicht(istText) });
 
+// Je Art ihr Prüfer; tsc verlangt einen für jede Art aus dem Vertrag.
+type Art = Exclude<Baustein['art'], 'unbekannt'>;
+const bausteine = {
+  schalter: istSchalter,
+  auswahl: istAuswahl,
+  text: istTextBaustein,
+  zahl: istZahlBaustein,
+  bild: istBild,
+  vorschau: istVorschau,
+  aktion: istAktion,
+  liste: istListe,
+  hinweis: istHinweis,
+  link: istLink,
+} satisfies { [A in Art]: Pruefer<Extract<Baustein, { art: A }>> };
+const istArt = (x: unknown): x is Art => istText(x) && Object.hasOwn(bausteine, x);
+// Die Arten, die die Oberfläche baut; der Test der Beispiele verlangt jede.
+// Siehe docs/entwicklung/tests.md, „Die Oberfläche“.
+export const arten: readonly string[] = Object.keys(bausteine);
+
 // Ein Baustein, wie er passt, sonst `unbekannt` mit seiner ID; ohne ID mit `ersatz`,
 // damit zwei solche sich auf der Seite nicht überschreiben.
 function alsBaustein(x: unknown, ersatz: string): Baustein {
-  if (istSchalter(x) || istAuswahl(x) || istTextBaustein(x) || istZahlBaustein(x) || istBild(x)) return x;
-  if (istVorschau(x) || istAktion(x) || istListe(x) || istHinweis(x) || istLink(x)) return x;
+  if (istObjekt(x) && istArt(x.art)) {
+    const passt: Pruefer<Baustein> = bausteine[x.art];
+    if (passt(x)) return x;
+  }
   return { art: 'unbekannt', id: istObjekt(x) && istText(x.id) ? x.id : ersatz };
 }
 
@@ -313,16 +340,38 @@ const istDebug = form<Debug>({
   eigene: listeVon(form<{ name: string; gegriffen: number }>({ name: istText, gegriffen: istZahl })),
 });
 
+const wenn =
+  <T>(p: Pruefer<T>) =>
+  (x: unknown): T | undefined =>
+    p(x) ? x : undefined;
+// Je Typ einer Antwort im Vertrag sein Prüfer, unter dem Namen aus den
+// Beispielen; `api` liest jede Antwort über diese Tabelle. Der Test der
+// Beispiele gibt jedem Prüfer die Beispiele seines Typs.
+// Siehe docs/entwicklung/tests.md, „Die Oberfläche“.
+export const pruefer = {
+  Ich: wenn(istIch),
+  'Server[]': wenn(listeVon(istServer)),
+  Debug: wenn(istDebug),
+  'Seite[]': alsSeiten,
+  Gespeichert: wenn(istGespeichert),
+  Satz: wenn(istSatz),
+  Fehler: wenn(istFehler),
+};
+
 // Ein Fehler der API mit Status, festem Code und, bei 400, dem Feld.
 // Ohne Antwort oder ohne Code im Body gilt nicht_erreichbar ab 500.
 export class ApiFehler extends Error {
-  constructor(
-    readonly status: number,
-    readonly code: string,
-    readonly feld?: string,
-    readonly warten?: number, // Sekunden aus Retry-After
-  ) {
+  readonly status: number;
+  readonly code: string;
+  readonly feld?: string;
+  // Sekunden aus Retry-After
+  readonly warten?: number;
+  constructor(status: number, code: string, feld?: string, warten?: number) {
     super(code);
+    this.status = status;
+    this.code = code;
+    this.feld = feld;
+    this.warten = warten;
   }
 }
 
@@ -334,11 +383,10 @@ async function senden(methode: string, pfad: string, body?: BodyInit, typ?: stri
     throw new ApiFehler(0, 'nicht_erreichbar');
   }
   if (antwort.ok) return antwort;
-  const inhalt: unknown = await antwort.json().catch(() => null);
-  const code = istObjekt(inhalt) && istText(inhalt.code) ? inhalt.code : antwort.status >= 500 ? 'nicht_erreichbar' : 'unbekannt';
-  const feld = istObjekt(inhalt) && istText(inhalt.feld) ? inhalt.feld : undefined;
+  const inhalt = pruefer.Fehler(await antwort.json().catch(() => null));
+  const code = inhalt?.code ?? (antwort.status >= 500 ? 'nicht_erreichbar' : 'unbekannt');
   const warten = Number(antwort.headers.get('Retry-After')) || undefined;
-  throw new ApiFehler(antwort.status, code, feld, warten);
+  throw new ApiFehler(antwort.status, code, inhalt?.feld, warten);
 }
 
 // Liest JSON und prüft es; passt es nicht, gilt die Antwort wie eine ohne
@@ -349,26 +397,19 @@ async function lese<T>(antwort: Response, wandle: (x: unknown) => T | undefined)
   if (wert === undefined) throw new ApiFehler(antwort.status, 'nicht_erreichbar');
   return wert;
 }
-const wenn =
-  <T>(p: Pruefer<T>) =>
-  (x: unknown): T | undefined =>
-    p(x) ? x : undefined;
 const seiten = (id: string) => `/api/server/${encodeURIComponent(id)}/seiten`;
 const baustein = (id: string, seite: string, name: string) => `${seiten(id)}/${encodeURIComponent(seite)}/${encodeURIComponent(name)}`;
 
 export const api = {
-  ich: async () => lese(await senden('GET', '/api/ich'), wenn(istIch)),
+  ich: async () => lese(await senden('GET', '/api/ich'), pruefer.Ich),
   abmelden: async () => {
     await senden('POST', '/api/abmelden');
   },
-  server: async () => lese(await senden('GET', '/api/server'), wenn(listeVon(istServer))),
-  debug: async () => lese(await senden('GET', '/api/debug'), wenn(istDebug)),
-  seiten: async (id: string) => lese(await senden('GET', seiten(id)), alsSeiten),
+  server: async () => lese(await senden('GET', '/api/server'), pruefer['Server[]']),
+  debug: async () => lese(await senden('GET', '/api/debug'), pruefer.Debug),
+  seiten: async (id: string) => lese(await senden('GET', seiten(id)), pruefer['Seite[]']),
   speichern: async (id: string, seite: string, wert: Eintrag) =>
-    lese(
-      await senden('PUT', `${seiten(id)}/${encodeURIComponent(seite)}`, JSON.stringify(wert), 'application/json'),
-      wenn(form<{ wert: Eintrag; meldung: Satz }>({ wert: istEintrag, meldung: istSatz })),
-    ),
+    lese(await senden('PUT', `${seiten(id)}/${encodeURIComponent(seite)}`, JSON.stringify(wert), 'application/json'), pruefer.Gespeichert),
   // Die Datei geht roh als Body, mit ihrem Typ.
   hochladen: async (id: string, seite: string, name: string, datei: File) => {
     await senden('PUT', baustein(id, seite, name), datei, datei.type);
@@ -377,7 +418,7 @@ export const api = {
     await senden('DELETE', baustein(id, seite, name));
   },
   // Ohne Body; die Antwort ist der Satz für die Meldung.
-  ausloesen: async (id: string, seite: string, name: string) => lese(await senden('POST', baustein(id, seite, name)), wenn(istSatz)),
+  ausloesen: async (id: string, seite: string, name: string) => lese(await senden('POST', baustein(id, seite, name)), pruefer.Satz),
   // Die Query ändert sich bei jedem Aufruf, damit der Browser neu lädt; die API ignoriert sie.
   bild: (id: string, seite: string, name: string) => `${baustein(id, seite, name)}?v=${Date.now()}`,
 };

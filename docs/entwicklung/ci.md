@@ -94,6 +94,7 @@ Die Schwellen sind die der Website.
 |---|---|---|
 | Lint | wie beim Backend | wie beim Backend |
 | Build | `npm run build` | `tsc` einen Fehler findet |
+| Tests | `npm test` | ein Prüfer ein Beispiel des Vertrags ablehnt oder ein Typ, eine Art von Baustein oder ein Feld in keinem Beispiel vorkommt, siehe [Tests](tests.md), „Die Oberfläche“ |
 | Sicherheitslücken | `npm audit --omit=dev --audit-level=high` | eine Laufzeit-Abhängigkeit eine Lücke ab „high“ hat |
 | Lizenzen | wie beim Backend | siehe unten |
 | API-Stub starten | ein Einzeiler mit `node -e` auf `127.0.0.1:4174` | er nicht startet |
