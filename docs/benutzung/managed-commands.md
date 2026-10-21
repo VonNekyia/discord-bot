@@ -68,6 +68,10 @@ Warum es so gebaut ist, steht in
   Der Bot nimmt so einen Text als eigenen Grund, ohne Formular.
 - Leerzeichen am Anfang und Ende schneidet der Bot ab; bleibt nichts,
   antwortet er, dass der Grund fehlt.
+- Die Länge prüft der Bot selbst, gezählt wie `String.length`: Ob Discord
+  `max_length` auch bei freiem Text mit Autocomplete durchsetzt, ist nicht
+  belegt. Bei mehr als 400 Zeichen antwortet er nur, siehe „Antworten“,
+  und tut nichts.
 
 ## Wer darf
 
@@ -155,6 +159,8 @@ läuft auf der fertigen DM, der Antwort und dem Grund im Audit-Log.
 | gebannt | „<Name> ist gebannt. Grund: <grund>.“, dazu, ob die DM ankam, siehe unten, und „Bans in 7 Tagen: n von m.“, ohne Limit ohne diesen Satz |
 | gekickt | ebenso mit „gekickt“ und „Kicks in 7 Tagen“ |
 | verwarnt | „<Name> ist verwarnt, zum n. Mal. Grund: <grund>.“, dazu, ob die DM ankam, siehe unten; n zählt die Verwarnungen dieses Mitglieds auf diesem Server in den letzten `verwarnungTage` Tagen, Standard 365, siehe [API der Managed Commands](../schnittstelle/strafen.md). Zwei `/warn` auf dasselbe Mitglied laufen nacheinander, also lautet n nie zweimal gleich |
+| der Grund ist leer | „Der Grund fehlt.“ |
+| der Grund hat mehr als 400 Zeichen | „Der Grund ist zu lang, höchstens 400 Zeichen.“ |
 | keine Rolle aus der Liste | „Du darfst diesen Befehl hier nicht nutzen.“ |
 | Limit 0 für alle eigenen Rollen | „Deine Rollen dürfen nicht bannen.“, ebenso für Kicks |
 | Limit erreicht | „Du hast dein Limit erreicht: m Bans in 7 Tagen. Der nächste geht ab <Zeit>.“ |

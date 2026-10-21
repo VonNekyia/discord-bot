@@ -7,7 +7,7 @@ import type { Druck } from '../../discord/interaktionen.js';
 import type { Formular } from '../../discord/menue.js';
 import type { Person, Rang } from '../../discord/mitglieder.js';
 import type { Server } from '../../discord/server.js';
-import { bannDm, eigenerGrund, type Strafen } from './strafen.js';
+import { bannDm, eigenerGrund, laengste, type Strafen } from './strafen.js';
 
 // Was die Befehle von Discord brauchen; im Bot aus bot/src/discord/moderation.ts.
 export interface Werkzeuge {
@@ -167,6 +167,9 @@ export class Strafbefehle {
 
   private async entscheide(f: Fall): Promise<string> {
     if (f.grund === '') return 'Der Grund fehlt.';
+    // `max_length` der Option ist für freien Text mit Autocomplete nicht belegt;
+    // darum prüft der Bot selbst, gezählt wie `String.length`.
+    if (f.grund.length > laengste.grund) return `Der Grund ist zu lang, höchstens ${laengste.grund} Zeichen.`;
     const s = await this.k.einstellungen.fetch(f.server.id);
     if (!s) throw new Error('keine Einstellungen');
     const unbegrenzt = f.rang.eigentuemer || f.rang.admin;

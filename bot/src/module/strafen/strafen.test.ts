@@ -269,6 +269,14 @@ describe('Managed Commands', { skip: ziel ? false : 'keine Datenbank, DB_HOST fe
     ]);
   });
 
+  test('ein Grund mit mehr als 400 Zeichen: eine Antwort und keine Tat; mit 400 geht es', async () => {
+    for (const art of ['ban', 'kick', 'warn'] as const) assert.equal(await fall(art, { grund: 'x'.repeat(401) }), 'Der Grund ist zu lang, höchstens 400 Zeichen.');
+    assert.deepEqual(getan, []);
+    const { rows } = await db.query('SELECT 1 FROM strafaktionen WHERE server = $1 UNION ALL SELECT 1 FROM verwarnungen WHERE server = $1', [SERVER]);
+    assert.equal(rows.length, 0);
+    assert.match(await fall('kick', { grund: 'x'.repeat(400) }), /^nutzer-12 ist gekickt\./);
+  });
+
   test('ohne DM beim Bann keine DM; der Grund im Audit-Log höchstens wie gegeben', async () => {
     einstellung = { ...einstellung, dm: false };
     assert.equal(await fall('ban', { grund: 'Werbung' }), 'nutzer-12 ist gebannt. Grund: Werbung. Bans in 7 Tagen: 1 von 1.');
