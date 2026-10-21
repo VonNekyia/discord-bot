@@ -3,7 +3,7 @@ import { after, before, test } from 'node:test';
 import { DMChannel, Events, VoiceState, type Client, type Guild } from 'discord.js';
 import { haengeAn, meldeBereit, modulAus, type DiscordModul } from './modul.js';
 import { serverVon } from './server.js';
-import { ANWENDUNG, ChannelType, discordClient, gilde, kanal, mitglied, mockDiscord, nachrichtDaten, schliesse, type MockDiscord } from '../testhilfe.js';
+import { ANWENDUNG, ChannelType, discordClient, gilde, kanal, mitglied, mockDiscord, nachrichtDaten, schliesse, warteAufAntworten, type MockDiscord } from '../testhilfe.js';
 
 // Ereignisse von discord.js, wie haengeAn sie an die Module gibt. Alle IDs
 // sind erfunden. Siehe docs/entwicklung/tests.md, „Die gemockte API“.
@@ -193,7 +193,7 @@ test('ein Modul, das aus ist, bekommt keine Ereignisse, nur sein Aufräumen; Bef
   aus.add('c');
   const vorher = mock.antworten.length;
   assert.deepEqual(await alles(), [`a beitritt ${PERSON}`, `a abschied ${PERSON}`, `a stimme ${SERVER} ${PERSON} ${STIMME} null`, 'c räumt stimme', `a kanalWeg ${TEXT}`, 'c räumt kanalWeg']);
-  const antworten = mock.antworten.slice(vorher);
+  const antworten = await warteAufAntworten(mock, vorher, 2);
   assert.equal(antworten.length, 2);
   for (const a of antworten) {
     assert.equal(a.daten.content, modulAus);
@@ -214,7 +214,7 @@ test('scheitert die Frage, ob ein Modul an ist, kommt kein Ereignis an; Befehl u
   const vorher = mock.antworten.length;
   assert.deepEqual(await nach(() => interaktion(2, { id: '930000000000000083', name: 'schalter', type: 1 }, fehlt)), []);
   assert.deepEqual(await nach(() => interaktion(3, { custom_id: 'd:sperren', component_type: 2 }, fehlt)), []);
-  const antworten = mock.antworten.slice(vorher);
+  const antworten = await warteAufAntworten(mock, vorher, 2);
   assert.deepEqual(
     antworten.map((a) => [a.daten.content, a.daten.flags]),
     [

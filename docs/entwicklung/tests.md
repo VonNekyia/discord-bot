@@ -111,6 +111,12 @@ gegen `mockDiscord`. Die Tests der API und der Schicht nutzen
   REST und CDN auf den Mock zeigen. Die Server legt er so in den Cache, wie
   `GUILD_CREATE` sie bringt, mit Rollen, Kanälen und dem Bot als Mitglied.
   So rechnet discord.js Rechte und Kanäle selbst.
+- `warteAufAntworten`: die Antworten an Discord seit einem Stand, sobald es
+  so viele sind, wie der Test erwartet; nach 2 s wirft es mit der Zahl, die
+  da ist. Für Tests, die eine Interaktion über `haengeAn` anstossen und nicht
+  auf ihr Ende warten können, etwa in `bot/src/discord/modul.test.ts`. Die
+  Antworten sind echte HTTP-Anfragen an den Mock; zwei Runden
+  `setImmediate` reichten dafür unter Windows nicht (#64).
 - `roh`: schickt rohe Bytes über `node:net`, für Bodies, die nie enden.
 - `pngKopf`, `pngBild`, `jpegMitExif`: ein PNG nur mit Kopf, ein ganzes PNG
   und ein JPEG mit EXIF-Drehung, Beschreibung und GPS.
@@ -162,7 +168,7 @@ Millisekunden. Darum:
   `planen` für Timer in `RaumKontext` (`bot/src/module/sprachraeume/raeume.ts`).
   Der Test lässt die Zeit selbst vorrücken.
 - Echte kurze Zeiten nur, wo der Test auf das Ende wartet, etwa `warten`
-  vor dem Löschen eines leeren Raums; nie eine Wartezeit, die gegen die
+  vor dem Löschen eines leeren Raums oder `warteAufAntworten`; nie eine Wartezeit, die gegen die
   Dauer anderer Aufrufe läuft.
 
 ## Was abgedeckt ist
