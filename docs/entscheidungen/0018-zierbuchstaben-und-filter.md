@@ -94,7 +94,10 @@ zweimal:
    Ergebnis ([Users](https://docs.discord.com/developers/resources/user)).
 2. Auf dem Ergebnis: dem Text der Begrüssung und der Zeile des Banners
    nach dem Einsetzen, dem fertigen Namen eines neuen Sprachraums und dem
-   neuen Namen beim Umbenennen im Menü. So fängt der Filter auch eine
+   neuen Namen beim Umbenennen im Menü. Ebenso in den Managed Commands
+   (`bot/src/module/strafen/befehle.ts`): auf der fertigen DM, der Antwort
+   und dem Grund im Audit-Log, siehe
+   [Managed Commands](../benutzung/managed-commands.md), „Ablauf“. So fängt der Filter auch eine
    Vorlage, die ein Admin geschrieben hat.
 
 Bleibt vom Namen eines neuen Raums nichts, heisst er wie der Besitzer.

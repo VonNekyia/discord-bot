@@ -32,6 +32,11 @@ code:
   - bot/package.json
   - .github/workflows/backend.yml
   - bot/src/discord/modul.test.ts
+  - bot/src/module/strafen/strafen.test.ts
+  - bot/src/discord/moderation.test.ts
+  - bot/src/discord/kaeufe.test.ts
+  - bot/src/brett/brett.test.ts
+  - bot/src/brett/freischaltung.test.ts
 ---
 
 # Tests
@@ -180,7 +185,7 @@ Millisekunden. Darum:
 | registriere gibt nach 5xx auf | der Fehler kommt beim Aufrufer an |
 | registriere wirft bei einem Namen, den Discord nicht nimmt … | Grossbuchstaben und Leerzeichen: Fehler, keine Anfrage |
 | ein Befehl antwortet gleich, nur dem Nutzer und ohne Erwähnungen | Typ 4, Flag `Ephemeral` (64), `allowed_mentions` mit leerem `parse`; keine Logzeile |
-| ein unbekannter Befehl … | Meldung an den Nutzer, eine Logzeile ohne Nutzerdaten |
+| ein unbekannter Befehl bekommt eine Meldung ohne Erwähnungen … | Meldung an den Nutzer mit `allowed_mentions` mit leerem `parse`, eine Logzeile ohne Nutzerdaten. Fällt ohne `allowedMentions` im Fehlerpfad |
 | wirft ein Befehl nach seiner Antwort … | die Meldung als `followUp` (`POST /webhooks/{id}/{token}`), ephemeral; eine Logzeile |
 | scheitert die Antwort, wirft antworte DiscordFehler … | Callback mit 404 und 10062: der Befehl sieht `DiscordFehler` mit `anderes`; zwei Logzeilen ohne Token und ID |
 | befehle: nur /ping, mit Beschreibung | Name und Beschreibung, wie Discord sie zeigt |
@@ -295,10 +300,12 @@ Millisekunden. Darum:
 | Aufraeumen prüft die Tabellen beim Bauen … | `bot/src/kern/aufraeumen.test.ts`: Umlaut und SQL im Namen werfen, eine Tabelle in zwei Modulen wirft, Module ohne Tabellen zählen nicht |
 | vergiss und behalteNur löschen in einer Anweisung … | dieselbe Datei, ohne Datenbank: je eine Anfrage mit jeder Tabelle genau einmal, die Werte mit Shards; ohne Tabellen keine Anfrage |
 | jede Tabelle mit Daten je Server (Spalte server bigint) gehört genau einem Modul oder dem Board, ausser bindungen | `bot/src/modulliste.test.ts`, PostgreSQL: die Tabellen aus `information_schema` nach allen Migrationen gegen die Tabellen aus `alleModule` und `Brett` und die Liste der Tabellen, die bleiben: nur `bindungen` |
-| die Seiten kommen in der Reihenfolge der Tabs; vergiss leert den Cache … | dieselbe Datei: `beitritt`, `abschied`, `sprachraeume`; `vergiss` nimmt nur den einen Server aus beiden Caches |
-| welches Modul welche Ereignisse, Befehle, Knöpfe und welchen Schalter hat | dieselbe Datei: Befehle `ping`, ohne Schalter; Begrüssung `beitritt`, `abschied`; Sprachräume `stimme` in `ereignisse`, `bereit`, `stimme`, `kanalWeg` in `aufraeumen` und das Präfix `sprachraum:`; beide mit freiem Schalter |
-| ein Modul, das aus ist, bekommt keine Ereignisse, nur sein Aufräumen … | `bot/src/discord/modul.test.ts`: `haengeAn` mit einem Modul ohne und einem mit Schalter; an bekommt es alles, aus nur `aufraeumen`, und Befehl und Knopf antworten `modulAus`, ephemeral. Fällt, wenn `haengeAn` `istAn` nicht beachtet |
+| die Seiten kommen in der Reihenfolge der Tabs; vergiss leert den Cache … | dieselbe Datei: `beitritt`, `abschied`, `sprachraeume`, `strafen`; `vergiss` nimmt nur den einen Server aus den drei Caches |
+| welches Modul welche Ereignisse, Befehle, Knöpfe und welchen Schalter hat | dieselbe Datei: Befehle `ping`, ohne Schalter; Begrüssung `beitritt`, `abschied`; Sprachräume `stimme` in `ereignisse`, `bereit`, `stimme`, `kanalWeg` in `aufraeumen` und das Präfix `sprachraum:`; beide mit freiem Schalter; Managed Commands `ban`, `kick`, `warn`, Präfix `strafe:`, bezahlt, als einziges mit `raeumeAuf` und ohne `aufraeumen` |
+| ein Modul, das aus ist, bekommt keine Ereignisse, nur sein Aufräumen … | `bot/src/discord/modul.test.ts`: `haengeAn` mit einem Modul ohne und einem mit Schalter; an bekommt es alles, aus nur `aufraeumen`, und Befehl, Knopf und ein abgeschicktes Formular antworten `modulAus`, ephemeral, ohne Erwähnungen. Fällt, wenn `haengeAn` `istAn` nicht beachtet oder `allowedMentions` fehlt |
 | scheitert die Frage, ob ein Modul an ist, kommt kein Ereignis an; Befehl und Knopf bekommen den allgemeinen Fehlersatz | dieselbe Datei: `istAn` wirft; kein Ereignis, Befehl und Knopf antworten „Das hat nicht geklappt.“, ephemeral, nicht `modulAus`; je eine Zeile `Board: <Fehler>`. Fällt, wenn sie `modulAus` antworten |
+| antwortet die Frage, ob ein Modul an ist, nicht in der Frist … | dieselbe Datei: Board antwortet nach 300 ms, Frist 50 ms; Befehl und Knopf bekommen „Das hat nicht geklappt.“, die späte Antwort startet nichts mehr; zwei Zeilen `Board: keine Antwort nach 50 ms`. Fällt ohne Frist |
+| Autocomplete: Vorschläge nur, wenn das Modul an ist … | dieselbe Datei: Typ 4 über `haengeAn`; an mit Liste, aus, mit Fehler des Boards und nach der Frist eine leere Liste (Typ 8). Fällt, wenn der Zweig nicht fragt, ob das Modul an ist |
 | meldeBereit: Aufräumen mit allen Servern … | dieselbe Datei: `aufraeumen.bereit` mit beiden Servern, `ereignisse.bereit` nur mit dem, auf dem das Modul an ist |
 | ohne gespeicherten Stand: frei an, bezahlt aus … | `bot/src/brett/brett.test.ts`, PostgreSQL: `Brett#istAn` ohne Zeile; ohne Schalter immer an |
 | die Seite: Hinweis, je Modul mit Schalter einer … | dieselbe Datei: Seite `module` mit `alleNeu`, `hinweis`, je Schalter einer, nicht freigeschaltet `gesperrt` mit `nicht_freigeschaltet` und ein `link` auf `https://discord.com/` |
@@ -328,6 +335,33 @@ Millisekunden. Darum:
 | Ereignisse kommen als Kauf, ohne Discord-ID der Person … | dieselbe Datei: Create, Update, Delete über die Actions von discord.js; nach Create und Update ist der Cache der Anwendung leer. Fällt ohne `EntitlementManager` mit `maxSize` 0 |
 | jede neue Sitzung eines Shards meldet Shard und Anzahl … | dieselbe Datei: `ShardReady` meldet, `ShardResume` nicht |
 | ist ein Modul aus, fehlen seine Seiten, und seine Routen geben 409 … | `bot/src/api/server.test.ts`: `istAn` je Bereich; `GET …/seiten` ohne die Seiten, `PUT`, `POST`, `GET` und `DELETE` geben `409` `modul_aus`, ohne Rechte zuerst `403`. Fällt, wenn die Routen `istAn` nicht fragen |
+| registriere: Optionen als Pflicht, Text mit max_length und Autocomplete, nur auf Servern | `bot/src/discord/befehle.test.ts`: der Body mit `contexts` `[0]`, Option `nutzer` (Typ 6) und `grund` (Typ 3) mit `max_length` 400 und `autocomplete` |
+| ein Aufruf liest Optionen, das Ziel mit Rang, zeigt ein Formular; warte und fertig … | dieselbe Datei: echte Interaktion mit `resolved`; `text`, `ziel` mit Rolle und Position, `ort`; Callback 5, dann `bearbeitet`; Formular als Callback 9; wirft der Befehl nach `warte`, ersetzt der Fehlersatz die Antwort, ohne Erwähnungen |
+| Autocomplete: die Vorschläge der Option, höchstens 25 … | dieselbe Datei: Callback 8 mit 25 von 30; aus eine leere Liste; scheitern die Vorschläge, eine leere Liste und eine Zeile |
+| … ohne Option im Fokus | dieselbe Datei: `getFocused` wirft, trotzdem eine leere Liste und eine Zeile ins Log; die Option bekommt Server, Person und Rang |
+| banne löscht keine Nachrichten und trägt den Grund ins Audit-Log … | `bot/src/discord/moderation.test.ts`: `delete_message_seconds` 0, `X-Audit-Log-Reason`, auf 512 Zeichen gekürzt |
+| kicke mit Grund; fehlt dem Bot das Recht (50013) … | dieselbe Datei: `DELETE` auf das Mitglied mit Grund; 50013 wird `kein_recht` |
+| schreibe schickt eine DM ohne Erwähnungen; nimmt die Person keine an (50007) … | dieselbe Datei: DM-Kanal, Text, `allowed_mentions`; 50007 wird `kein_dm` |
+| zielAuf: ein Mitglied mit Rang, ein Nutzer ohne Server nur als Person … | dieselbe Datei: 10007 dann `GET /users/{id}`; 10013 gibt `undefined` |
+| botAuf …; rollenAuf ohne @everyone und verwaltete Rollen … | dieselbe Datei: Rang und Rechte des Bots; Rollen nach Position, die höchste zuerst |
+| pruefe: jede Regel mit ihrem Code und Feld … | `bot/src/module/strafen/strafen.test.ts`: jede Zeile der Tabelle in „Managed Commands einstellen“ mit Code und Feld, Leerzeichen abgeschnitten |
+| Länge der DM … | dieselbe Datei: `hoechstens` mit 100 und 400, `bannDm` mit und ohne Text zur Entbannung; ein Name mit `{grund}` und ein Grund mit `{server}` bleiben, wie sie sind (ein Durchgang) |
+| Vorschläge … / Vorschläge nur für den, der die Befehle nutzen darf … / ohne Rolle aus der Liste nein … | dieselbe Datei, PostgreSQL mit falschen Werkzeugen: Filter und „Eigener Grund …“, höchstens 24 Gründe; ohne Rolle aus der Liste keine Vorschläge; Eigentümer und Administratoren ohne Limit |
+| Bann: erst die DM … dann der Bann … | dieselbe Datei: Reihenfolge DM, Bann; DM mit `{server}`, `{grund}` und Entbannung; Grund im Audit-Log mit Befehl und Benutzername |
+| das Limit: das höchste der Rollen, rollierend 7 Tage … | dieselbe Datei mit falscher Uhr: 3 von 3, der Zeitstempel des nächsten; 1 ms vor 168 h zählt der erste noch, genau nach 168 h nicht mehr; Kicks getrennt; 0 heisst nie |
+| zwei Befehle zugleich kommen nicht am Limit vorbei | dieselbe Datei: ein Bann dauert 50 ms; ohne die Sperre je Mitglied bannen beide. Fällt ohne `nacheinander` |
+| Ziel: man selbst, der Bot, der Eigentümer … | dieselbe Datei: jede Regel aus „Ziel“ mit ihrem Satz; der Eigentümer über jeder Rolle, nicht über dem Bot; Bann ohne Mitglied ohne DM |
+| fehlt dem Bot das Recht oder sagt Discord 50013 … | dieselbe Datei: kein Eintrag; kam die DM schon an, sagt die Antwort das, auch beim allgemeinen Satz; 50007 bei der DM bannt trotzdem |
+| scheitert die DM anders als mit 50007, etwa mit 500 … | dieselbe Datei: Bann und Verwarnung mit „Die DM kam nicht an.“, je eine Logzeile ohne IDs. Fällt, wenn jeder Fehler wie `kein_dm` klingt |
+| Hasszeichen schreibt der Bot nicht … | dieselbe Datei: Hakenkreuz und SS-Runen in Name, Server, Grund und Entbannung; DM, Antwort und Audit-Log ohne sie. Fällt ohne den Filter an jeder der drei Stellen |
+| ein Grund mit mehr als 400 Zeichen … | dieselbe Datei: 401 Zeichen bei Bann, Kick und Warn nur die Antwort, kein Eintrag; 400 kickt |
+| ohne DM beim Bann keine DM; der Grund im Audit-Log … | dieselbe Datei: ohne DM in den Einstellungen nur der Bann, der Grund im Audit-Log wie gegeben, mit Befehl und Benutzername |
+| zwei /warn zugleich auf dasselbe Ziel zählen nacheinander … | dieselbe Datei: eine Datenbank wartet nach dem `INSERT`; zum 1. und zum 2. Mal. Fällt ohne `nacheinander` |
+| Verwarnung: DM mit Server und Grund … | dieselbe Datei: gezählt, gespeichert mit wer und Grund, in der Frist des Servers |
+| freier Text ist ein eigener Grund ohne Formular … | dieselbe Datei: ein Text, der nicht in der Liste steht, kickt ohne Formular mit genau diesem Grund; ` CUSTOM ` öffnet das Formular |
+| „custom“ öffnet das Formular … / ein Befehl schiebt die Antwort auf … | dieselbe Datei: `zeigeFormular` mit `strafe:ban:<id>`; das abgeschickte Formular bannt mit dem eigenen Grund; `warte`, dann `fertig` |
+| Aufräumen: Bans und Kicks nach 7 Tagen, Verwarnungen nach der Frist … | dieselbe Datei: 8 und 6 Tage alte Bans, Verwarnungen nach 30 und 365 Tagen je Server |
+| die Seite: Standard, Rollen als Optionen, Hinweis ohne Rechte … | dieselbe Datei: Bausteine in Reihenfolge, Hinweis ohne „Mitglieder kicken“, Speichern mit Meldung, `rolle_unbekannt`, `fund` für eine gelöschte Rolle |
 | Beitritt und Abschied gehen als Mitglied an jedes Modul … | `bot/src/discord/modul.test.ts`: `haengeAn` mit zwei falschen Modulen, `guildMemberAdd` und `guildMemberRemove` aus discord.js; beide Module in der Reihenfolge der Liste |
 | ein Wechsel des Sprachkanals kommt mit Griff, Person, vorher und nachher | dieselbe Datei: `voiceStateUpdate` mit zwei `VoiceState` |
 | ein gelöschter Kanal eines Servers geht an die Module, ein Kanal einer DM nicht | dieselbe Datei: `channelDelete` mit einem Textkanal und einem `DMChannel` |

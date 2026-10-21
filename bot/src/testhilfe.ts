@@ -5,6 +5,7 @@ import { connect, type AddressInfo } from 'node:net';
 import { createCanvas } from '@napi-rs/canvas';
 import { ChannelType, ClientApplication, ClientUser, PermissionFlagsBits as R, type Client } from 'discord.js';
 import { erstelleClient } from './discord/client.js';
+import type { Aufruf } from './discord/befehle.js';
 
 export const BOT = '100000000000000001';
 export const PERSON = '200000000000000002';
@@ -156,6 +157,17 @@ export interface MockDiscord {
   kaeufeFolge: ('ok' | number | 'abbruch')[];
   // Je kommendem Lesen der Liste die Sekunden in `Retry-After` eines 429.
   kaeufeWarten: number[];
+  // Bann (`PUT /guilds/{id}/bans/{nutzer}`) und Kick (`DELETE /guilds/{id}/members/{nutzer}`)
+  // mit Body und Grund im Audit-Log; Status und Code, wenn sie scheitern sollen.
+  gebannt: { server: string; nutzer: string; body: unknown; grund?: string }[];
+  gekickt: { server: string; nutzer: string; grund?: string }[];
+  bannFehler?: [number, number];
+  kickFehler?: [number, number];
+  // DMs: der Kanal je Person ist `9` und ihre ID ohne die erste Ziffer;
+  // `dmFehler` lässt das Senden scheitern, etwa mit 50007.
+  dmFehler?: [number, number];
+  // Was `GET /users/{id}` liefert; fehlt die ID, 404 mit 10013.
+  nutzer: Map<string, object>;
   verbrauchenFehler?: [number, number];
 }
 
@@ -242,6 +254,9 @@ export async function mockDiscord(): Promise<MockDiscord> {
     kaeufe: [],
     kaeufeWarten: [],
     kaeufeFolge: [],
+    gebannt: [],
+    gekickt: [],
+    nutzer: new Map(),
   } as unknown as MockDiscord;
   let naechsterKanal = 800000000000000001n;
   mock.server = createServer((req, res) => {
@@ -272,6 +287,21 @@ export async function mockDiscord(): Promise<MockDiscord> {
         return passt ? antworte(200, { access_token: TOKEN, token_type: 'Bearer', expires_in: 604800, scope: 'identify guilds' }) : antworte(400, { error: 'invalid_grant' });
       }
       if (pfad === '/api/v10/oauth2/token/revoke') return antworte(req.headers.authorization === basic ? 200 : 401, {});
+      if (pfad === '/api/v10/users/@me/channels' && req.method === 'POST') {
+        const empfaenger = String(JSON.parse(body).recipient_id ?? '');
+        return antworte(200, { id: `9${empfaenger.slice(1)}`, type: 1, recipients: [mitglied(empfaenger, []).user] });
+      }
+      const nutzerTreffer = /^\/api\/v10\/users\/(\d+)$/.exec(pfad);
+      if (nutzerTreffer && req.method === 'GET') {
+        const gefunden = mock.nutzer.get(nutzerTreffer[1] ?? '');
+        return gefunden ? antworte(200, gefunden) : antworte(404, { message: 'Unknown User', code: 10013 });
+      }
+      const bann = /^\/api\/v10\/guilds\/(\d+)\/bans\/(\d+)$/.exec(pfad);
+      if (bann && req.method === 'PUT') {
+        if (mock.bannFehler) return antworte(mock.bannFehler[0], { message: 'Fehler', code: mock.bannFehler[1] });
+        mock.gebannt.push({ server: bann[1] ?? '', nutzer: bann[2] ?? '', body: body ? JSON.parse(body) : {}, grund });
+        return res.writeHead(204).end();
+      }
       if (pfad.startsWith('/api/v10/users/@me') && req.headers.authorization !== `Bearer ${TOKEN}`) return antworte(401, {});
       if (pfad === '/api/v10/users/@me') {
         return mock.person === 200
@@ -324,6 +354,9 @@ export async function mockDiscord(): Promise<MockDiscord> {
         return kauf ? antworte(200, kauf) : antworte(404, { message: 'Unknown Entitlement', code: 10029 });
       }
       const nachricht = /^\/api\/v10\/channels\/(\d+)\/messages$/.exec(pfad);
+      if (nachricht && req.method === 'POST' && mock.dmFehler && nachricht[1]?.startsWith('9')) {
+        return antworte(mock.dmFehler[0], { message: 'Fehler', code: mock.dmFehler[1] });
+      }
       if (nachricht && req.method === 'POST') {
         if (mock.nachrichtFehler) return antworte(mock.nachrichtFehler[0], { message: 'Fehler', code: mock.nachrichtFehler[1] });
         const typ = req.headers['content-type'] ?? '';
@@ -384,6 +417,11 @@ export async function mockDiscord(): Promise<MockDiscord> {
         return antworte(200, { id: kanalWeg[1], type: 2 });
       }
       const treffer = /^\/api\/v10\/guilds\/(\d+)\/members\/(\d+)$/.exec(pfad);
+      if (treffer && req.method === 'DELETE') {
+        if (mock.kickFehler) return antworte(mock.kickFehler[0], { message: 'Fehler', code: mock.kickFehler[1] });
+        mock.gekickt.push({ server: treffer[1] ?? '', nutzer: treffer[2] ?? '', grund });
+        return res.writeHead(204).end();
+      }
       if (treffer && req.method === 'PATCH') {
         if (mock.verschiebenFehler) return antworte(mock.verschiebenFehler[0], { message: 'Fehler', code: mock.verschiebenFehler[1] });
         mock.verschoben.push({ nutzer: treffer[2] ?? '', kanal: JSON.parse(body).channel_id ?? null, grund });
@@ -558,3 +596,19 @@ export function pngBild(breite: number, hoehe: number, farbe = '#3a7d44'): Buffe
 }
 
 export { ChannelType, R };
+
+// Ein Aufruf eines Befehls ohne Discord; was der Test nicht gibt, wirft.
+export function falscherAufruf(teile: Partial<Aufruf>): Aufruf {
+  const fehlt = (was: string) => () => {
+    throw new Error(`${was} fehlt im falschen Aufruf`);
+  };
+  return {
+    antworte: async () => fehlt('antworte')(),
+    text: () => undefined,
+    ziel: () => undefined,
+    zeigeFormular: async () => fehlt('zeigeFormular')(),
+    warte: async () => fehlt('warte')(),
+    fertig: async () => fehlt('fertig')(),
+    ...teile,
+  };
+}

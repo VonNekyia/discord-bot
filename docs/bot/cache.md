@@ -6,6 +6,8 @@ code:
   - bot/src/module/begruessung/modul.ts
   - bot/src/module/sprachraeume/modul.ts
   - bot/src/brett/brett.ts
+  - bot/src/module/strafen/modul.ts
+  - bot/src/brett/freischaltung.ts
 ---
 
 # Cache
@@ -22,7 +24,13 @@ sie dort. Die API ruft nach jedem Schreiben `delete`. Das Board hält in
 `bot/src/brett/brett.ts` die gespeicherten Schalter je Server; jedes
 Ereignis, jeder Befehl und jeder Knopf eines Moduls mit Schalter fragt es.
 Es sind Einstellungen, keine Rechte; `speichere` und `vergiss` rufen
-`delete`, siehe [Board der Module](../schnittstelle/module.md).
+`delete`, siehe [Board der Module](../schnittstelle/module.md). Die
+Managed Commands halten ihre Einstellungen je Server in
+`bot/src/module/strafen/modul.ts`; jeder Befehl und jedes Autocomplete
+liest sie. `Freischaltung` in `bot/src/brett/freischaltung.ts` hält je
+Server die SKUs seiner gebundenen Käufe und, 10 min, seine laufenden Abos;
+jedes Binden, jede beendete Bindung und jedes `ENTITLEMENT_*` zu dem
+Server ruft `delete`, siehe [0020](../entscheidungen/0020-bezahlte-module.md).
 
 ## Wann cachen
 

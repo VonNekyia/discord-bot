@@ -13,12 +13,13 @@ code:
   - web/.oxlintrc.json
   - bot/src/discord/modul.ts
   - bot/src/brett/brett.ts
+  - bot/src/brett/freischaltung.ts
 ---
 
 # Struktur von Bot und Oberfläche
 
-Jede Feature-Suite ist ein Modul: Befehle, Begrüssung, Sprachräume, später
-Strafen. Ein Modul hat seinen Ordner unter `bot/src/module/`. Seine
+Jede Feature-Suite ist ein Modul: Befehle, Begrüssung, Sprachräume und
+Managed Commands (`strafen`). Ein Modul hat seinen Ordner unter `bot/src/module/`. Seine
 Oberfläche meldet es als Seiten im Baukasten an; `web/` hat keine Ordner
 je Modul, sondern baut jede Art von Baustein allgemein. Darunter liegen
 Schichten, die alle Module nutzen: der Kern, eine eigene Schicht über
@@ -29,18 +30,18 @@ Linter. Warum so, steht in
 
 ## Bot
 
-| Pfad | Inhalt | Dateien, Stand 2026-10-12 |
+| Pfad | Inhalt | Dateien, Stand 2026-10-17 |
 |---|---|---|
 | `bot/src/index.ts` | Einstieg: verbindet Kern, Discord-Schicht, API und Module | |
 | `bot/src/modulliste.ts` | `alleModule`: die Liste der Module, in der Reihenfolge der Tabs | |
 | `bot/src/kern/` | Datenbank, Cache, Fehlertext fürs Log, Typwächter für Eingaben, Grenzen, Zählung, Aufräumen, der Vertrag des Baukastens; kennt weder Discord noch Module | `datenbank.ts`, `cache.ts`, `fehler.ts`, `eingabe.ts`, `grenze.ts`, `zaehlung.ts`, `aufraeumen.ts`, `baukasten.ts`, `modul.ts` |
-| `bot/src/discord/` | die einzige Schicht, die discord.js importiert | `client.ts`, `ordnung.ts`, `zaehlen.ts`, `oauth.ts`, `kanaele.ts`, `kontext.ts`, `eigentuemer.ts`, `nachrichten.ts`, `server.ts`, `fehler.ts`, `rechte.ts`, `sprachkanaele.ts`, `menue.ts`, `interaktionen.ts`, `befehle.ts`, `dashboard.ts`, `modul.ts`, `kaeufe.ts` |
+| `bot/src/discord/` | die einzige Schicht, die discord.js importiert | `client.ts`, `ordnung.ts`, `zaehlen.ts`, `oauth.ts`, `kanaele.ts`, `kontext.ts`, `eigentuemer.ts`, `nachrichten.ts`, `server.ts`, `fehler.ts`, `rechte.ts`, `sprachkanaele.ts`, `menue.ts`, `interaktionen.ts`, `befehle.ts`, `dashboard.ts`, `modul.ts`, `kaeufe.ts`, `mitglieder.ts`, `moderation.ts` |
 | `bot/src/api/` | HTTP-API des Dashboards: Server, Anmeldung, Grenzen, Fehler; die Routen der Seiten, die die Module anmelden | `server.ts`, `anmeldung.ts` |
 | `bot/src/brett/` | das Board der Module: je Server, welches Modul an ist, und seine Seite; dazu die Freischaltung bezahlter Module; kein Modul, siehe [Board der Module](../schnittstelle/module.md) | `brett.ts`, `freischaltung.ts` |
 | `bot/src/module/befehle/` | Slash-Befehle, heute `/ping` | `befehle.ts`, `modul.ts` |
 | `bot/src/module/begruessung/` | Beitritt und Abschied: Einstellungen, Senden, Banner, Seiten im Dashboard | `begruessung.ts`, `senden.ts`, `banner.ts`, `seiten.ts`, `modul.ts` |
 | `bot/src/module/sprachraeume/` | Sprachräume: Einstellungen, Räume, Menü, Knöpfe, Rechte, Seite im Dashboard | `sprachraeume.ts`, `raeume.ts`, `menue.ts`, `knoepfe.ts`, `raumrechte.ts`, `seiten.ts`, `modul.ts` |
-| `bot/src/module/strafen/` | Managed Commands: `/ban`, `/kick`, `/warn`, Seite „Managed Commands“; geplant, siehe [API der Managed Commands](../schnittstelle/strafen.md) | – |
+| `bot/src/module/strafen/` | Managed Commands: `/ban`, `/kick`, `/warn`, Einstellungen, Seite „Managed Commands“, Formular für den eigenen Grund, Aufräumen, siehe [Managed Commands](../benutzung/managed-commands.md) | `strafen.ts`, `befehle.ts`, `seiten.ts`, `modul.ts` |
 
 Tests liegen neben dem Code, den sie prüfen; `bot/src/testhilfe.ts` hilft
 allen. `dist/` spiegelt `src/`; `npm test` findet die Tests mit
@@ -63,7 +64,7 @@ allen. `dist/` spiegelt `src/`; `npm test` findet die Tests mit
 Ein Pfeil heisst „darf importieren“:
 
 ```text
-Bot:  index.ts ──> modulliste.ts ──> module/*
+Bot:  index.ts ──> modulliste.ts ──> module/*, discord/
                ──> module/*     ──> discord/, kern/
                ──> api/         ──> discord/, kern/
                ──> brett/       ──> discord/, kern/
@@ -116,6 +117,7 @@ Jedes Modul gibt dazu ein Objekt nach dem Vertrag `Modul` in
 | `name` | für Fehler beim Start |
 | `tabellen` | Tabellen mit der Spalte `server`; verlässt der Bot einen Server, gehen ihre Zeilen |
 | `vergiss(server)` | vergisst, was das Modul im Speicher zum Server hält, etwa im Cache |
+| `raeumeAuf()` | löscht, was über seiner Frist ist; `bot/src/index.ts` ruft es beim Start und dann stündlich, auch ohne API und wo das Modul aus ist. Ein Modul startet keinen eigenen Timer. Heute nur Managed Commands, siehe [Datenschutz](../bot/datenschutz.md), „Was der Bot speichert“ |
 | `bereich` | seine Seiten im Dashboard, `Bereich` aus `bot/src/kern/baukasten.ts` |
 | `schalter` | sein Schalter auf dem Board: `titel`, `hilfe`, `bezahlt`; ohne ihn ist das Modul immer an, siehe [Board der Module](../schnittstelle/module.md) |
 

@@ -119,7 +119,7 @@ der Wert `286362640`, mit den Managed Commands `286362646`:
 |---|---|
 | Kanäle ansehen, Nachrichten senden, Dateien anhängen | die Begrüssung, siehe [Begrüssung bei Beitritt und Abschied](begruessung.md), „Rechte und Intent“ |
 | Kanäle verwalten, Rollen verwalten, Mitglieder verschieben, Verbinden, Nachrichtenverlauf anzeigen | die Sprachräume, siehe [Sprachräume](sprachraeume.md), „Rechte und Intent“ |
-| Mitglieder kicken, Mitglieder bannen | die Managed Commands, siehe [Managed Commands](managed-commands.md), „Rechte und Intent“; kommen mit `managed-commands-backend` |
+| Mitglieder kicken, Mitglieder bannen | die Managed Commands, siehe [Managed Commands](managed-commands.md), „Rechte und Intent“ |
 
 `/ping` braucht keine Rechte, siehe [Befehle](befehle.md).
 Die Rechte der Sprachräume braucht der Bot auf dem ganzen Server. Wer den
@@ -137,6 +137,17 @@ keine Secrets. Fehlt eine, ist ihr Angebot aus; ist eine gesetzt, aber
 keine ID, endet der Bot beim Start mit Exit 1. Was dann freigeschaltet
 ist, steht in [Board der Module](../schnittstelle/module.md),
 „Freischaltung“, und [0020](../entscheidungen/0020-bezahlte-module.md).
+
+Vorher muss die Monetarisierung im Developer Portal unter „Premium-Apps“
+eingerichtet sein; starten darf das nur der Eigentümer des Teams. Discord
+verlangt dafür unter anderem eine verifizierte App, Links zu
+Nutzungsbedingungen und Datenschutzerklärung und Auszahlungen mit einer
+Zahlungsmethode in einem berechtigten Land (Stand 2026-10-21, im Portal
+gesehen). Beim Einrichten prüft der Maintainer, ob Einmalkäufe und Abos je
+Server zusammengehen, siehe [0020](../entscheidungen/0020-bezahlte-module.md),
+„Folgen“. Bis dahin sind alle `SKU_*` leer, und die bezahlten Module
+bleiben aus, auch auf dem eigenen Server, denn ein Test-Entitlement braucht
+eine SKU.
 
 ### Eigener Server
 

@@ -97,7 +97,7 @@ async function nach(tue: () => void): Promise<string[]> {
 }
 
 // Eine Interaktion, wie Discord sie schickt.
-function interaktion(type: 2 | 3, data: object, an: Client = client) {
+function interaktion(type: 2 | 3 | 4 | 5, data: object, an: Client = client) {
   zaehler += 1;
   const aktionen = (an as unknown as { actions: { InteractionCreate: { handle(d: unknown): void } } }).actions;
   aktionen.InteractionCreate.handle({
@@ -165,6 +165,8 @@ test('ein Modul, das aus ist, bekommt keine Ereignisse, nur sein Aufräumen; Bef
     ...(await nach(() => geschaltet.emit(Events.ChannelDelete, text as never))),
     ...(await nach(() => interaktion(2, { id: '930000000000000082', name: 'schalter', type: 1 }, geschaltet))),
     ...(await nach(() => interaktion(3, { custom_id: 'c:sperren', component_type: 2 }, geschaltet))),
+    // Ein abgeschicktes Formular: Zwischen Befehl und Formular kann das Modul ausgehen.
+    ...(await nach(() => interaktion(5, { custom_id: 'c:formular', components: [] }, geschaltet))),
   ];
 
   // An: alles kommt an, das Aufräumen dazu.
@@ -186,6 +188,7 @@ test('ein Modul, das aus ist, bekommt keine Ereignisse, nur sein Aufräumen; Bef
     `b kanalWeg ${TEXT}`,
     'c befehl',
     'c knopf sperren',
+    'c knopf formular',
   ]);
   assert.ok(gefragt.every((g) => g === `c ${SERVER}`) && gefragt.length > 0);
 
@@ -193,11 +196,12 @@ test('ein Modul, das aus ist, bekommt keine Ereignisse, nur sein Aufräumen; Bef
   aus.add('c');
   const vorher = mock.antworten.length;
   assert.deepEqual(await alles(), [`a beitritt ${PERSON}`, `a abschied ${PERSON}`, `a stimme ${SERVER} ${PERSON} ${STIMME} null`, 'c räumt stimme', `a kanalWeg ${TEXT}`, 'c räumt kanalWeg']);
-  const antworten = await warteAufAntworten(mock, vorher, 2);
-  assert.equal(antworten.length, 2);
+  const antworten = await warteAufAntworten(mock, vorher, 3);
+  assert.equal(antworten.length, 3);
   for (const a of antworten) {
     assert.equal(a.daten.content, modulAus);
     assert.equal(a.daten.flags, 64);
+    assert.deepEqual((a.daten as { allowed_mentions?: unknown }).allowed_mentions, { parse: [] });
   }
   aus.clear();
 });
@@ -224,6 +228,75 @@ test('scheitert die Frage, ob ein Modul an ist, kommt kein Ereignis an; Befehl u
   );
   const zeilen = log.mock.calls.map((c) => String(c.arguments[0]));
   assert.deepEqual(zeilen, ['Board: Datenbank weg', 'Board: Datenbank weg', 'Board: Datenbank weg']);
+});
+
+test('antwortet die Frage, ob ein Modul an ist, nicht in der Frist, bekommen Befehl und Knopf den Fehlersatz; die späte Antwort zählt nicht', async (t) => {
+  const log = t.mock.method(console, 'error', () => {});
+  const langsam = discordClient(mock, [gilde(SERVER, 'Module', '200000000000000099', [kanal(TEXT, ChannelType.GuildText, 'allgemein', 0, null)])]);
+  t.after(() => langsam.destroy());
+  // Das Board antwortet erst nach 300 ms, die Frist ist 50 ms.
+  haengeAn(langsam, [mitSchalter('e')], () => new Promise((ja) => setTimeout(() => ja(true), 300)), 50);
+  const vorher = mock.antworten.length;
+  gesehen.length = 0;
+  interaktion(2, { id: '930000000000000084', name: 'schalter', type: 1 }, langsam);
+  interaktion(3, { custom_id: 'e:sperren', component_type: 2 }, langsam);
+  const antworten = await warteAufAntworten(mock, vorher, 2);
+  assert.deepEqual(
+    antworten.map((a) => [a.daten.content, a.daten.flags]),
+    [
+      ['Das hat nicht geklappt.', 64],
+      ['Das hat nicht geklappt.', 64],
+    ],
+  );
+  // Nach der späten Antwort des Boards: Befehl und Knopf laufen nicht mehr, keine zweite Antwort.
+  await new Promise((weiter) => setTimeout(weiter, 400));
+  assert.deepEqual(gesehen, []);
+  assert.equal(mock.antworten.length, vorher + 2);
+  assert.deepEqual(
+    log.mock.calls.map((c) => String(c.arguments[0])),
+    ['Board: keine Antwort nach 50 ms', 'Board: keine Antwort nach 50 ms'],
+  );
+});
+
+test('Autocomplete: Vorschläge nur, wenn das Modul an ist; aus, mit Fehler oder nach der Frist eine leere Liste', async (t) => {
+  t.mock.method(console, 'error', () => {});
+  let stand: 'an' | 'aus' | 'fehler' | 'langsam' = 'an';
+  const vorschlag = discordClient(mock, [gilde(SERVER, 'Module', '200000000000000099', [kanal(TEXT, ChannelType.GuildText, 'allgemein', 0, null)])]);
+  t.after(() => vorschlag.destroy());
+  const modul: DiscordModul = {
+    name: 'f',
+    schalter: { titel: 'f', hilfe: 'Probe.' },
+    befehle: [
+      {
+        name: 'vorschlag',
+        beschreibung: 'Probe.',
+        optionen: [{ art: 'text', name: 'grund', beschreibung: 'Probe.', hoechstens: 400, vorschlaege: async (eingabe) => [{ name: `Spam ${eingabe}`, wert: 'spam' }] }],
+        ausfuehren: async () => {},
+      },
+    ],
+  };
+  haengeAn(
+    vorschlag,
+    [modul],
+    async () => {
+      if (stand === 'fehler') throw new Error('Datenbank weg');
+      if (stand === 'langsam') await new Promise((ja) => setTimeout(ja, 300));
+      return stand !== 'aus';
+    },
+    50,
+  );
+  // Eine Autocomplete-Interaktion (Typ 4) für die Option grund; die Antwort hat Typ 8.
+  const fragt = async () => {
+    const vorher = mock.antworten.length;
+    interaktion(4, { id: '930000000000000085', name: 'vorschlag', type: 1, options: [{ type: 3, name: 'grund', value: 'sp', focused: true }] }, vorschlag);
+    const [antwort] = await warteAufAntworten(mock, vorher, 1);
+    return [antwort?.typ, (antwort?.daten as { choices?: unknown } | undefined)?.choices];
+  };
+  assert.deepEqual(await fragt(), [8, [{ name: 'Spam sp', value: 'spam' }]]);
+  for (const z of ['aus', 'fehler', 'langsam'] as const) {
+    stand = z;
+    assert.deepEqual(await fragt(), [8, []], z);
+  }
 });
 
 test('meldeBereit: Aufräumen mit allen Servern, bereit nur mit denen, auf denen das Modul an ist', async () => {
