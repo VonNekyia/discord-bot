@@ -167,5 +167,12 @@ die API.
 - Ob eine Anwendung Consumables und Abos je Server zugleich anbieten kann,
   sagt die Doku von Discord nicht. Das prüft der Maintainer im Developer
   Portal, bevor `managed-commands-backend` gemergt wird.
+  - Nachtrag 2026-10-21: Für die Anwendung ist die Monetarisierung noch
+    nicht eingerichtet. Ohne sie lassen sich keine SKUs anlegen und also
+    auch nichts prüfen. Der Maintainer hat entschieden,
+    `managed-commands-backend` vorher zu mergen; ohne SKU bleibt das Modul
+    aus. Geprüft wird beim Einrichten, bevor eine SKU in `bot/.env` kommt,
+    siehe [Einrichtung und Betrieb](../benutzung/einrichtung.md), „Bezahlte
+    Module“.
 - Kein Code für den eigenen Server: Wer das Test-Entitlement löscht,
   nimmt ihm die bezahlten Module wie ein endendes Abo.
