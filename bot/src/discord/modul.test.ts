@@ -230,6 +230,34 @@ test('scheitert die Frage, ob ein Modul an ist, kommt kein Ereignis an; Befehl u
   assert.deepEqual(zeilen, ['Board: Datenbank weg', 'Board: Datenbank weg', 'Board: Datenbank weg']);
 });
 
+test('antwortet die Frage, ob ein Modul an ist, nicht in der Frist, bekommen Befehl und Knopf den Fehlersatz; die späte Antwort zählt nicht', async (t) => {
+  const log = t.mock.method(console, 'error', () => {});
+  const langsam = discordClient(mock, [gilde(SERVER, 'Module', '200000000000000099', [kanal(TEXT, ChannelType.GuildText, 'allgemein', 0, null)])]);
+  t.after(() => langsam.destroy());
+  // Das Board antwortet erst nach 300 ms, die Frist ist 50 ms.
+  haengeAn(langsam, [mitSchalter('e')], () => new Promise((ja) => setTimeout(() => ja(true), 300)), 50);
+  const vorher = mock.antworten.length;
+  gesehen.length = 0;
+  interaktion(2, { id: '930000000000000084', name: 'schalter', type: 1 }, langsam);
+  interaktion(3, { custom_id: 'e:sperren', component_type: 2 }, langsam);
+  const antworten = await warteAufAntworten(mock, vorher, 2);
+  assert.deepEqual(
+    antworten.map((a) => [a.daten.content, a.daten.flags]),
+    [
+      ['Das hat nicht geklappt.', 64],
+      ['Das hat nicht geklappt.', 64],
+    ],
+  );
+  // Nach der späten Antwort des Boards: Befehl und Knopf laufen nicht mehr, keine zweite Antwort.
+  await new Promise((weiter) => setTimeout(weiter, 400));
+  assert.deepEqual(gesehen, []);
+  assert.equal(mock.antworten.length, vorher + 2);
+  assert.deepEqual(
+    log.mock.calls.map((c) => String(c.arguments[0])),
+    ['Board: keine Antwort nach 50 ms', 'Board: keine Antwort nach 50 ms'],
+  );
+});
+
 test('meldeBereit: Aufräumen mit allen Servern, bereit nur mit denen, auf denen das Modul an ist', async () => {
   const zwei = [serverVon(guild), serverVon(geschaltetGuild)];
   const bekommen: string[][] = [];

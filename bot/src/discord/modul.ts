@@ -55,6 +55,26 @@ async function zustand(m: DiscordModul, server: string, istAn: IstAn): Promise<'
   );
 }
 
+// Wie lange eine Interaktion höchstens auf `zustand` wartet, in ms. Discord
+// wartet höchstens 3 s auf die erste Antwort, und ein Formular muss die erste
+// sein; ein `warte` davor geht also nicht. Die Frage kann bei einem bezahlten
+// Modul Discord fragen. Siehe docs/benutzung/befehle.md, „Fehler“.
+export const fristInteraktion = 2_000;
+
+// `zustand` mit Frist: Läuft sie ab, `fehler` und eine Zeile ins Log; eine
+// späte Antwort zählt nicht mehr.
+function zustandBis(m: DiscordModul, server: string, istAn: IstAn, frist: number): Promise<'an' | 'aus' | 'fehler'> {
+  if (!m.schalter) return Promise.resolve('an');
+  let uhr: ReturnType<typeof setTimeout> | undefined;
+  const abgelaufen = new Promise<'fehler'>((fertig) => {
+    uhr = setTimeout(() => {
+      console.error(`Board: keine Antwort nach ${frist} ms`);
+      fertig('fehler');
+    }, frist);
+  });
+  return Promise.race([zustand(m, server, istAn), abgelaufen]).finally(() => clearTimeout(uhr));
+}
+
 async function an(m: DiscordModul, server: string, istAn: IstAn): Promise<boolean> {
   return (await zustand(m, server, istAn)) === 'an';
 }
@@ -101,9 +121,10 @@ export function befehleVon(module: readonly DiscordModul[]): Befehl[] {
 // Module bekommen es in der Reihenfolge der Liste, nur wenn sie auf dem
 // Server an sind, siehe `verteile`. Befehle und Knöpfe eines Moduls, das
 // aus ist, antworten `modulAus`. `bereit` ruft bot/src/index.ts selbst über
-// `meldeBereit`, weil es nach dem Abgleich der Server kommt.
-// Siehe docs/schnittstelle/module.md, „Ein Modul ist aus“.
-export function haengeAn(client: Client, module: readonly DiscordModul[], istAn: IstAn = async () => true): void {
+// `meldeBereit`, weil es nach dem Abgleich der Server kommt. Bei Befehlen,
+// Knöpfen und Autocomplete wartet die Frage, ob das Modul an ist, höchstens
+// `frist` ms. Siehe docs/schnittstelle/module.md, „Ein Modul ist aus“.
+export function haengeAn(client: Client, module: readonly DiscordModul[], istAn: IstAn = async () => true, frist = fristInteraktion): void {
   const befehle = befehleVon(module);
   client.on(Events.GuildMemberAdd, (mitglied) => {
     const m = alsMitglied(mitglied);
@@ -126,7 +147,7 @@ export function haengeAn(client: Client, module: readonly DiscordModul[], istAn:
     if (interaction.isAutocomplete()) {
       const besitzer = module.find((m) => m.befehle?.some((b) => b.name === interaction.commandName));
       const server = interaction.guildId;
-      void (besitzer && server ? zustand(besitzer, server, istAn) : Promise.resolve('an' as const)).then((z) => schlageVor(interaction, befehle, z === 'an'));
+      void (besitzer && server ? zustandBis(besitzer, server, istAn, frist) : Promise.resolve('an' as const)).then((z) => schlageVor(interaction, befehle, z === 'an'));
       return;
     }
     if (interaction.isChatInputCommand()) {
@@ -136,7 +157,7 @@ export function haengeAn(client: Client, module: readonly DiscordModul[], istAn:
         void beantworte(interaction, befehle);
         return;
       }
-      void zustand(besitzer, server, istAn).then((z) =>
+      void zustandBis(besitzer, server, istAn, frist).then((z) =>
         z === 'an'
           ? beantworte(interaction, befehle)
           : interaction
@@ -153,7 +174,7 @@ export function haengeAn(client: Client, module: readonly DiscordModul[], istAn:
       const { knoepfe } = m;
       const druck = knoepfe && alsDruck(interaction, knoepfe.praefix);
       if (druck) {
-        void zustand(m, druck.server.id, istAn).then((z) =>
+        void zustandBis(m, druck.server.id, istAn, frist).then((z) =>
           z === 'an' ? knoepfe.bediene(druck) : druck.antworte(statt[z]).catch((e: unknown) => console.error(`Knopf: Antwort fehlgeschlagen: ${text(e)}`)),
         );
         return;

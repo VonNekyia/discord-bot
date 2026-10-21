@@ -61,7 +61,13 @@ Befehl, der länger braucht, muss die Antwort aufschieben; dafür bekommt
 Schlägt ein Befehl fehl oder ist er unbekannt, sieht der Nutzer
 „Das hat nicht geklappt.“ (`fehlgeschlagen` in `bot/src/discord/befehle.ts`),
 nur für ihn. Ebenso, wenn sich nicht klären lässt, ob sein Modul an ist,
-etwa ohne Datenbank; dann steht `Board: <Fehler>` im Log. Hat der Befehl schon geantwortet,
+etwa ohne Datenbank; dann steht `Board: <Fehler>` im Log. Dauert die Frage
+länger als 2 s (`fristInteraktion` in `bot/src/discord/modul.ts`), etwa
+weil die Freischaltung eines bezahlten Moduls auf Discord wartet, kommt
+der Satz auch, mit `Board: keine Antwort nach 2000 ms` im Log. Das gilt
+ebenso für Knöpfe; Autocomplete bekommt dann eine leere Liste. Discord
+wartet höchstens 3 s auf die erste Antwort, und ein Formular muss die erste
+sein. Hat der Befehl schon geantwortet,
 kommt die Meldung als zweite Nachricht (`followUp`). Scheitert auch sie,
 steht `/<befehl>: Antwort fehlgeschlagen: <Fehler>` im Log. Was ins Log geht, steht in
 [Datenschutz](../bot/datenschutz.md), „Was ins Log geht“.
