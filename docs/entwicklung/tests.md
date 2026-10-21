@@ -271,7 +271,7 @@ Millisekunden. Darum:
 | ein Erzeuger legt den Raum … in einem Aufruf an | eine private Kategorie: Name aus der Vorlage, Kategorie, Limit; die Einträge der Kategorie, @everyone ohne „Kanal ansehen“, der Besitzer zusammengeführt, der Bot; verschoben mit Grund; Zeile in `raeume` |
 | raumname: ohne Hasszeichen aus Name und Vorlage … | U+5350 im Namen und in der Vorlage fällt, SS-Runen gemischt fallen, ein einzelnes U+16CB bleibt; Name nur aus Hakenkreuzen: Benutzername; Vorlage nur aus Hakenkreuz: der Name; höchstens 100 Zeichen |
 | ein neuer Raum heisst ohne Hasszeichen … | `global_name` mit U+5350: der angelegte Kanal heisst „Mias Raum“ |
-| nach dem Anlegen kommt das Menü in den Textchat des Raums … | eine Nachricht im Raum, „## Dein Sprachraum“, `allowed_mentions` leer, drei Reihen mit je vier Knöpfen, jede `custom_id` mit `sprachraum:`, die zwölf Namen der Tabelle |
+| nach dem Anlegen kommt das Menü in den Textchat des Raums … | eine Nachricht im Raum, „## Dein Sprachraum“, `allowed_mentions` leer, drei Reihen mit je vier Knöpfen, jede `custom_id` mit `sprachraum:`, die zwölf Namen der Tabelle; je Knopf `custom_id`, Text und `emoji.name` in der Reihenfolge des Menüs, bei vieren mit U+FE0F |
 | scheitert das Menü, bleibt der Raum ohne Knöpfe … | Senden mit 50013: Zeile bleibt, nichts gelöscht, eine Logzeile ohne ID |
 | ohne Kategorie hat der Raum nur die Einträge von Besitzer und Bot | kein `parent_id`, zwei Einträge für Personen (Typ 1) mit ihren Rechten |
 | wer schon einen Raum hat, kommt zurück in den eigenen … | kein zweites Anlegen, Verschieben in den eigenen Raum |
@@ -392,6 +392,7 @@ Millisekunden. Darum:
 | sprachraum: ein Sprachkanal mit Name, Limit und Einträgen … | `sprachkanaele.test.ts`: `id`, `name`, `limit`, Einträge mit `art`, die drei der Kategorie; Kategorie, Text- und unbekannter Kanal ohne Ergebnis |
 | alsOverwrite macht aus art wieder den Typ … | `rolle` Typ 0, `person` Typ 1 |
 | das Menü: Text, drei Reihen … | `menue.test.ts`: `alsNachricht`: Überschrift, `allowedMentions` leer, 3 × 4 Knöpfe mit Präfix, rot nur Rauswerfen und Bannen |
+| jeder Knopf trägt sein Emoji als Unicode ohne ID … | `menue.test.ts`, ohne Datenbank: `alsNachricht`: je Knopf `emoji.name` in der Reihenfolge des Menüs, bei vieren mit U+FE0F; keins mit `id`, keins animiert |
 | die Auswahl: die Frage und genau ein Mitglied | `alsAuswahl`: Typ 5 mit `custom_id`, Platzhalter, 1 bis 1 |
 | das Formular: Label (Typ 18) … | `alsModal`: Titel, Label mit Beschreibung, Textfeld `wert` mit Grenzen und Wert von jetzt |
 | textkanal: nur Text- und Ankündigungskanäle … | `nachrichten.test.ts`: Text und Ankündigung ja; ohne Senden, ohne Sehen, Sprachkanal, unbekannt nicht; `anhaengen` nur mit „Dateien anhängen“ |

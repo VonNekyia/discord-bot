@@ -208,7 +208,7 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
     assert.deepEqual(await zeile(raum), { server: SERVER, besitzer: BESITZER });
   });
 
-  test('nach dem Anlegen kommt das Menü in den Textchat des Raums: zwölf Knöpfe in drei Reihen', async () => {
+  test('nach dem Anlegen kommt das Menü in den Textchat des Raums: zwölf Knöpfe in drei Reihen, jeder mit seinem Emoji', async () => {
     await speichereSprachraeume(db, SERVER, standard);
     await betritt(raeume(), BESITZER, K.erzeuger);
     const raum = mock.verschoben[0]?.kanal ?? '';
@@ -238,6 +238,24 @@ describe('Sprachräume', { skip: ziel ? false : 'keine Datenbank, DB_HOST fehlt'
       'Zeigen',
       'Übernehmen',
     ]);
+    // Je Knopf das Emoji, wie Discord es führt; U+FE0F gehört bei vier dazu.
+    assert.deepEqual(
+      knoepfe.map((k) => [k.custom_id, k.label, k.emoji?.name]),
+      [
+      ['sprachraum:sperren', 'Sperren', '🔒'],
+      ['sprachraum:entsperren', 'Entsperren', '🔓'],
+      ['sprachraum:verstecken', 'Verstecken', '👻'],
+      ['sprachraum:zeigen', 'Zeigen', '👁\uFE0F'],
+      ['sprachraum:umbenennen', 'Umbenennen', '✏\uFE0F'],
+      ['sprachraum:limit', 'Limit', '👥'],
+      ['sprachraum:uebernehmen', 'Übernehmen', '👑'],
+      ['sprachraum:info', 'Info', 'ℹ\uFE0F'],
+      ['sprachraum:rauswerfen', 'Rauswerfen', '👢'],
+      ['sprachraum:bannen', 'Bannen', '🔨'],
+      ['sprachraum:entbannen', 'Entbannen', '🕊\uFE0F'],
+      ['sprachraum:uebergeben', 'Besitz übergeben', '🤝'],
+      ],
+    );
   });
 
   test('scheitert das Menü, bleibt der Raum ohne Knöpfe; eine Logzeile ohne IDs', async (t) => {
