@@ -246,6 +246,21 @@ describe('Managed Commands', { skip: ziel ? false : 'keine Datenbank, DB_HOST fe
     assert.deepEqual(log.mock.calls.map((c) => String(c.arguments[0])), ['/ban: DM nicht gesendet: Internal Server Error', '/warn: DM nicht gesendet: Internal Server Error']);
   });
 
+  test('Hasszeichen schreibt der Bot nicht: weder aus Name, Server, Grund und Vorlage in die DM noch in Antwort und Audit-Log', async () => {
+    // Im Namen des Ziels, des Servers, im Grund und in der Vorlage der Entbannung.
+    einstellung = { ...einstellung, entbannung: 'Schreib an das Team.\u5350' };
+    const probe = { id: SERVER, name: 'Pro\u534Dbe' } as unknown as Server;
+    const ziel: Ziel = { person: person(OPFER, 'Mia\u16CB\u16CB'), rang: rang(1) };
+    const mit = (art: 'ban' | 'warn') => befehle.fuehreAus({ art, server: probe, wer: person(MOD, 'Moderator'), rang: rang(5, [R_MOD]), ziel, grund: 'Spam\u5350' });
+    assert.equal(await mit('ban'), 'Mia ist gebannt. Grund: Spam. Die DM ist angekommen. Bans in 7 Tagen: 1 von 1.');
+    assert.equal(await mit('warn'), 'Mia ist verwarnt, zum 1. Mal. Grund: Spam. Die DM ist angekommen.');
+    assert.deepEqual(getan, [
+      `dm ${OPFER} Du wurdest von Probe gebannt. Grund: Spam\n\nSchreib an das Team.`,
+      `ban ${OPFER} Spam · /ban von Moderator`,
+      `dm ${OPFER} Verwarnung auf Probe: Spam`,
+    ]);
+  });
+
   test('ohne DM beim Bann keine DM; der Grund im Audit-Log höchstens wie gegeben', async () => {
     einstellung = { ...einstellung, dm: false };
     assert.equal(await fall('ban', { grund: 'Werbung' }), 'nutzer-12 ist gebannt. Grund: Werbung. Bans in 7 Tagen: 1 von 1.');

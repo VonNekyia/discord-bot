@@ -1,5 +1,6 @@
 import type { Pool } from 'pg';
 import { text } from '../../kern/fehler.js';
+import { ohneHasszeichen } from '../../kern/namen.js';
 import { fehlgeschlagen, type Befehl, type Vorschlag, type Ziel } from '../../discord/befehle.js';
 import { DiscordFehler } from '../../discord/fehler.js';
 import type { Druck } from '../../discord/interaktionen.js';
@@ -145,9 +146,16 @@ export class Strafbefehle {
   }
 
   // Prüft und führt aus; gibt die Antwort an den, der den Befehl nutzt.
-  // Die Sätze stehen auf derselben Seite unter „Antworten“.
-  // Siehe docs/benutzung/managed-commands.md, „Ablauf“.
+  // Die Sätze stehen auf derselben Seite unter „Antworten“. Hakenkreuze und
+  // SS-Runen schreibt der Bot nie, auch nicht aus Name oder Grund; der Filter
+  // läuft auf der fertigen Antwort, wie auf DM und Audit-Log.
+  // Siehe docs/benutzung/managed-commands.md, „Ablauf“, und
+  // docs/entscheidungen/0018-zierbuchstaben-und-filter.md.
   async fuehreAus(f: Fall): Promise<string> {
+    return ohneHasszeichen(await this.entscheide(f));
+  }
+
+  private async entscheide(f: Fall): Promise<string> {
     if (f.grund === '') return 'Der Grund fehlt.';
     const s = await this.k.einstellungen.fetch(f.server.id);
     if (!s) throw new Error('keine Einstellungen');
@@ -212,7 +220,7 @@ export class Strafbefehle {
   // `kein_dm`, eine Zeile ins Log; der Befehl geht trotzdem weiter.
   private async dm(f: Fall, inhalt: string): Promise<DmAusgang> {
     try {
-      await this.k.w.schreibe(f.server, f.ziel.person.id, inhalt);
+      await this.k.w.schreibe(f.server, f.ziel.person.id, ohneHasszeichen(inhalt));
       return 'angekommen';
     } catch (fehler) {
       if (fehler instanceof DiscordFehler && fehler.code === 'kein_dm') return 'kein_dm';
@@ -223,7 +231,7 @@ export class Strafbefehle {
 
   // Bannt oder kickt; erwartete Fehler werden ein Satz.
   private async tue(f: Fall, art: 'ban' | 'kick'): Promise<string | undefined> {
-    const grund = `${f.grund} · /${art} von ${f.wer.benutzername}`;
+    const grund = ohneHasszeichen(`${f.grund} · /${art} von ${f.wer.benutzername}`);
     try {
       await (art === 'ban' ? this.k.w.banne(f.server, f.ziel.person.id, grund) : this.k.w.kicke(f.server, f.ziel.person.id, grund));
       return undefined;

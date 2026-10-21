@@ -140,6 +140,11 @@ antwortet 50007, „Cannot send messages to this user“,
 geht der Rest trotzdem, und die Antwort sagt das. Scheitert sie anders,
 ebenso. Die Sätze dazu stehen unter „Antworten“.
 
+Hakenkreuze und SS-Runen schreibt der Bot nie, auch nicht aus dem Namen
+des Ziels, des Servers, dem Grund oder dem Text der DM. Der Filter aus
+Entscheidung [0018](../entscheidungen/0018-zierbuchstaben-und-filter.md)
+läuft auf der fertigen DM, der Antwort und dem Grund im Audit-Log.
+
 ## Antworten
 
 | Fall | Antwort |
