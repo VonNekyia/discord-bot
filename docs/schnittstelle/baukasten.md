@@ -24,7 +24,7 @@ Anmeldung, Grenzen und das Format der Fehler gelten wie in
 | Methode und Pfad | Antwort |
 |---|---|
 | `GET /api/server/{id}/seiten` | `200` `Seite[]`, in der Reihenfolge der Tabs |
-| `PUT /api/server/{id}/seiten/{seite}` | `200` `{ wert: Eintrag, meldung: Satz }`, so wie gespeichert |
+| `PUT /api/server/{id}/seiten/{seite}` | `200` `Gespeichert`, so wie gespeichert |
 | `PUT /api/server/{id}/seiten/{seite}/{baustein}` | `204`; die Datei eines `bild`, roh als Body |
 | `DELETE /api/server/{id}/seiten/{seite}/{baustein}` | `204`; die Datei eines `bild` ist gelöscht |
 | `GET /api/server/{id}/seiten/{seite}/{baustein}` | `200` `image/png`; das Bild einer `vorschau` |
@@ -68,6 +68,7 @@ type Wert = boolean | number | string | null | Eintrag[];
 type Eintrag = { [feld: string]: Wert };
 type Satz = { titel: string; text: string };
 type Fund = { code: string; feld?: string };
+type Gespeichert = { wert: Eintrag; meldung: Satz }; // Antwort auf das Speichern einer Seite
 
 type Seite = {
   id: string;
