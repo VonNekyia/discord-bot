@@ -79,6 +79,7 @@ export interface Knopf {
   custom_id?: string;
   label?: string;
   style?: number;
+  emoji?: { name?: string; id?: string | null; animated?: boolean };
 }
 
 export interface Nachricht {

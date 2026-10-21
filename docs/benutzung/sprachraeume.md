@@ -89,22 +89,24 @@ Limit öffnen ein Formular, Rauswerfen, Bannen, Entbannen und Besitz
 übergeben die Nutzerauswahl von Discord
 ([Component Reference](https://docs.discord.com/developers/components/reference)).
 Das Menü wirkt auch nach einem Neustart des Bots weiter und verschwindet
-mit dem Raum.
+mit dem Raum. Vor jedem Namen steht ein Emoji, damit man den Knopf auch
+ohne Lesen erkennt. Das Menü schreibt der Bot nur beim Anlegen; ein Raum,
+der vor den Emoji entstand, behält sein Menü ohne sie.
 
 | Knopf | Wer darf | Was passiert |
 |---|---|---|
-| Sperren | Besitzer | Niemand Neues kann beitreten. Wer gerade drin ist, bekommt ein eigenes Recht, den Raum zu betreten, und kommt auch nach dem Gehen wieder hinein. |
-| Entsperren | Besitzer | Wieder offen für alle, die die Kategorie betreten dürfen. |
-| Verstecken | Besitzer | Andere sehen den Raum nicht mehr. Wer gerade drin ist, bekommt ein eigenes Recht, ihn zu sehen und zu betreten, und bleibt. |
-| Zeigen | Besitzer | Wieder sichtbar für alle, die die Kategorie sehen. |
-| Umbenennen | Besitzer | Formular mit dem neuen Namen, 1 bis 100 Zeichen, ohne Platzhalter. Hakenkreuze und SS-Runen lässt der Bot weg; bleibt nichts, ist der Name leer. |
-| Limit | Besitzer | Formular mit einer Zahl von 0 bis 99; 0 heisst unbegrenzt ([Channel Object](https://docs.discord.com/developers/resources/channel)). |
-| Rauswerfen | Besitzer | Auswahl eines Mitglieds. Ist es im Raum, wird es getrennt und darf wieder beitreten. |
-| Bannen | Besitzer | Auswahl eines Mitglieds. Es kann den Raum weder sehen noch betreten; ist es drin, wird es getrennt. |
-| Entbannen | Besitzer | Auswahl eines Mitglieds. Ist es gebannt, ist der Bann aufgehoben. |
-| Besitz übergeben | Besitzer | Auswahl eines Mitglieds im Raum, das keinen eigenen Raum hat. Es wird Besitzer. |
-| Übernehmen | jedes Mitglied im Raum ohne eigenen Raum, wenn der Besitzer nicht drin ist | Es wird Besitzer. |
-| Info | jeder, der den Chat sieht | Besitzer, Limit, ob gesperrt oder versteckt, Zahl der Gebannten. |
+| 🔒 Sperren | Besitzer | Niemand Neues kann beitreten. Wer gerade drin ist, bekommt ein eigenes Recht, den Raum zu betreten, und kommt auch nach dem Gehen wieder hinein. |
+| 🔓 Entsperren | Besitzer | Wieder offen für alle, die die Kategorie betreten dürfen. |
+| 👻 Verstecken | Besitzer | Andere sehen den Raum nicht mehr. Wer gerade drin ist, bekommt ein eigenes Recht, ihn zu sehen und zu betreten, und bleibt. |
+| 👁️ Zeigen | Besitzer | Wieder sichtbar für alle, die die Kategorie sehen. |
+| ✏️ Umbenennen | Besitzer | Formular mit dem neuen Namen, 1 bis 100 Zeichen, ohne Platzhalter. Hakenkreuze und SS-Runen lässt der Bot weg; bleibt nichts, ist der Name leer. |
+| 👥 Limit | Besitzer | Formular mit einer Zahl von 0 bis 99; 0 heisst unbegrenzt ([Channel Object](https://docs.discord.com/developers/resources/channel)). |
+| 👢 Rauswerfen | Besitzer | Auswahl eines Mitglieds. Ist es im Raum, wird es getrennt und darf wieder beitreten. |
+| 🔨 Bannen | Besitzer | Auswahl eines Mitglieds. Es kann den Raum weder sehen noch betreten; ist es drin, wird es getrennt. |
+| 🕊️ Entbannen | Besitzer | Auswahl eines Mitglieds. Ist es gebannt, ist der Bann aufgehoben. |
+| 🤝 Besitz übergeben | Besitzer | Auswahl eines Mitglieds im Raum, das keinen eigenen Raum hat. Es wird Besitzer. |
+| 👑 Übernehmen | jedes Mitglied im Raum ohne eigenen Raum, wenn der Besitzer nicht drin ist | Es wird Besitzer. |
+| ℹ️ Info | jeder, der den Chat sieht | Besitzer, Limit, ob gesperrt oder versteckt, Zahl der Gebannten. |
 
 - Den Chat eines Raums sieht, wer den Raum sehen darf, auch ohne drin zu
   sein. Darum prüft der Bot bei „Übernehmen“, ob man im Raum ist.

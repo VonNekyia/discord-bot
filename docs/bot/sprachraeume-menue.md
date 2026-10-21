@@ -54,6 +54,14 @@ aus jeder passenden Interaktion einen `Druck` und gibt ihn an
   Verstecken, Zeigen), Raum (Umbenennen, Limit, Übernehmen, Info),
   Mitglieder (Rauswerfen, Bannen, Entbannen, Besitz übergeben). Rauswerfen
   und Bannen sind rot (`Danger`), die anderen grau (`Secondary`).
+- Vor dem Text trägt jeder Knopf ein Unicode-Emoji: `emoji` in `Knopf`
+  aus `bot/src/discord/menue.ts`, gesetzt mit `setEmoji` in `alsNachricht`.
+  Es steht so da, wie Discord es führt; bei 👁️, ✏️, ℹ️ und 🕊️ gehört
+  U+FE0F dazu. Im Payload ist es `emoji` mit `name` und ohne `id`
+  ([Component Reference](https://docs.discord.com/developers/components/reference#button)).
+  Welches Emoji zu welchem Knopf gehört, steht in `reihen` in
+  `bot/src/module/sprachraeume/menue.ts` und in der Tabelle in
+  [Sprachräume](../benutzung/sprachraeume.md), „Menü“.
 - Die Formulare haben ein Label (Typ 18) mit einem Textfeld `wert`,
   vorbelegt mit dem Namen oder dem Limit von jetzt
   ([Component Reference](https://docs.discord.com/developers/components/reference#label)).

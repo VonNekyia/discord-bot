@@ -17,6 +17,9 @@ export interface Knopf {
   // Die ganze `custom_id`.
   id: string;
   text: string;
+  // Ein Unicode-Emoji vor dem Text, so wie Discord es führt, also mit U+FE0F,
+  // wo es dazugehört. Siehe docs/bot/sprachraeume-menue.md, „Knöpfe“.
+  emoji: string;
   // Rot (`Danger`), sonst grau (`Secondary`).
   rot?: boolean;
 }
@@ -50,6 +53,7 @@ export function alsNachricht(m: Menue): MessageCreateOptions {
           new ButtonBuilder()
             .setCustomId(k.id)
             .setLabel(k.text)
+            .setEmoji(k.emoji)
             .setStyle(k.rot ? ButtonStyle.Danger : ButtonStyle.Secondary),
         ),
       ),
