@@ -1,0 +1,9 @@
+{
+  "route": "POST /api/server/{id}/seiten/{seite}/{baustein}",
+  "status": 200,
+  "typ": "Satz",
+  "body": {
+    "titel": "Gesendet.",
+    "text": "Die Testnachricht steht in #willkommen."
+  }
+}

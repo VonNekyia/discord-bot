@@ -1,6 +1,6 @@
 ---
 title: API im Bot
-description: Wie der Bot die API des Dashboards baut; Dateien, Seiten der Module, Start und Ende, welche Server in die Sitzung kommen, die Reihenfolge der Prüfungen, Grenzen und Zeitlimits im Prozess, Bilder und Vorschau, die Debug-Route, Fehler und Aufräumen.
+description: Wie der Bot die API des Dashboards baut; Dateien, Seiten der Module, Start und Ende, welche Server in die Sitzung kommen, die Reihenfolge der Prüfungen, Antwort und Vorlage jeder Route, Grenzen und Zeitlimits im Prozess, Bilder und Vorschau, die Debug-Route, Fehler und Aufräumen.
 code:
   - bot/src/api/server.ts
   - bot/src/api/anmeldung.ts
@@ -32,7 +32,7 @@ Bilder und Banner zeichnet `@napi-rs/canvas`, siehe Entscheidung
 
 | Datei | Inhalt |
 |---|---|
-| `bot/src/api/server.ts` | `erstelleApi`: Routen nach Zugang, Origin, Grenzen, Body; die Routen der Seiten aus den Bereichen der Module; dazu `apiUmgebung` |
+| `bot/src/api/server.ts` | `erstelleApi`: Routen nach Zugang, mit `antwort` und `vorlage`, Origin, Grenzen, Body; die Routen der Seiten aus den Bereichen der Module; dazu `apiUmgebung` |
 | `bot/src/discord/dashboard.ts` | `DashboardGriff`: was die API von Discord braucht, mit eigenen Typen; die API sieht keinen Client. `dashboardGriff` baut ihn in `bot/src/index.ts` aus dem Client |
 | `bot/src/discord/kontext.ts` | `verwaltet`: ob eine Person einen Server jetzt verwalten darf, und dann ihr `Kontext` |
 | `bot/src/discord/rechte.ts` | `darfVerwalten`: die Rechte eines Servers aus der Anmeldung, siehe „Server der Sitzung“ |
@@ -153,6 +153,29 @@ Mitglieder, siehe [Datenschutz](datenschutz.md), „Was der Bot speichert“;
 Wer Einstellungen oder ein Bild schreibt oder löscht, ruft danach
 `delete` am Cache seines Moduls für den Server, siehe [Cache](cache.md),
 „So geht es“. Jeder Bereich bekommt den Cache seines Moduls in dessen `modul.ts`.
+
+## Antwort und Vorlage
+
+Jede Route in `bot/src/api/server.ts` hat neben ihrem Zugang zwei
+Pflichtfelder aus `Pfad`. Fehlt eins, baut `tsc` nicht.
+
+| Feld | Inhalt |
+|---|---|
+| `antwort` | was die Route bei Erfolg schickt: `json`, `png`, `leer` mit `204` oder `weiter` mit `302` |
+| `vorlage` | Methode und Pfad wie im Vertrag, mit `{id}`, `{seite}` und `{baustein}`, etwa `PUT /api/server/{id}/seiten/{seite}` |
+
+- Bei den Routen der Bausteine folgen beide aus der Methode. `antwort`
+  steht in `handlung` neben dem Code, der sendet: `POST` gibt `json`,
+  `GET` `png`, `PUT` und `DELETE` `leer`. Die Vorlage ist für alle
+  Bausteine dieselbe, etwa `POST /api/server/{id}/seiten/{seite}/{baustein}`.
+- Ein Fehler ist immer JSON, gleich was `antwort` sagt.
+- `erstelleApi` gibt die Routen ohne `tue` als `routen` heraus. Der Test
+  der Beispiele ruft jede Vorlage auf, prüft `antwort` und vergleicht jedes
+  JSON mit seinem Beispiel, siehe [Tests](../entwicklung/tests.md),
+  „Beispiele des Vertrags“, und Entscheidung
+  [0022](../entscheidungen/0022-beispiele-als-vertragstest.md).
+- Eine neue Vorlage braucht darum einen Fall in
+  `bot/src/api/beispiele.test.ts`, mit `json` dazu ein Beispiel.
 
 ## Grenzen und Zeitlimits
 

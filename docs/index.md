@@ -37,7 +37,7 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 - [Wiederanlauf](bot/wiederanlauf.md): Neuverbinden durch discord.js, Codes, nach denen der Bot endet, was nicht getestet ist.
 - [Datenschutz](bot/datenschutz.md): was der Bot speichert, was ins Log geht.
 - [Datenbank](bot/datenbank.md): PostgreSQL über `pg`, Verbindung, Discord-IDs als `bigint`, Pool und seine Werte, Migrationen unter Sperre und in Transaktionen, Dev-Datenbank in Docker, was noch fehlt.
-- [API im Bot](bot/dashboard-api.md): wie das Backend die API des Dashboards baut, Module, Start und Ende, Server der Sitzung, Reihenfolge der Prüfungen, Grenzen und Zeitlimits, die Debug-Route mit den Berechtigten, Aufräumen.
+- [API im Bot](bot/dashboard-api.md): wie das Backend die API des Dashboards baut, Module, Start und Ende, Server der Sitzung, Reihenfolge der Prüfungen, Antwort und Vorlage jeder Route, Grenzen und Zeitlimits, die Debug-Route mit den Berechtigten, Aufräumen.
 - [Begrüssung senden](bot/begruessung-senden.md): wie der Bot bei Beitritt und Abschied sendet, Cache, Rechte im Kanal, Platzhalter, Erwähnungen, Banner, Log.
 - [Sprachräume im Bot](bot/sprachraeume-bau.md): wie das Backend die Sprachräume baut, Belegung aus den Voice States, Anlegen in einem Aufruf mit dem Menü danach, nacheinander je Mitglied, erwartete Fehler, Löschen nach 2 s, Abgleich beim Start.
 - [Menü der Sprachräume im Bot](bot/sprachraeume-menue.md): Knöpfe und `custom_id`, Antworten mit `deferReply`, eins nach dem anderen je Raum, Rechte im Raum für Sperren, Verstecken und Bann, Besitzer wechseln, erwartete Fehler, Log.
@@ -55,7 +55,7 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 - [Struktur von Bot und Oberfläche](entwicklung/struktur.md): Schichten `kern/`, `discord/`, `api/` und Feature-Module im Bot, Bausteine und Seite in der Oberfläche, wer wen importieren darf, was ein Modul bündelt, die eigene Schicht über discord.js, was vom Umbau noch fehlt.
 - [Lint mit oxlint](entwicklung/lint.md): `npm run lint`, die Regeln und warum, moderne Sprachmittel mit ES2025 im Bot und ES2024 im Web, Tests, Altlasten mit `maxWarnings`, eine Regel begründet abschalten.
 - [Updates mit Renovate](entwicklung/renovate.md): was Renovate wann aktualisiert, Automerge für Minor, Patch und Digest, Bewertung durch den Orchestrator, Konflikte, Labels, Einrichten.
-- [Tests](entwicklung/tests.md): `node --test`, die gemockte Discord-API, was abgedeckt ist, Tests gegen PostgreSQL.
+- [Tests](entwicklung/tests.md): `node --test`, die gemockte Discord-API, der Test der Beispiele des Vertrags, was abgedeckt ist, Tests gegen PostgreSQL.
 
 ## Entscheidungen
 

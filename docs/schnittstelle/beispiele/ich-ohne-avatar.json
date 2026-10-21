@@ -1,0 +1,11 @@
+{
+  "route": "GET /api/ich",
+  "status": 200,
+  "typ": "Ich",
+  "body": {
+    "id": "100000000000000003",
+    "name": "Noah",
+    "avatar": null,
+    "debug": false
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "route": "GET /api/ich",
+  "status": 401,
+  "typ": "Fehler",
+  "body": {
+    "code": "nicht_angemeldet"
+  }
+}

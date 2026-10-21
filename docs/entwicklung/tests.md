@@ -1,6 +1,6 @@
 ---
 title: Tests
-description: Wie die Tests des Bots laufen, was die gemockte Discord-API kann und was abgedeckt ist.
+description: Wie die Tests des Bots laufen, was die gemockte Discord-API kann, wie der Test der Beispiele des Vertrags arbeitet und was abgedeckt ist.
 code:
   - bot/src/module/befehle/befehle.test.ts
   - bot/src/discord/befehle.test.ts
@@ -10,6 +10,7 @@ code:
   - bot/src/kern/aufraeumen.test.ts
   - bot/src/modulliste.test.ts
   - bot/src/api/server.test.ts
+  - bot/src/api/beispiele.test.ts
   - bot/src/module/begruessung/begruessung.test.ts
   - bot/src/module/begruessung/banner.test.ts
   - bot/src/module/begruessung/glyphen.test.ts
@@ -133,6 +134,51 @@ Server. Wer `behalteNur` testet, tut das in einer Transaktion, die
 zurückrollt, weil die Dateien gleichzeitig laufen. Alle IDs sind erfunden
 (`AGENTS.md`, Regel 21).
 
+## Beispiele des Vertrags
+
+`bot/src/api/beispiele.test.ts` misst den Bot an den Beispielen in
+`docs/schnittstelle/beispiele/`. Was ein Beispiel ist, steht in
+[API des Dashboards](../schnittstelle/api.md), „Beispiele“, warum in
+Entscheidung [0022](../entscheidungen/0022-beispiele-als-vertragstest.md).
+Der Test startet `erstelleApi` mit:
+
+- einem gefälschten `DashboardGriff` mit festen Werten, ohne Anfrage an
+  Discord. Avatar und Icon baut `CDN` aus discord.js mit seiner Basis
+  `https://cdn.discordapp.com`, wie im Bot. Den `Kontext` baut
+  `kontextVon` aus einem Server im Cache eines `discordClient` und einem
+  Mitglied, das `_add` baut; der Cache hält keine Mitglieder.
+- einer eigenen `Zaehlung` mit fester Uhr für `GET /api/debug`, gefüttert
+  mit festen Antworten von Discord. Nicht die der API: Deren Grenzen zählen
+  mit, und der Stand hinge an der Zahl der Anfragen.
+- einem Probe-Modul: ein `Bereich` mit zwei festen Seiten. Die erste hat
+  jede Art von Baustein und jedes optionale Feld, auch in Optionen,
+  Bedingungen und der Liste, und einen `fund`. Ihre Bausteine sind je Art
+  als `Voll<…>` getippt, ein `Required` bis in die Tiefe, und mit
+  `satisfies` geprüft: Fehlt eine Art oder ein optionales Feld, baut `tsc`
+  nicht. Die zweite Seite zeigt, was leer sein oder fehlen darf.
+- zwei Sitzungen in PostgreSQL: Mia mit Avatar, Debug und Terranova; Noah
+  ohne Avatar, ohne Debug und ohne Server.
+
+Jeder Fall ist eine Anfrage mit erwartetem Status. Der Test prüft:
+
+| was | fällt, wenn |
+|---|---|
+| die Route einer Anfrage | keine passt, oder der Pfad nicht zu ihrer `vorlage` |
+| die Antwort bei Erfolg | sie nicht ist, was `antwort` sagt: JSON, ein PNG, `204` ohne Body oder `302` mit `Location` |
+| jede Vorlage aus `routen` | kein Fall mit ihr klappt; mit `json`, wenn sie kein Beispiel hat |
+| jedes JSON, auch ein Fehler | der Fall kein Beispiel nennt, oder das geparste JSON von seiner Datei abweicht |
+| die Dateien im Ordner | eine liegt, die kein Fall mehr erzeugt, oder eine fehlt |
+
+`Fehler` steht allgemein da: `fehler.json` ohne `feld` (`401`) und
+`fehler-feld.json` mit `feld` (`400`). Mit `BEISPIELE_SCHREIBEN=1`
+schreibt der Test die Dateien neu, mit 2 Leerzeichen und `\n` am Ende,
+und löscht übrige. Danach zeigt `git diff`, was sich am Vertrag ändert.
+
+```bash
+cd bot
+BEISPIELE_SCHREIBEN=1 npm test
+```
+
 ## Das Menü der Sprachräume
 
 `bot/src/module/sprachraeume/knoepfe.test.ts` baut Interaktionen so, wie Discord sie schickt,
@@ -238,6 +284,7 @@ Millisekunden. Darum:
 | apiUmgebung braucht Secret und Adresse des Dashboards | ohne eins keine API, Standardport, falsche Adresse oder Port beendet den Start |
 | Grenze lässt 60 Anfragen je Minute zu … | mit falscher Uhr: 61. Anfrage, Sekunden bis zur nächsten, gleitendes Fenster |
 | erstelleApi weist doppelte, zu viele und ungültige Seiten ab | eine ID doppelt, 7 Seiten, `a/b` als ID, eine `aktion` ohne `loeseAus`; mit `loeseAus` startet sie |
+| jede Route klappt in einem Fall, schickt, was `antwort` sagt … | `bot/src/api/beispiele.test.ts`, siehe „Beispiele des Vertrags“: 16 Fälle über alle Vorlagen, 10 Beispiele. Fällt, wenn eine Antwort abweicht, eine Datei fehlt oder übrig ist, eine Vorlage keinen Fall hat oder `antwort` nicht stimmt |
 | anmelden setzt ein state-Cookie und leitet zu Discord | Parameter der Weiterleitung, Cookie mit `HttpOnly`, `SameSite=Lax`, ohne `Secure` bei http |
 | ohne state-Cookie oder mit falschem state … | Weiterleitung mit Fehler, keine Anfrage an Discord |
 | bei 429 wartet die Anmeldung ein kurzes Retry-After ab … | `Retry-After: 0`: zweimal `POST /oauth2/token`, dann Erfolg; alle vier Routen zählen mit, eine Zeile `Rate-Limit: 429 bei POST /oauth2/token, …` |

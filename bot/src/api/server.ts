@@ -143,11 +143,18 @@ interface MitServer extends MitSitzung {
   kontext: Kontext;
 }
 
-interface Pfad {
+// Was eine Route bei Erfolg schickt: JSON, ein PNG, nichts mit 204 oder
+// eine Weiterleitung mit 302. Siehe docs/bot/dashboard-api.md, „Antwort und Vorlage“.
+export type AntwortArt = 'json' | 'png' | 'leer' | 'weiter';
+
+export interface Pfad {
   methode: string;
   muster: RegExp;
   // Für das Log; nie der Pfad, er trägt IDs.
   name: string;
+  antwort: AntwortArt;
+  // Methode und Pfad wie im Vertrag, mit {id}, {seite} und {baustein}.
+  vorlage: string;
 }
 
 // Eine Route nach Zugang; was `tue` bekommt, hat `fuehreAus` vorher
@@ -161,6 +168,9 @@ type Route =
   | (Pfad & { zugang: 'server'; teuer?: boolean; tue(a: MitServer): Promise<void> });
 
 type ServerRoute = Extract<Route, { zugang: 'server' }>;
+
+// Die API mit ihren Routen ohne `tue`, für den Test der Beispiele.
+export type Api = Server & { readonly routen: readonly Pfad[] };
 
 // Jede Antwort trägt diese Header. Liegt noch ungelesener Body an, schliesst
 // die Verbindung danach, statt ihn zu lesen.
@@ -180,40 +190,49 @@ function json(a: Anfrage, status: number, wert: unknown, kopf: OutgoingHttpHeade
   sende(a, status, { 'content-type': 'application/json; charset=utf-8', 'content-length': Buffer.byteLength(body), ...kopf }, body);
 }
 
-// Was eine Methode an einem Baustein tut; fehlt dem Bereich die Methode,
-// startet die API nicht.
-function handlung(bereich: Bereich<Kontext>, seite: string, baustein: string, methode: Methode): ServerRoute['tue'] {
+// Was eine Methode an einem Baustein tut und schickt; fehlt dem Bereich die
+// Methode, startet die API nicht.
+function handlung(bereich: Bereich<Kontext>, seite: string, baustein: string, methode: Methode): Pick<ServerRoute, 'antwort' | 'tue'> {
   const fehlt = (was: string) => new Error(`Seite ${seite}: ${baustein} braucht ${was}.`);
-  const handlungen: Record<Methode, () => ServerRoute['tue']> = {
+  const handlungen: Record<Methode, () => Pick<ServerRoute, 'antwort' | 'tue'>> = {
     PUT() {
       const ladeHoch = bereich.ladeHoch?.bind(bereich);
       if (!ladeHoch) throw fehlt('ladeHoch');
-      return async (a) => {
-        const typ = (a.req.headers['content-type'] ?? '').split(';')[0]?.trim().toLowerCase() ?? '';
-        await ladeHoch(a.kontext, seite, baustein, { typ, lies: (hoechstens, code) => liesBody(a.req, hoechstens, code) });
-        sende(a, 204, {});
+      return {
+        antwort: 'leer',
+        async tue(a) {
+          const typ = (a.req.headers['content-type'] ?? '').split(';')[0]?.trim().toLowerCase() ?? '';
+          await ladeHoch(a.kontext, seite, baustein, { typ, lies: (hoechstens, code) => liesBody(a.req, hoechstens, code) });
+          sende(a, 204, {});
+        },
       };
     },
     DELETE() {
       const loesche = bereich.loesche?.bind(bereich);
       if (!loesche) throw fehlt('loesche');
-      return async (a) => {
-        await loesche(a.kontext, seite, baustein);
-        sende(a, 204, {});
+      return {
+        antwort: 'leer',
+        async tue(a) {
+          await loesche(a.kontext, seite, baustein);
+          sende(a, 204, {});
+        },
       };
     },
     GET() {
       const zeichne = bereich.zeichne?.bind(bereich);
       if (!zeichne) throw fehlt('zeichne');
-      return async (a) => {
-        const png = await zeichne(a.kontext, seite, baustein);
-        sende(a, 200, { 'content-type': 'image/png', 'content-length': png.length }, png);
+      return {
+        antwort: 'png',
+        async tue(a) {
+          const png = await zeichne(a.kontext, seite, baustein);
+          sende(a, 200, { 'content-type': 'image/png', 'content-length': png.length }, png);
+        },
       };
     },
     POST() {
       const loeseAus = bereich.loeseAus?.bind(bereich);
       if (!loeseAus) throw fehlt('loeseAus');
-      return async (a) => json(a, 200, await loeseAus(a.kontext, seite, baustein));
+      return { antwort: 'json', tue: async (a) => json(a, 200, await loeseAus(a.kontext, seite, baustein)) };
     },
   };
   return handlungen[methode]();
@@ -221,7 +240,7 @@ function handlung(bereich: Bereich<Kontext>, seite: string, baustein: string, me
 
 // Die API des Dashboards. Lauscht noch nicht; das tut der Aufrufer, nur auf 127.0.0.1.
 // Siehe docs/schnittstelle/api.md.
-export function erstelleApi(o: ApiOptionen): Server {
+export function erstelleApi(o: ApiOptionen): Api {
   const origin = new URL(o.dashboard).origin;
   const sicher = o.dashboard.startsWith('https://');
   const zaehlung = o.zaehlung ?? new Zaehlung();
@@ -265,6 +284,8 @@ export function erstelleApi(o: ApiOptionen): Server {
         methode: 'PUT',
         muster: new RegExp(`${pfad}$`),
         name: `seiten/${id}`,
+        antwort: 'json',
+        vorlage: 'PUT /api/server/{id}/seiten/{seite}',
         zugang: 'server',
         tue: nurAn(bereich, async (a) => {
           const eingabe = await liesJson(a.req);
@@ -274,9 +295,10 @@ export function erstelleApi(o: ApiOptionen): Server {
       for (const [baustein, art] of Object.entries(bausteine)) {
         const muster = new RegExp(`${pfad}/${baustein}$`);
         for (const methode of methoden[art]) {
-          const tue = nurAn(bereich, handlung(bereich, id, baustein, methode));
+          const { antwort, tue } = handlung(bereich, id, baustein, methode);
+          const vorlage = `${methode} /api/server/{id}/seiten/{seite}/{baustein}`;
           // Hochladen, Zeichnen und Auslösen sind teuer, Löschen nicht.
-          routen.push({ methode, muster, name: `seiten/${id}/${baustein}`, zugang: 'server', teuer: methode !== 'DELETE', tue });
+          routen.push({ methode, muster, name: `seiten/${id}/${baustein}`, antwort, vorlage, zugang: 'server', teuer: methode !== 'DELETE', tue: nurAn(bereich, tue) });
         }
       }
     }
@@ -288,6 +310,8 @@ export function erstelleApi(o: ApiOptionen): Server {
       methode: 'GET',
       muster: /^\/api\/anmelden$/,
       name: 'anmelden',
+      antwort: 'weiter',
+      vorlage: 'GET /api/anmelden',
       zugang: 'offen',
       async tue(a) {
         const state = zufall();
@@ -298,6 +322,8 @@ export function erstelleApi(o: ApiOptionen): Server {
       methode: 'GET',
       muster: /^\/api\/anmelden\/zurueck$/,
       name: 'anmelden/zurueck',
+      antwort: 'weiter',
+      vorlage: 'GET /api/anmelden/zurueck',
       zugang: 'offen',
       // Siehe docs/schnittstelle/anmeldung.md, „Ablauf“.
       async tue(a) {
@@ -326,6 +352,8 @@ export function erstelleApi(o: ApiOptionen): Server {
       methode: 'POST',
       muster: /^\/api\/abmelden$/,
       name: 'abmelden',
+      antwort: 'leer',
+      vorlage: 'POST /api/abmelden',
       zugang: 'sitzung',
       async tue(a) {
         await loescheSitzung(o.db, a.sitzung.kennung);
@@ -336,6 +364,8 @@ export function erstelleApi(o: ApiOptionen): Server {
       methode: 'GET',
       muster: /^\/api\/ich$/,
       name: 'ich',
+      antwort: 'json',
+      vorlage: 'GET /api/ich',
       zugang: 'sitzung',
       async tue(a) {
         const { nutzer, name, avatar } = a.sitzung;
@@ -351,6 +381,8 @@ export function erstelleApi(o: ApiOptionen): Server {
       methode: 'GET',
       muster: /^\/api\/debug$/,
       name: 'debug',
+      antwort: 'json',
+      vorlage: 'GET /api/debug',
       zugang: 'sitzung',
       grenze: true,
       // Scheitert das Lesen der Anwendung, wird es wie jeder andere Fehler 503.
@@ -364,6 +396,8 @@ export function erstelleApi(o: ApiOptionen): Server {
       methode: 'GET',
       muster: /^\/api\/server$/,
       name: 'server',
+      antwort: 'json',
+      vorlage: 'GET /api/server',
       zugang: 'sitzung',
       async tue(a) {
         const liste = o.griff.server(a.sitzung.server).toSorted((x, y) => sortierer.compare(x.name, y.name));
@@ -374,6 +408,8 @@ export function erstelleApi(o: ApiOptionen): Server {
       methode: 'GET',
       muster: /^\/api\/server\/(\d{1,20})\/seiten$/,
       name: 'seiten',
+      antwort: 'json',
+      vorlage: 'GET /api/server/{id}/seiten',
       zugang: 'server',
       // Siehe docs/schnittstelle/baukasten.md, „Routen“.
       async tue(a) {
@@ -442,5 +478,5 @@ export function erstelleApi(o: ApiOptionen): Server {
     grenzeBild.raeume();
   }, 60_000).unref();
   server.on('close', () => clearInterval(uhr));
-  return server;
+  return Object.assign(server, { routen: routen.map(({ methode, muster, name, antwort, vorlage }): Pfad => ({ methode, muster, name, antwort, vorlage })) });
 }

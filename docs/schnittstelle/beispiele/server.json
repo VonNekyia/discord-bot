@@ -1,0 +1,12 @@
+{
+  "route": "GET /api/server",
+  "status": 200,
+  "typ": "Server[]",
+  "body": [
+    {
+      "id": "200000000000000001",
+      "name": "Terranova",
+      "icon": "https://cdn.discordapp.com/icons/200000000000000001/6e1d3f2a9c8b7a6f5e4d3c2b1a0f9e8d.webp?size=128"
+    }
+  ]
+}
