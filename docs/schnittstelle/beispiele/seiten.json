@@ -1,0 +1,311 @@
+{
+  "route": "GET /api/server/{id}/seiten",
+  "status": 200,
+  "typ": "Seite[]",
+  "body": [
+    {
+      "id": "probe",
+      "titel": "Probe",
+      "bausteine": [
+        {
+          "art": "schalter",
+          "id": "aktiv",
+          "titel": "Aktiv",
+          "hilfe": "Sendet bei jedem Beitritt in {kanal}.",
+          "braucht": [
+            {
+              "feld": "kanal",
+              "merkmal": "senden",
+              "sonst": "Erst einen Kanal wählen, in dem der Bot senden darf."
+            }
+          ],
+          "gesperrt": {
+            "grund": "Das geht erst mit Freischaltung.",
+            "code": "nicht_freigeschaltet"
+          }
+        },
+        {
+          "art": "auswahl",
+          "id": "kanal",
+          "titel": "Kanal",
+          "hilfe": "Nur Kanäle, in denen der Bot senden darf.",
+          "leer": "Kein Kanal",
+          "optionen": [
+            {
+              "id": "300000000000000001",
+              "name": "#willkommen",
+              "gruppe": {
+                "id": "300000000000000004",
+                "name": "Start"
+              },
+              "merkmale": [
+                "senden",
+                "bilder"
+              ],
+              "gesperrt": null
+            },
+            {
+              "id": "300000000000000002",
+              "name": "#regeln",
+              "gruppe": {
+                "id": "300000000000000004",
+                "name": "Start"
+              },
+              "merkmale": [
+                "senden"
+              ],
+              "gesperrt": {
+                "grund": "Der Bot darf dort keine Bilder senden.",
+                "code": "kanal_ohne_bilder"
+              }
+            },
+            {
+              "id": "300000000000000003",
+              "name": "#ohne-kategorie",
+              "gruppe": null,
+              "merkmale": [],
+              "gesperrt": null
+            }
+          ],
+          "unbekannt": "Den Kanal gibt es nicht mehr.",
+          "pflicht": "Wähle einen Kanal.",
+          "einmalig": "Jeder Kanal nur einmal.",
+          "vergeben": "schon gewählt"
+        },
+        {
+          "art": "text",
+          "id": "nachricht",
+          "titel": "Nachricht",
+          "hilfe": "Mit {name} und {server}.",
+          "mehrzeilig": true,
+          "grenze": 2000,
+          "platzhalter": {
+            "name": 32,
+            "server": 100
+          },
+          "rechnung": "Platzhalter zählen mit ihrer längsten Länge.",
+          "pflicht": "Die Nachricht fehlt."
+        },
+        {
+          "art": "zahl",
+          "id": "anzahl",
+          "titel": "Anzahl",
+          "hilfe": "Wie oft am Tag.",
+          "min": 1,
+          "max": 10,
+          "ungueltig": "Eine ganze Zahl von 1 bis 10."
+        },
+        {
+          "art": "bild",
+          "id": "bild",
+          "titel": "Bild",
+          "hilfe": "PNG, JPEG oder WebP.",
+          "typen": [
+            "image/png",
+            "image/jpeg",
+            "image/webp"
+          ],
+          "groesse": 4194304,
+          "pixel": {
+            "min": 200,
+            "max": 4096
+          },
+          "entfernen": "Bild entfernen"
+        },
+        {
+          "art": "aktion",
+          "id": "test",
+          "titel": "Testnachricht senden",
+          "laeuft": "Sendet …",
+          "hilfe": "Schickt die gespeicherte Nachricht in den Kanal.",
+          "ungespeichert": "Erst speichern, dann testen."
+        },
+        {
+          "art": "liste",
+          "id": "rollen",
+          "eintrag": "Rolle",
+          "kopf": "rolle",
+          "hoechstens": 5,
+          "hinzufuegen": "Rolle hinzufügen",
+          "entfernen": "Entfernen",
+          "voll": "Höchstens 5 Rollen.",
+          "leer": {
+            "titel": "Noch keine Rolle.",
+            "text": "Füge eine hinzu."
+          },
+          "neu": {
+            "an": false,
+            "rolle": null,
+            "name": "",
+            "grenze": 0
+          },
+          "bausteine": [
+            {
+              "art": "schalter",
+              "id": "an",
+              "titel": "An",
+              "hilfe": "Gilt nur für diese Rolle.",
+              "braucht": [
+                {
+                  "feld": "rolle",
+                  "merkmal": "zuweisbar",
+                  "sonst": "Erst eine Rolle wählen, die der Bot vergeben darf."
+                }
+              ],
+              "gesperrt": {
+                "grund": "Das geht erst mit Freischaltung.",
+                "code": "nicht_freigeschaltet"
+              }
+            },
+            {
+              "art": "auswahl",
+              "id": "rolle",
+              "titel": "Rolle",
+              "hilfe": "Nur Rollen unter der des Bots.",
+              "leer": "Keine Rolle",
+              "optionen": [
+                {
+                  "id": "300000000000000011",
+                  "name": "Gäste",
+                  "gruppe": null,
+                  "merkmale": [
+                    "zuweisbar"
+                  ],
+                  "gesperrt": null
+                },
+                {
+                  "id": "300000000000000012",
+                  "name": "Team",
+                  "gruppe": null,
+                  "merkmale": [],
+                  "gesperrt": {
+                    "grund": "Die Rolle steht über der des Bots.",
+                    "code": "rolle_zu_hoch"
+                  }
+                }
+              ],
+              "unbekannt": "Die Rolle gibt es nicht mehr.",
+              "pflicht": "Wähle eine Rolle.",
+              "einmalig": "Jede Rolle nur einmal.",
+              "vergeben": "schon gewählt"
+            },
+            {
+              "art": "text",
+              "id": "name",
+              "titel": "Name",
+              "hilfe": "Steht vor {name}.",
+              "mehrzeilig": false,
+              "grenze": 100,
+              "platzhalter": {
+                "name": 32
+              },
+              "rechnung": "Platzhalter zählen mit ihrer längsten Länge.",
+              "pflicht": "Der Name fehlt."
+            },
+            {
+              "art": "zahl",
+              "id": "grenze",
+              "titel": "Grenze",
+              "hilfe": "0 heisst ohne.",
+              "min": 0,
+              "max": 99,
+              "ungueltig": "Eine ganze Zahl von 0 bis 99."
+            }
+          ]
+        },
+        {
+          "art": "hinweis",
+          "id": "hinweis",
+          "ton": "info",
+          "satz": {
+            "titel": "Neu hier?",
+            "text": "Wähle zuerst einen Kanal."
+          }
+        },
+        {
+          "art": "link",
+          "id": "link",
+          "titel": "Kanal in Discord öffnen",
+          "url": "https://discord.com/channels/200000000000000001/300000000000000001",
+          "hilfe": "Öffnet in einem neuen Tab."
+        }
+      ],
+      "daneben": [
+        {
+          "art": "vorschau",
+          "id": "vorschau",
+          "titel": "Vorschau",
+          "alt": "Vorschau des Banners",
+          "breite": 1000,
+          "hoehe": 400,
+          "braucht": "bild",
+          "leer": {
+            "titel": "Noch kein Bild.",
+            "text": "Lade ein Bild hoch, dann steht hier die Vorschau."
+          },
+          "fehler": {
+            "titel": "Die Vorschau fehlt.",
+            "text": "Lade die Seite neu."
+          }
+        }
+      ],
+      "wert": {
+        "aktiv": false,
+        "kanal": "300000000000000001",
+        "nachricht": "Willkommen, {name}!",
+        "anzahl": 3,
+        "bild": true,
+        "rollen": [
+          {
+            "an": true,
+            "rolle": "300000000000000011",
+            "name": "Gäste",
+            "grenze": 2
+          }
+        ]
+      },
+      "saetze": {
+        "kanal_fehlt": {
+          "titel": "Den Kanal gibt es nicht mehr.",
+          "text": "Wähle einen anderen."
+        },
+        "kanal_ohne_bilder": {
+          "titel": "Der Bot darf dort keine Bilder senden.",
+          "text": "Gib ihm das Recht oder wähle einen anderen Kanal."
+        },
+        "nicht_freigeschaltet": {
+          "titel": "Das ist nicht freigeschaltet.",
+          "text": "Schalte es auf dem Board frei."
+        },
+        "rolle_zu_hoch": {
+          "titel": "Die Rolle steht über der des Bots.",
+          "text": "Schiebe die Rolle des Bots höher."
+        }
+      },
+      "fund": {
+        "code": "kanal_fehlt",
+        "feld": "kanal"
+      },
+      "alleNeu": true
+    },
+    {
+      "id": "zweite",
+      "titel": "Zweite",
+      "bausteine": [
+        {
+          "art": "hinweis",
+          "id": "still",
+          "ton": "warn",
+          "satz": {
+            "titel": "Hier gibt es nichts.",
+            "text": "Nimm die erste Seite."
+          }
+        }
+      ],
+      "daneben": [],
+      "wert": {},
+      "saetze": {},
+      "fund": null
+    }
+  ]
+}

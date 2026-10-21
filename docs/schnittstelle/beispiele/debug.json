@@ -1,0 +1,76 @@
+{
+  "route": "GET /api/debug",
+  "status": 200,
+  "typ": "Debug",
+  "body": {
+    "seit": "2026-10-21T08:00:00.000Z",
+    "jetzt": "2026-10-21T08:05:00.000Z",
+    "shards": [
+      0
+    ],
+    "routen": [
+      {
+        "methode": "POST",
+        "route": "/channels/:id/messages",
+        "anfragen": 2,
+        "rateLimits": 1,
+        "limit": 5,
+        "remaining": 4,
+        "resetAfter": 4.5,
+        "zuletzt": "2026-10-21T08:03:00.000Z"
+      },
+      {
+        "methode": "PATCH",
+        "route": "/channels/:id",
+        "anfragen": 1,
+        "rateLimits": 0,
+        "limit": null,
+        "remaining": null,
+        "resetAfter": null,
+        "zuletzt": "2026-10-21T08:03:00.000Z"
+      },
+      {
+        "methode": "GET",
+        "route": "/guilds/:id/members/:id",
+        "anfragen": 1,
+        "rateLimits": 0,
+        "limit": 5,
+        "remaining": 4,
+        "resetAfter": 1.5,
+        "zuletzt": "2026-10-21T08:01:00.000Z"
+      }
+    ],
+    "rateLimits": {
+      "anzahl": 1,
+      "global": 0,
+      "scope": {
+        "user": 1,
+        "global": 0,
+        "shared": 0
+      }
+    },
+    "ungueltig": {
+      "letzte10min": 1,
+      "warnung": 1000,
+      "grenze": 10000
+    },
+    "eigene": [
+      {
+        "name": "bremse",
+        "gegriffen": 0
+      },
+      {
+        "name": "sitzung",
+        "gegriffen": 1
+      },
+      {
+        "name": "bausteine",
+        "gegriffen": 0
+      },
+      {
+        "name": "testnachricht",
+        "gegriffen": 0
+      }
+    ]
+  }
+}

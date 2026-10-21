@@ -1,0 +1,26 @@
+{
+  "route": "PUT /api/server/{id}/seiten/{seite}",
+  "status": 200,
+  "typ": "Gespeichert",
+  "body": {
+    "wert": {
+      "aktiv": false,
+      "kanal": "300000000000000001",
+      "nachricht": "Willkommen, {name}!",
+      "anzahl": 3,
+      "bild": true,
+      "rollen": [
+        {
+          "an": true,
+          "rolle": "300000000000000011",
+          "name": "Gäste",
+          "grenze": 2
+        }
+      ]
+    },
+    "meldung": {
+      "titel": "Gespeichert.",
+      "text": "Die Probe gilt ab jetzt."
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "route": "PUT /api/server/{id}/seiten/{seite}",
+  "status": 400,
+  "typ": "Fehler",
+  "body": {
+    "code": "ungueltig",
+    "feld": "anzahl"
+  }
+}

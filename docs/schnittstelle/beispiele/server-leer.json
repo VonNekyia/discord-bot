@@ -1,0 +1,6 @@
+{
+  "route": "GET /api/server",
+  "status": 200,
+  "typ": "Server[]",
+  "body": []
+}

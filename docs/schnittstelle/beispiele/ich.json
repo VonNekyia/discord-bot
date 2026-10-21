@@ -1,0 +1,11 @@
+{
+  "route": "GET /api/ich",
+  "status": 200,
+  "typ": "Ich",
+  "body": {
+    "id": "100000000000000002",
+    "name": "Mia",
+    "avatar": "https://cdn.discordapp.com/avatars/100000000000000002/b5f2c0de9a1e4f7a8c3d2e1f0a9b8c7d.webp?size=128",
+    "debug": true
+  }
+}
