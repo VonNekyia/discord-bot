@@ -380,7 +380,7 @@ describe('Beispiele des Vertrags', { skip: ziel ? false : 'keine Datenbank, DB_H
       const art = antwort.status < 400 ? route.antwort : 'json';
       if (antwort.status < 400) geklappt.add(route.vorlage);
       if (art === 'json') {
-        assert.ok(typ.startsWith(json), `${wo}: ${typ}`);
+        assert.ok(typ.startsWith(json), `${wo}: ${antwort.status} mit Content-Type „${typ}“, erwartet JSON`);
         assert.ok(f.beispiel, `${wo}: JSON ohne Beispiel`);
         assert.ok(!beispiele.has(f.beispiel.datei), `${f.beispiel.datei} doppelt`);
         beispiele.set(f.beispiel.datei, { route: route.vorlage, status: antwort.status, typ: f.beispiel.typ, body: await antwort.json() });
