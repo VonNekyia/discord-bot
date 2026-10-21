@@ -159,6 +159,7 @@ läuft auf der fertigen DM, der Antwort und dem Grund im Audit-Log.
 | gebannt | „<Name> ist gebannt. Grund: <grund>.“, dazu, ob die DM ankam, siehe unten, und „Bans in 7 Tagen: n von m.“, ohne Limit ohne diesen Satz |
 | gekickt | ebenso mit „gekickt“ und „Kicks in 7 Tagen“ |
 | verwarnt | „<Name> ist verwarnt, zum n. Mal. Grund: <grund>.“, dazu, ob die DM ankam, siehe unten; n zählt die Verwarnungen dieses Mitglieds auf diesem Server in den letzten `verwarnungTage` Tagen, Standard 365, siehe [API der Managed Commands](../schnittstelle/strafen.md). Zwei `/warn` auf dasselbe Mitglied laufen nacheinander, also lautet n nie zweimal gleich |
+| `/ban`, `/kick` oder `/warn` ausserhalb eines Servers, oder ohne Nutzer | „Das geht nur auf einem Server.“ |
 | der Grund ist leer | „Der Grund fehlt.“ |
 | der Grund hat mehr als 400 Zeichen | „Der Grund ist zu lang, höchstens 400 Zeichen.“ |
 | keine Rolle aus der Liste | „Du darfst diesen Befehl hier nicht nutzen.“ |

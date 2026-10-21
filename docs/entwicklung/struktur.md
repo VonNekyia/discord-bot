@@ -18,8 +18,8 @@ code:
 
 # Struktur von Bot und Oberfläche
 
-Jede Feature-Suite ist ein Modul: Befehle, Begrüssung, Sprachräume, später
-Strafen. Ein Modul hat seinen Ordner unter `bot/src/module/`. Seine
+Jede Feature-Suite ist ein Modul: Befehle, Begrüssung, Sprachräume und
+Managed Commands (`strafen`). Ein Modul hat seinen Ordner unter `bot/src/module/`. Seine
 Oberfläche meldet es als Seiten im Baukasten an; `web/` hat keine Ordner
 je Modul, sondern baut jede Art von Baustein allgemein. Darunter liegen
 Schichten, die alle Module nutzen: der Kern, eine eigene Schicht über

@@ -127,7 +127,8 @@ Nur der Name des Befehls und der Text eines Fehlers (`text` in
 `bot/src/kern/fehler.ts`), nie das Fehlerobjekt: Fehler der REST-API
 tragen in `url` den Token der Interaktion. Nie IDs, Namen, Nachrichteninhalte,
 Tokens, Cookies oder der Code der Anmeldung. Der Test „ein unbekannter
-Befehl bekommt eine Meldung, das Log keine Nutzerdaten“ prüft die Zeile,
+Befehl bekommt eine Meldung ohne Erwähnungen, das Log keine Nutzerdaten“
+prüft die Zeile,
 „scheitert die Antwort, wirft antworte DiscordFehler …“, dass weder Token
 noch ID darin stehen.
 
