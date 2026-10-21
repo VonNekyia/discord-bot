@@ -438,6 +438,19 @@ export async function mockDiscord(): Promise<MockDiscord> {
   return mock;
 }
 
+// Die Antworten an Discord seit `vorher`, sobald es `zahl` sind. Sie sind echte
+// HTTP-Anfragen an den Mock; ein paar Runden der Ereignisschleife reichen
+// dafür nicht immer, unter Windows oft nicht. Nach `frist` ms wirft es mit
+// der Zahl, die da ist. Siehe docs/entwicklung/tests.md, „Die API des Dashboards“.
+export async function warteAufAntworten(mock: MockDiscord, vorher: number, zahl: number, frist = 2_000): Promise<Antwort[]> {
+  const bis = Date.now() + frist;
+  while (mock.antworten.length - vorher < zahl) {
+    if (Date.now() > bis) throw new Error(`nach ${frist} ms ${mock.antworten.length - vorher} statt ${zahl} Antworten an Discord`);
+    await new Promise((weiter) => setTimeout(weiter, 10));
+  }
+  return mock.antworten.slice(vorher);
+}
+
 export async function schliesse(mock: MockDiscord): Promise<void> {
   mock.server.closeAllConnections();
   await new Promise((fertig) => mock.server.close(fertig));
