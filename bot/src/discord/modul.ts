@@ -147,7 +147,8 @@ export function haengeAn(client: Client, module: readonly DiscordModul[], istAn:
     if (interaction.isAutocomplete()) {
       const besitzer = module.find((m) => m.befehle?.some((b) => b.name === interaction.commandName));
       const server = interaction.guildId;
-      void (besitzer && server ? zustandBis(besitzer, server, istAn, frist) : Promise.resolve('an' as const)).then((z) => schlageVor(interaction, befehle, z === 'an'));
+      void (besitzer && server ? zustandBis(besitzer, server, istAn, frist) : Promise.resolve('an' as const)).then((z) => schlageVor(interaction, befehle, z === 'an'))
+        .catch((e: unknown) => console.error(`/${interaction.commandName}: Vorschläge fehlgeschlagen: ${text(e)}`));
       return;
     }
     if (interaction.isChatInputCommand()) {

@@ -338,4 +338,12 @@ test('Autocomplete: die Vorschläge der Option, höchstens 25; aus oder bei eine
   })], true);
   assert.deepEqual(mock.antworten.find((a) => a.token === drei.token)?.daten, { choices: [] });
   assert.deepEqual(log.mock.calls.map((c) => String(c.arguments[0])), ['/strafe: Vorschläge fehlgeschlagen: Datenbank weg']);
+
+  // Ohne Option im Fokus wirft discord.js; auch dann eine leere Liste und eine Zeile ins Log.
+  const vier = interaktion(client, 4, [{ name: 'grund', type: 3, value: 'sp' }]);
+  assert.ok(vier.i?.isAutocomplete());
+  await schlageVor(vier.i, [mitVorschlaegen(viele)], true);
+  assert.deepEqual(mock.antworten.find((a) => a.token === vier.token)?.daten, { choices: [] });
+  assert.equal(log.mock.calls.length, 2);
+  assert.match(String(log.mock.calls[1]?.arguments[0]), /^\/strafe: Vorschläge fehlgeschlagen: /);
 });

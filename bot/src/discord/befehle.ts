@@ -134,10 +134,11 @@ export async function beantworte(i: ChatInputCommandInteraction, befehle: readon
 // Ohne `an`, ohne Server oder ohne Vorschläge eine leere Liste.
 // Siehe docs/benutzung/managed-commands.md, „Grund“.
 export async function schlageVor(i: AutocompleteInteraction, befehle: readonly Befehl[], an: boolean): Promise<void> {
-  const fokus = i.options.getFocused(true);
-  const option = befehle.find((b) => b.name === i.commandName)?.optionen?.find((o) => o.name === fokus.name);
   let vorschlaege: Vorschlag[] = [];
   try {
+    // Wirft ohne Option im Fokus; auch dann eine leere Liste.
+    const fokus = i.options.getFocused(true);
+    const option = befehle.find((b) => b.name === i.commandName)?.optionen?.find((o) => o.name === fokus.name);
     if (an && i.inCachedGuild() && option?.art === 'text' && option.vorschlaege) vorschlaege = await option.vorschlaege(fokus.value, { server: serverVon(i.guild), wer: personVon(i.user, i.member), rang: rangVon(i.member) });
   } catch (fehler) {
     console.error(`/${i.commandName}: Vorschläge fehlgeschlagen: ${text(fehler)}`);
