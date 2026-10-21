@@ -153,6 +153,7 @@ ebenso. Die Sätze dazu stehen unter „Antworten“.
 | Ziel geht nicht | je Regel aus „Ziel“ ein Satz |
 | dem Bot fehlt ein Recht oder die Hierarchie, Discord antwortet 50013 | „kitty fehlt das Recht dazu, oder die Rolle von kitty steht zu tief.“ |
 | das Mitglied ist schon weg (10007) oder kein Nutzer (10013) | „Diesen Nutzer gibt es auf dem Server nicht mehr.“ |
+| der Bann scheitert, nachdem die DM ankam | der Satz des Fehlers aus dieser Tabelle, dazu „Die DM an das Mitglied kam schon an.“; die DM geht vor dem Bann, weil danach keine mehr ankommt |
 | jeder andere Fehler | „Das hat nicht geklappt.“, siehe [Befehle](befehle.md), „Fehler“ |
 
 Ob die DM ankam, sagt ein Satz; der Befehl geht in jedem Fall weiter:

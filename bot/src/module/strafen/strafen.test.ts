@@ -215,12 +215,23 @@ describe('Managed Commands', { skip: ziel ? false : 'keine Datenbank, DB_HOST fe
     assert.deepEqual(getan, [`ban ${OPFER} Spam · /ban von Moderator`]);
   });
 
-  test('fehlt dem Bot das Recht oder sagt Discord 50013, ein Satz und kein Eintrag; 50007 bei der DM bannt trotzdem', async () => {
+  test('fehlt dem Bot das Recht oder sagt Discord 50013, ein Satz und kein Eintrag; nach der DM sagt er, dass sie ankam; 50007 bei der DM bannt trotzdem', async (t) => {
+    const log = t.mock.method(console, 'error', () => {});
     bot = { ...bot, bannen: false };
     assert.equal(await fall('ban'), 'kitty fehlt das Recht dazu, oder die Rolle von kitty steht zu tief.');
     bot = { ...bot, bannen: true };
     fehler = { banne: new DiscordFehler('kein_recht', 'Missing Permissions') };
+    assert.equal(await fall('ban'), 'kitty fehlt das Recht dazu, oder die Rolle von kitty steht zu tief. Die DM an das Mitglied kam schon an.');
+    assert.ok(getan.some((g) => g.startsWith(`dm ${OPFER} `)));
+    // Ein unerwarteter Fehler nach der DM: der allgemeine Satz, ebenso mit der DM, und eine Zeile ins Log.
+    fehler = { banne: new Error('fetch failed') };
+    assert.equal(await fall('ban'), 'Das hat nicht geklappt. Die DM an das Mitglied kam schon an.');
+    assert.deepEqual(log.mock.calls.map((c) => String(c.arguments[0])), ['/ban: fetch failed']);
+    // Ohne DM in den Einstellungen bleibt es beim Satz allein.
+    einstellung = { ...einstellung, dm: false };
+    fehler = { banne: new DiscordFehler('kein_recht', 'Missing Permissions') };
     assert.equal(await fall('ban'), 'kitty fehlt das Recht dazu, oder die Rolle von kitty steht zu tief.');
+    einstellung = { ...einstellung, dm: true };
     const { rows } = await db.query('SELECT 1 FROM strafaktionen WHERE server = $1', [SERVER]);
     assert.equal(rows.length, 0);
     fehler = { dm: new DiscordFehler('kein_dm', 'Cannot send messages to this user') };

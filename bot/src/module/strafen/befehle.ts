@@ -52,6 +52,8 @@ const dmSatz: Record<DmAusgang, string> = {
   kein_dm: 'Die DM kam nicht an; das Mitglied nimmt keine DMs von kitty an.',
   fehler: 'Die DM kam nicht an.',
 };
+// Scheitert der Bann, nachdem die DM ankam: Das Mitglied hat sie schon.
+const dmSchon = 'Die DM an das Mitglied kam schon an.';
 
 // Die Formulare für den eigenen Grund. Ein Formular muss die erste Antwort
 // sein. Siehe docs/benutzung/managed-commands.md, „Grund“.
@@ -175,8 +177,16 @@ export class Strafbefehle {
         return `Du hast dein Limit erreicht: ${limit} ${wort[art].viele} in 7 Tagen. Der nächste geht ab ${zeitstempel(frei)}.`;
       }
       const dm = art === 'ban' && s.dm && f.ziel.rang ? await this.dm(f, bannDm(s, f.server.name, f.grund)) : undefined;
-      const fehler = await this.tue(f, art);
-      if (fehler) return fehler;
+      let fehler: string | undefined;
+      try {
+        fehler = await this.tue(f, art);
+      } catch (e) {
+        // Ohne DM wie jeder andere Fehler; nach der DM sagt die Antwort, dass sie schon ankam.
+        if (dm !== 'angekommen') throw e;
+        console.error(`/${art}: ${text(e)}`);
+        fehler = fehlgeschlagen;
+      }
+      if (fehler) return dm === 'angekommen' ? `${fehler} ${dmSchon}` : fehler;
       await this.k.db.query('INSERT INTO strafaktionen (server, moderator, art, zeit) VALUES ($1, $2, $3, $4)', [f.server.id, f.wer.id, art, new Date(jetzt)]);
       const teile = [`${f.ziel.person.name} ist ${wort[art].tat}. Grund: ${f.grund}.`];
       if (dm !== undefined) teile.push(dmSatz[dm]);
