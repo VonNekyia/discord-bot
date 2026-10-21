@@ -519,15 +519,9 @@ cd web
 npm test
 ```
 
-`npm test` startet `node --test test/*.test.mjs`, ohne Build:
-
-- Node liest `klient.ts` direkt und entfernt dabei nur die Typen. Darum
-  steht `erasableSyntaxOnly` in `web/tsconfig.json`: `tsc` baut kein
-  TypeScript, das Node so nicht lesen kann, etwa Parameter-Properties
-  oder `enum`.
-- Der Test ist JavaScript. So braucht `web/` kein `@types/node`.
-- Er liegt ausserhalb von `src/`, kommt also nicht nach `dist/`, und
-  `web/serve.mjs` liefert `.mjs` nicht aus.
+`npm test` startet `node --test test/*.test.mjs` ohne Build: Node liest
+`klient.ts` direkt. Warum, und was das für `web/src/` heisst, steht in
+Entscheidung [0023](../entscheidungen/0023-test-der-oberflaeche-ohne-build.md).
 
 `klient.ts` gibt dem Test zwei Exporte:
 

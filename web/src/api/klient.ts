@@ -360,8 +360,6 @@ export const pruefer = {
 
 // Ein Fehler der API mit Status, festem Code und, bei 400, dem Feld.
 // Ohne Antwort oder ohne Code im Body gilt nicht_erreichbar ab 500.
-// Felder ausgeschrieben statt im Konstruktor, damit Node die Datei im Test
-// ohne Build liest (`erasableSyntaxOnly`).
 export class ApiFehler extends Error {
   readonly status: number;
   readonly code: string;

@@ -61,9 +61,8 @@ meldet eine Ausnahme im Code, die nichts mehr abschaltet.
 `bot/` baut für ES2025 (`target` in `bot/tsconfig.json`); er läuft nur auf
 Node 24. `web/` baut für ES2024: Im Browser zählt, was die Besucher haben,
 und `tsc` ergänzt keine fehlenden Funktionen. Beide nutzen
-`verbatimModuleSyntax`. `web/` hat dazu `erasableSyntaxOnly`, weil Node
-`web/src/api/klient.ts` im Test ohne Build liest, siehe
-[Tests](tests.md), „Die Oberfläche“.
+`verbatimModuleSyntax`. `web/` hat dazu `erasableSyntaxOnly`, siehe
+Entscheidung [0023](../entscheidungen/0023-test-der-oberflaeche-ohne-build.md).
 
 Die Regeln verlangen, was diese Fassungen können:
 
