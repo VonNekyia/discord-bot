@@ -97,7 +97,7 @@ async function nach(tue: () => void): Promise<string[]> {
 }
 
 // Eine Interaktion, wie Discord sie schickt.
-function interaktion(type: 2 | 3 | 5, data: object, an: Client = client) {
+function interaktion(type: 2 | 3 | 4 | 5, data: object, an: Client = client) {
   zaehler += 1;
   const aktionen = (an as unknown as { actions: { InteractionCreate: { handle(d: unknown): void } } }).actions;
   aktionen.InteractionCreate.handle({
@@ -256,6 +256,47 @@ test('antwortet die Frage, ob ein Modul an ist, nicht in der Frist, bekommen Bef
     log.mock.calls.map((c) => String(c.arguments[0])),
     ['Board: keine Antwort nach 50 ms', 'Board: keine Antwort nach 50 ms'],
   );
+});
+
+test('Autocomplete: Vorschläge nur, wenn das Modul an ist; aus, mit Fehler oder nach der Frist eine leere Liste', async (t) => {
+  t.mock.method(console, 'error', () => {});
+  let stand: 'an' | 'aus' | 'fehler' | 'langsam' = 'an';
+  const vorschlag = discordClient(mock, [gilde(SERVER, 'Module', '200000000000000099', [kanal(TEXT, ChannelType.GuildText, 'allgemein', 0, null)])]);
+  t.after(() => vorschlag.destroy());
+  const modul: DiscordModul = {
+    name: 'f',
+    schalter: { titel: 'f', hilfe: 'Probe.' },
+    befehle: [
+      {
+        name: 'vorschlag',
+        beschreibung: 'Probe.',
+        optionen: [{ art: 'text', name: 'grund', beschreibung: 'Probe.', hoechstens: 400, vorschlaege: async (eingabe) => [{ name: `Spam ${eingabe}`, wert: 'spam' }] }],
+        ausfuehren: async () => {},
+      },
+    ],
+  };
+  haengeAn(
+    vorschlag,
+    [modul],
+    async () => {
+      if (stand === 'fehler') throw new Error('Datenbank weg');
+      if (stand === 'langsam') await new Promise((ja) => setTimeout(ja, 300));
+      return stand !== 'aus';
+    },
+    50,
+  );
+  // Eine Autocomplete-Interaktion (Typ 4) für die Option grund; die Antwort hat Typ 8.
+  const fragt = async () => {
+    const vorher = mock.antworten.length;
+    interaktion(4, { id: '930000000000000085', name: 'vorschlag', type: 1, options: [{ type: 3, name: 'grund', value: 'sp', focused: true }] }, vorschlag);
+    const [antwort] = await warteAufAntworten(mock, vorher, 1);
+    return [antwort?.typ, (antwort?.daten as { choices?: unknown } | undefined)?.choices];
+  };
+  assert.deepEqual(await fragt(), [8, [{ name: 'Spam sp', value: 'spam' }]]);
+  for (const z of ['aus', 'fehler', 'langsam'] as const) {
+    stand = z;
+    assert.deepEqual(await fragt(), [8, []], z);
+  }
 });
 
 test('meldeBereit: Aufräumen mit allen Servern, bereit nur mit denen, auf denen das Modul an ist', async () => {
