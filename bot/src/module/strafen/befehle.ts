@@ -80,7 +80,7 @@ export class Strafbefehle {
   // ist das Mitglied, wer den Befehl nutzt; die Kette deckt Zählen, DM, Bann
   // oder Kick und Eintragen ab. Bei /warn ist es das Ziel; die Kette deckt
   // DM, Eintragen und Zählen ab, damit „zum n. Mal“ nie zweimal gleich lautet.
-  // ponytail: Sperre nur in diesem Prozess; bedienen einmal zwei Prozesse
+  // Grenze: Sperre nur in diesem Prozess; bedienen einmal zwei Prozesse
   // denselben Server, eine Sperre in PostgreSQL (pg_advisory_xact_lock).
   // Siehe docs/benutzung/managed-commands.md, „Limit“.
   private readonly ketten = new Map<string, Promise<unknown>>();

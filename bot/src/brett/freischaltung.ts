@@ -113,7 +113,7 @@ export class Freischaltung {
   // auch Erstattungen, während der Bot offline war; was nicht verbraucht ist,
   // verbraucht er. Fehlt ein Kauf in der Liste oder scheitert eine Seite,
   // bleibt die Bindung. Das Log nennt nur Zahlen.
-  // ponytail: jeder Durchgang liest alle Käufe jeder gebundenen SKU, je Shard
+  // Grenze: jeder Durchgang liest alle Käufe jeder gebundenen SKU, je Shard
   // einmal; bei vielen Shards je Prozess die Liste einmal lesen und für alle nutzen.
   // Siehe docs/schnittstelle/module.md, „Kauf binden“.
   async gleicheAb(shard: { id: number; anzahl: number }): Promise<void> {
