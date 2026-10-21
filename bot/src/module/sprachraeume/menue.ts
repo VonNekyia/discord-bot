@@ -4,26 +4,28 @@ import type { Auswahl, Formular, Menue } from '../../discord/menue.js';
 // auch nach einem Neustart. Siehe docs/bot/sprachraeume-menue.md, „Knöpfe“.
 export const praefix = 'sprachraum:';
 
-// Zwölf Knöpfe in drei Action Rows: Zugang, Raum, Mitglieder.
+// Zwölf Knöpfe in drei Action Rows: Zugang, Raum, Mitglieder. Je Knopf
+// Aktion, Text und ein Emoji davor, damit man ihn ohne Lesen erkennt; bei
+// 👁, ✏, ℹ und 🕊 gehört U+FE0F dazu, wie Discord diese Emoji führt.
 // Siehe docs/benutzung/sprachraeume.md, „Menü“.
 const reihen = [
   [
-    ['sperren', 'Sperren'],
-    ['entsperren', 'Entsperren'],
-    ['verstecken', 'Verstecken'],
-    ['zeigen', 'Zeigen'],
+    ['sperren', 'Sperren', '🔒'],
+    ['entsperren', 'Entsperren', '🔓'],
+    ['verstecken', 'Verstecken', '👻'],
+    ['zeigen', 'Zeigen', '👁\uFE0F'],
   ],
   [
-    ['umbenennen', 'Umbenennen'],
-    ['limit', 'Limit'],
-    ['uebernehmen', 'Übernehmen'],
-    ['info', 'Info'],
+    ['umbenennen', 'Umbenennen', '✏\uFE0F'],
+    ['limit', 'Limit', '👥'],
+    ['uebernehmen', 'Übernehmen', '👑'],
+    ['info', 'Info', 'ℹ\uFE0F'],
   ],
   [
-    ['rauswerfen', 'Rauswerfen'],
-    ['bannen', 'Bannen'],
-    ['entbannen', 'Entbannen'],
-    ['uebergeben', 'Besitz übergeben'],
+    ['rauswerfen', 'Rauswerfen', '👢'],
+    ['bannen', 'Bannen', '🔨'],
+    ['entbannen', 'Entbannen', '🕊\uFE0F'],
+    ['uebergeben', 'Besitz übergeben', '🤝'],
   ],
 ] as const;
 
@@ -43,7 +45,7 @@ export function menue(): Menue {
       'Der Besitzer steuert den Raum mit den Knöpfen. „Übernehmen“ geht, wenn der Besitzer nicht im Raum ist, „Info“ für alle. ' +
       'Die Antworten sieht nur, wer drückt.',
     reihen: reihen.map((reihe) =>
-      reihe.map(([aktion, text]) => ({ id: praefix + aktion, text, rot: aktion === 'rauswerfen' || aktion === 'bannen' })),
+      reihe.map(([aktion, text, emoji]) => ({ id: praefix + aktion, text, emoji, rot: aktion === 'rauswerfen' || aktion === 'bannen' })),
     ),
   };
 }

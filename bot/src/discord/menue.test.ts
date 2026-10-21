@@ -28,6 +28,30 @@ test('das Menü: Text, drei Reihen mit je vier Knöpfen, rot nur Rauswerfen und 
   assert.ok(knoepfe.filter((k) => k.style !== 4).every((k) => k.style === 2));
 });
 
+test('jeder Knopf trägt sein Emoji als Unicode ohne ID, in der Reihenfolge des Menüs; bei vieren mit U+FE0F', () => {
+  const reihen = (alsNachricht(menue()).components ?? []).map((r) => (r as { toJSON(): { components: { custom_id: string; emoji?: { name?: string; id?: string; animated?: boolean } }[] } }).toJSON());
+  const knoepfe = reihen.flatMap((r) => r.components);
+  // Unicode: ohne ID, nicht animiert.
+  assert.ok(knoepfe.every((k) => k.emoji !== undefined && k.emoji.id === undefined && k.emoji.animated === false));
+  assert.deepEqual(
+    knoepfe.map((k) => [k.custom_id, k.emoji?.name]),
+    [
+      ['sprachraum:sperren', '🔒'],
+      ['sprachraum:entsperren', '🔓'],
+      ['sprachraum:verstecken', '👻'],
+      ['sprachraum:zeigen', '👁\uFE0F'],
+      ['sprachraum:umbenennen', '✏\uFE0F'],
+      ['sprachraum:limit', '👥'],
+      ['sprachraum:uebernehmen', '👑'],
+      ['sprachraum:info', 'ℹ\uFE0F'],
+      ['sprachraum:rauswerfen', '👢'],
+      ['sprachraum:bannen', '🔨'],
+      ['sprachraum:entbannen', '🕊\uFE0F'],
+      ['sprachraum:uebergeben', '🤝'],
+    ],
+  );
+});
+
 test('die Auswahl: die Frage und genau ein Mitglied', () => {
   const a = alsAuswahl(auswahl('bannen'));
   assert.equal(a.content, 'Wen willst du bannen?');
