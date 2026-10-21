@@ -188,11 +188,17 @@ API-Schicht importiert nichts Eigenes, siehe
 
 | Antwort | wie streng | passt sie nicht |
 |---|---|---|
-| `Ich`, `Server[]`, `{ wert, meldung }` beim Speichern, `Satz` einer Aktion, `Debug` | jedes Feld | `nicht_erreichbar`, wie eine Antwort ohne JSON |
+| `Ich`, `Server[]`, `Gespeichert` beim Speichern, `Satz` einer Aktion, `Debug` | jedes Feld | `nicht_erreichbar`, wie eine Antwort ohne JSON |
 | `Seite[]`: der äussere Aufbau jeder Seite, `wert` als Objekt, `saetze`, `fund`, `alleNeu`, wenn da | jedes Feld | die ganze Antwort `nicht_erreichbar`; die Seite geht zurück zur Liste |
 | ein Baustein | jedes Feld seiner Art aus dem Vertrag; optionale nur, wenn da; weitere Felder zählen nicht; ein `link` nur mit `url` ab `https://discord.com/` | er wird `{ art: 'unbekannt', id }` und zur Warnung an seiner Stelle; die übrigen bleiben |
 | eine `liste` | wie ein Baustein, dazu jeder innere Baustein; nur `schalter`, `auswahl`, `text` und `zahl` | die ganze Liste wird zur Warnung |
-| der Body eines Fehlers | `code` und `feld` je als Text | ohne `code`: `nicht_erreichbar` ab 500, sonst `unbekannt` |
+| der Body eines Fehlers, `Fehler` | `code` als Text, `feld` als Text, wenn da | `nicht_erreichbar` ab 500, sonst `unbekannt` |
+
+Die Prüfer der Antworten stehen in `pruefer`, je Typ unter seinem Namen im
+Vertrag; `api` liest jede Antwort über diese Tabelle. Die Prüfer der
+Bausteine stehen in einer Tabelle je Art, und `tsc` verlangt einen für jede
+Art aus dem Vertrag. Beide misst ein Test an den Beispielen des Vertrags,
+siehe [Tests](../entwicklung/tests.md), „Die Oberfläche“.
 
 Hat ein Baustein, der nicht passt, keine `id`, bekommt er eine Ersatz-ID
 nach seiner Stelle, damit zwei solche sich auf der Seite nicht

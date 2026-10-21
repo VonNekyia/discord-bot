@@ -9,6 +9,7 @@
   "scripts": {
     "build": "tsc",
     "lint": "oxlint",
+    "test": "node --test test/*.test.mjs",
     "serve": "node serve.mjs",
     "lighthouse": "lhci autorun --config=./lighthouserc.cjs"
   },

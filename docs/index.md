@@ -55,7 +55,7 @@ einer Datei findet `git grep -l "<pfad>" docs/` ihre Seiten.
 - [Struktur von Bot und Oberfläche](entwicklung/struktur.md): Schichten `kern/`, `discord/`, `api/` und Feature-Module im Bot, Bausteine und Seite in der Oberfläche, wer wen importieren darf, was ein Modul bündelt, die eigene Schicht über discord.js, was vom Umbau noch fehlt.
 - [Lint mit oxlint](entwicklung/lint.md): `npm run lint`, die Regeln und warum, moderne Sprachmittel mit ES2025 im Bot und ES2024 im Web, Tests, Altlasten mit `maxWarnings`, eine Regel begründet abschalten.
 - [Updates mit Renovate](entwicklung/renovate.md): was Renovate wann aktualisiert, Automerge für Minor, Patch und Digest, Bewertung durch den Orchestrator, Konflikte, Labels, Einrichten.
-- [Tests](entwicklung/tests.md): `node --test`, die gemockte Discord-API, der Test der Beispiele des Vertrags, was abgedeckt ist, Tests gegen PostgreSQL.
+- [Tests](entwicklung/tests.md): `node --test`, die gemockte Discord-API, der Test der Beispiele des Vertrags, was abgedeckt ist, Tests gegen PostgreSQL, der Test der Oberfläche an denselben Beispielen.
 
 ## Entscheidungen
 
