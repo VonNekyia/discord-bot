@@ -9,6 +9,7 @@ code:
   - bot/src/api/server.ts
   - bot/src/kern/baukasten.ts
   - web/src/api/klient.ts
+  - .gitattributes
 ---
 
 # 0022: Beispiele im Vertrag statt gemeinsamer Typen
@@ -29,16 +30,24 @@ halten Bot und Oberfläche an ihnen fest:
 
 | Seite | Test | fällt, wenn |
 |---|---|---|
-| Bot | erzeugt jede Antwort mit Fälschungen, fester Uhr und einem Probe-Modul und vergleicht sie genau mit den Dateien | eine Antwort anders aussieht als ihr Beispiel, oder eine Route mit JSON-Body kein Beispiel hat |
-| Oberfläche | gibt jedes Beispiel dem Prüfer seines Typs | ein Prüfer ein Beispiel ablehnt, ein Baustein dabei zu `unbekannt` wird, oder ein Typ, den die Oberfläche prüft, kein Beispiel hat |
+| Bot | erzeugt jede Antwort mit Fälschungen, fester Uhr und einem Probe-Modul und vergleicht sie genau mit den Dateien | eine Antwort anders aussieht als ihr Beispiel, eine Route mit JSON-Body kein Beispiel hat, oder eine Datei liegt, die kein Fall mehr erzeugt |
+| Oberfläche | gibt jedes Beispiel dem Prüfer seines Typs | ein Prüfer ein Beispiel ablehnt, ein Baustein dabei zu `unbekannt` wird, oder ein Typ, eine Art von Baustein oder ein Feld, das die Oberfläche prüft, in keinem Beispiel vorkommt |
 
 - Der Bot schreibt die Dateien selbst neu, mit `BEISPIELE_SCHREIBEN=1`
-  beim Test. Von Hand ändert sie niemand.
+  beim Test. Dabei löscht er Dateien, die kein Fall mehr erzeugt. Von Hand
+  ändert sie niemand.
+- Welche Routen einen JSON-Body haben, steht an jeder Route im Bot als
+  Pflichtfeld. Eine neue Route ohne diese Angabe baut nicht, und der Test
+  verlangt für jede Route mit JSON-Body ein Beispiel.
 - Die Beispiele kommen aus festen Testdaten, nicht aus den Seiten der
   echten Module. Ein neuer Satz in einem Modul ändert sie also nicht, nur
   eine neue Form.
 - Das Probe-Modul nutzt jede Art von Baustein und jedes optionale Feld
-  mindestens einmal, dazu einen `fund`.
+  mindestens einmal, dazu einen `fund`. Es ist so typisiert, dass `tsc`
+  nicht baut, wenn eine Art oder ein optionales Feld darin fehlt.
+- Ein Beispiel mit einem `typ`, den die Oberfläche noch nicht prüft,
+  überspringt ihr Test sichtbar, statt zu fallen. So kann der Bot eine
+  Route anbieten, bevor die Oberfläche sie nutzt.
 - Ein Bruch geht in zwei Schritten: Zuerst nimmt die Oberfläche die alte
   und die neue Form an, danach ändert der Bot seine Antwort und die
   Beispiele. So bleibt `main` in beiden Jobs grün, und Backend und
@@ -76,6 +85,8 @@ halten Bot und Oberfläche an ihnen fest:
 - Die Typen in den Markdown-Seiten des Vertrags bleiben von Hand
   geschrieben. Die Beispiele daneben sind aber geprüft. Wer den Vertrag
   ändert, schaut, ob sie noch dazu passen.
-- Ein neues optionales Feld fängt der Test nur, wenn das Probe-Modul es
-  nutzt. Wer ein Feld einführt, nimmt es dort auf.
-- Die Beispiele zeigen nur erfundene Werte (Regel 21).
+- Ein neues Feld oder eine neue Art von Baustein muss ins Probe-Modul,
+  sonst baut der Bot nicht. Das kostet bei jeder solchen Änderung ein paar
+  Zeilen im Test.
+- Die Beispiele zeigen nur erfundene Werte (Regel 21). Sie haben auch
+  unter Windows `\n` am Zeilenende, über `.gitattributes`.

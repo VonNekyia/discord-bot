@@ -134,7 +134,8 @@ werden in der CI an ihnen gemessen, siehe Entscheidung
 
 - **Typen mit Beispiel:** `Ich`, `Server[]`, `Debug`, `Seite[]`,
   `Gespeichert`, `Satz` und `Fehler`. Von jedem gibt es mindestens ein
-  Beispiel; `Fehler` einmal mit `feld` und einmal ohne.
+  Beispiel. `Fehler` steht allgemein da, nicht je Route: einmal mit `feld`
+  und einmal ohne.
 - **Bausteine:** Die Beispiele für `Seite[]` zeigen zusammen jede Art von
   Baustein und jedes optionale Feld mindestens einmal, dazu einen `fund`.
 - **Werte:** nur erfundene (`AGENTS.md`, Regel 21). IDs wie
@@ -142,7 +143,11 @@ werden in der CI an ihnen gemessen, siehe Entscheidung
 - **Name der Datei:** klein, ASCII, mit `-`, etwa `ich.json` oder
   `fehler-feld.json`.
 - **Wer schreibt:** Die Dateien schreibt der Test des Bots mit
-  `BEISPIELE_SCHREIBEN=1`, nicht die Hand.
+  `BEISPIELE_SCHREIBEN=1`, nicht die Hand. Eine Datei, die kein Fall mehr
+  erzeugt, löscht er dabei; ohne die Variable lässt sie seinen Test
+  fallen.
+- **Unbekannter Typ:** Ein Beispiel mit einem `typ`, den die Oberfläche
+  noch nicht prüft, überspringt ihr Test sichtbar.
 
 Wer einen Typ ändert, ändert erst diese Seiten, dann Bot und Oberfläche.
 Nimmt die Oberfläche die neue Form noch nicht an, kommt ihre PR zuerst und
